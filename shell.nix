@@ -1,3 +1,5 @@
+# TODO: pin nixpkgs version
+
 #
 # Adapted from: https://nixos.wiki/wiki/Rust
 #
