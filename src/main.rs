@@ -1,12 +1,18 @@
+#![feature(once_cell)]
+
 use bracket_lib::prelude::{BTerm, FontCharType, GameState, VirtualKeyCode, RGB};
+use bracket_lib::terminal::BTermBuilder;
 use specs::prelude::*;
 use specs_derive::Component;
+use std::cell::OnceCell;
 use std::cmp::{max, min};
+use std::convert::TryInto;
+use std::sync::Arc;
 
 #[derive(Component)]
 struct Position {
-    xx: i32,
-    yy: i32,
+    xx: u32,
+    yy: u32,
 }
 
 #[derive(Component)]
@@ -19,10 +25,30 @@ struct Renderable {
 #[derive(Component)]
 struct LeftMover {}
 
-struct State {
+struct State<'a> {
     ecs: World,
+    context: &'a BTerm,
+    display: DisplayState,
 }
 
+const STATE: OnceCell<State> = OnceCell::new();
+
+fn init_state<'a>(ctxt: &'a BTerm) -> State {
+    let ctxt = BTermBuilder::simple80x50()
+        .with_title("Rusty Rogue")
+        .build()
+        .unwrap(); // TODO: better error handling from software tools
+    let termWidth = ctxt.get_char_size().0;
+    let termHeight = ctxt.get_char_size().1;
+    State {
+        ecs: World::new(),
+        context: &ctxt,
+        display: DisplayState {
+            width: termWidth,
+            height: termHeight,
+        },
+    }
+}
 impl State {
     fn run_systems(&mut self) {
         let mut lw = LeftWalker {};
@@ -31,7 +57,21 @@ impl State {
     }
 }
 
+struct DisplayState {
+    width: u32,
+    height: u32,
+}
+
+impl DisplayState {
+    fn width_i32(&self) -> i32 {
+        self.width as i32
+    }
+    fn height_i32(&self) -> i32 {
+        self.height as i32
+    }
+}
 impl GameState for State {
+    // TODO: read about lifetimes ^^
     fn tick(&mut self, ctx: &mut BTerm) {
         ctx.cls();
         player_input(self, ctx);
@@ -49,6 +89,7 @@ impl GameState for State {
 #[derive(Component, Debug)]
 struct Player {}
 
+// TODO: add a ref to global state?
 struct LeftWalker {}
 
 impl<'a> System<'a> for LeftWalker {
@@ -56,22 +97,28 @@ impl<'a> System<'a> for LeftWalker {
 
     fn run(&mut self, (lefty, mut pos): Self::SystemData) {
         (&lefty, &mut pos).join().for_each(|(_lefty, pos)| {
-            pos.xx -= 1;
-            if pos.xx < 0 {
-                pos.xx = 79; // TODO: reference from config/state
+            if pos.xx == 0 {
+                pos.xx = STATE.get_or_init(init_state).display.width - 1
+            } else {
+                pos.xx -= 1
             }
         })
     }
 }
 
+#[derive(PartialEq, Clone, Copy)]
+enum TileType {
+    Wall,
+    Floor,
+}
+
 fn main() {
     use bracket_lib::prelude::BTermBuilder;
-    let context = BTermBuilder::simple80x50()
-        .with_title("Rusty Rogue")
-        .build()
-        .unwrap(); // TODO: better error handling from software tools
 
-    let mut gs = State { ecs: World::new() };
+    let mut gs = init_state();
+
+    STATE.set(gs);
+
     gs.ecs.register::<Position>();
     gs.ecs.register::<Renderable>();
     gs.ecs.register::<LeftMover>();
@@ -82,7 +129,7 @@ fn main() {
     build_entity_player(&mut gs);
     build_entities_happy_folk(&mut gs);
 
-    bracket_lib::prelude::main_loop(context, gs).unwrap()
+    bracket_lib::prelude::main_loop(*(gs.context), gs).unwrap()
 }
 
 fn build_entity_player(gs: &mut State) -> Entity {
@@ -115,14 +162,18 @@ fn build_entities_happy_folk(gs: &mut State) -> Vec<Entity> {
         .collect()
 }
 
-fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
-    let mut positions = ecs.write_storage::<Position>();
-    let mut players = ecs.write_storage::<Player>();
+fn try_move_player(delta_x: i32, delta_y: i32, gs: &mut State) {
+    let mut positions = gs.ecs.write_storage::<Position>();
+    let mut players = gs.ecs.write_storage::<Player>();
     (&mut players, &mut positions)
         .join()
         .for_each(|(_player, pos)| {
-            pos.xx = min(79, max(0, pos.xx + delta_x));
-            pos.yy = min(49, max(0, pos.yy + delta_y));
+            let xx_i32 = i32::try_from(pos.xx).unwrap();
+            let yy_i32 = i32::try_from(pos.yy).unwrap();
+            pos.xx =
+                u32::try_from(min(gs.display.width_i32() - 1, max(0, xx_i32 + delta_x))).unwrap();
+            pos.yy =
+                u32::try_from(min(gs.display.height_i32() - 1, max(0, yy_i32 + delta_y))).unwrap();
         })
 }
 
@@ -131,10 +182,10 @@ fn player_input(gs: &mut State, ctx: &mut BTerm) {
         None => {}
         Some(key) => match key {
             // Player Movement
-            VirtualKeyCode::Left => try_move_player(-1, 0, &mut gs.ecs),
-            VirtualKeyCode::Right => try_move_player(1, 0, &mut gs.ecs),
-            VirtualKeyCode::Up => try_move_player(0, -1, &mut gs.ecs),
-            VirtualKeyCode::Down => try_move_player(0, 1, &mut gs.ecs),
+            VirtualKeyCode::Left => try_move_player(-1, 0, gs),
+            VirtualKeyCode::Right => try_move_player(1, 0, gs),
+            VirtualKeyCode::Up => try_move_player(0, -1, gs),
+            VirtualKeyCode::Down => try_move_player(0, 1, gs),
             _ => {}
         },
     }
