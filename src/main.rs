@@ -5,8 +5,8 @@ use std::cmp::{max, min};
 
 #[derive(Component)]
 struct Position {
-    xx: i32,
-    yy: i32,
+    xx: u32,
+    yy: u32,
 }
 
 #[derive(Component)]
@@ -47,7 +47,9 @@ struct State {
 
 impl State {
     fn run_systems(&mut self) {
-        let mut lw = LeftWalker {};
+        let mut lw = LeftWalker {
+            display: &self.display,
+        };
         lw.run_now(&self.ecs);
         self.ecs.maintain();
     }
@@ -73,16 +75,19 @@ impl GameState for State {
 #[derive(Component, Debug)]
 struct Player {}
 
-struct LeftWalker {}
+struct LeftWalker<'a> {
+    display: &'a DisplayState,
+}
 
-impl<'a> System<'a> for LeftWalker {
+impl<'a> System<'a> for LeftWalker<'a> {
     type SystemData = (ReadStorage<'a, LeftMover>, WriteStorage<'a, Position>);
 
     fn run(&mut self, (lefty, mut pos): Self::SystemData) {
         (&lefty, &mut pos).join().for_each(|(_lefty, pos)| {
-            pos.xx -= 1;
-            if pos.xx < 0 {
-                pos.xx = 79; // TODO: reference from config/state
+            if pos.xx == 0 {
+                pos.xx = self.display.width - 1;
+            } else {
+                pos.xx -= 1
             }
         })
     }
@@ -142,14 +147,18 @@ fn build_entities_happy_folk(gs: &mut State) -> Vec<Entity> {
         .collect()
 }
 
-fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
-    let mut positions = ecs.write_storage::<Position>();
-    let mut players = ecs.write_storage::<Player>();
+fn try_move_player(delta_x: i32, delta_y: i32, gs: &mut State) {
+    let mut positions = gs.ecs.write_storage::<Position>();
+    let mut players = gs.ecs.write_storage::<Player>();
     (&mut players, &mut positions)
         .join()
         .for_each(|(_player, pos)| {
-            pos.xx = min(79, max(0, pos.xx + delta_x));
-            pos.yy = min(49, max(0, pos.yy + delta_y));
+            let xx_i32 = i32::try_from(pos.xx).unwrap();
+            let yy_i32 = i32::try_from(pos.yy).unwrap();
+            pos.xx =
+                u32::try_from(min(gs.display.width_i32() - 1, max(0, xx_i32 + delta_x))).unwrap();
+            pos.yy =
+                u32::try_from(min(gs.display.height_i32() - 1, max(0, yy_i32 + delta_y))).unwrap();
         })
 }
 
@@ -158,10 +167,10 @@ fn player_input(gs: &mut State, ctx: &mut BTerm) {
         None => {}
         Some(key) => match key {
             // Player Movement
-            VirtualKeyCode::Left => try_move_player(-1, 0, &mut gs.ecs),
-            VirtualKeyCode::Right => try_move_player(1, 0, &mut gs.ecs),
-            VirtualKeyCode::Up => try_move_player(0, -1, &mut gs.ecs),
-            VirtualKeyCode::Down => try_move_player(0, 1, &mut gs.ecs),
+            VirtualKeyCode::Left => try_move_player(-1, 0, gs),
+            VirtualKeyCode::Right => try_move_player(1, 0, gs),
+            VirtualKeyCode::Up => try_move_player(0, -1, gs),
+            VirtualKeyCode::Down => try_move_player(0, 1, gs),
             _ => {}
         },
     }
