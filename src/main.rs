@@ -19,7 +19,29 @@ struct Renderable {
 #[derive(Component)]
 struct LeftMover {}
 
+struct DisplayState {
+    width: u32,
+    height: u32,
+}
+
+impl DisplayState {
+    fn width_i32(&self) -> i32 {
+        self.width as i32
+    }
+    fn height_i32(&self) -> i32 {
+        self.height as i32
+    }
+}
+
+fn calc_display_state(ctxt: &BTerm) -> DisplayState {
+    DisplayState {
+        width: ctxt.get_char_size().0,
+        height: ctxt.get_char_size().1,
+    }
+}
+
 struct State {
+    display: DisplayState,
     ecs: World,
 }
 
@@ -33,6 +55,8 @@ impl State {
 
 impl GameState for State {
     fn tick(&mut self, ctx: &mut BTerm) {
+        self.display = calc_display_state(ctx);
+
         ctx.cls();
         player_input(self, ctx);
 
@@ -71,7 +95,10 @@ fn main() {
         .build()
         .unwrap(); // TODO: better error handling from software tools
 
-    let mut gs = State { ecs: World::new() };
+    let mut gs = State {
+        ecs: World::new(),
+        display: calc_display_state(&context),
+    };
     gs.ecs.register::<Position>();
     gs.ecs.register::<Renderable>();
     gs.ecs.register::<LeftMover>();
