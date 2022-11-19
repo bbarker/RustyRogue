@@ -3,6 +3,12 @@ use specs::prelude::*;
 use specs_derive::Component;
 use std::cmp::{max, min};
 
+pub mod display_state;
+pub mod maps;
+
+use display_state::*;
+use maps::*;
+
 #[derive(Component)]
 struct Position {
     xx: u32,
@@ -18,27 +24,6 @@ struct Renderable {
 
 #[derive(Component)]
 struct LeftMover {}
-
-struct DisplayState {
-    width: u32,
-    height: u32,
-}
-
-impl DisplayState {
-    fn width_i32(&self) -> i32 {
-        self.width as i32
-    }
-    fn height_i32(&self) -> i32 {
-        self.height as i32
-    }
-}
-
-fn calc_display_state(ctxt: &BTerm) -> DisplayState {
-    DisplayState {
-        width: ctxt.get_char_size().0,
-        height: ctxt.get_char_size().1,
-    }
-}
 
 struct State {
     display: DisplayState,
