@@ -103,7 +103,6 @@ fn main() {
     // Note we aren't storing the entity, just telling the World it is there.
     // FIXME: unit discard warning?
     build_entity_player(&mut gs);
-    build_entities_happy_folk(&mut gs);
 
     bracket_lib::prelude::main_loop(context, gs).unwrap()
 }
@@ -121,6 +120,7 @@ fn build_entity_player(gs: &mut State) -> Entity {
         .build()
 }
 
+/*
 fn build_entities_happy_folk(gs: &mut State) -> Vec<Entity> {
     (0..10)
         .map(|ii| {
@@ -137,6 +137,7 @@ fn build_entities_happy_folk(gs: &mut State) -> Vec<Entity> {
         })
         .collect()
 }
+*/
 
 fn try_move_player(delta_x: i32, delta_y: i32, gs: &mut State) {
     let mut positions = gs.ecs.write_storage::<Position>();
@@ -146,14 +147,20 @@ fn try_move_player(delta_x: i32, delta_y: i32, gs: &mut State) {
         .for_each(|(_player, pos)| {
             let xx_i32 = i32::try_from(pos.xx).unwrap();
             let yy_i32 = i32::try_from(pos.yy).unwrap();
-            pos.xx = (xx_i32 + delta_x)
+            let try_xx: u32 = (xx_i32 + delta_x)
                 .clamp(0, gs.display.width_i32() - 1)
                 .try_into()
                 .unwrap();
-            pos.yy = (yy_i32 + delta_y)
+            let try_yy: u32 = (yy_i32 + delta_y)
                 .clamp(0, gs.display.height_i32() - 1)
                 .try_into()
                 .unwrap();
+            let destination_ix = xy_idx(&gs.display, try_xx, try_yy);
+            let map = gs.ecs.fetch::<Vec<TileType>>();
+            if map[destination_ix] != TileType::Wall {
+                pos.xx = try_xx;
+                pos.yy = try_yy;
+            }
         })
 }
 
