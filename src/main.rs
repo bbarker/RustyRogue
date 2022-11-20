@@ -1,7 +1,6 @@
 use bracket_lib::prelude::{BTerm, FontCharType, GameState, VirtualKeyCode, RGB};
 use specs::prelude::*;
 use specs_derive::Component;
-use std::cmp::{max, min};
 
 pub mod display_state;
 pub mod maps;
@@ -10,7 +9,7 @@ use display_state::*;
 use maps::*;
 
 #[derive(Component)]
-struct Position {
+pub struct Position {
     xx: u32,
     yy: u32,
 }
@@ -49,6 +48,9 @@ impl GameState for State {
 
         self.run_systems();
 
+        let map = self.ecs.fetch::<Vec<TileType>>();
+        draw_map(ctx, &self.display, &map);
+
         let positions = self.ecs.read_storage::<Position>();
         let renderables = self.ecs.read_storage::<Renderable>();
         (&positions, &renderables).join().for_each(|(pos, render)| {
@@ -63,6 +65,8 @@ struct Player {}
 struct LeftWalker<'a> {
     display: &'a DisplayState,
 }
+
+const INIT_PLAYER_POSITION: Position = Position { xx: 40, yy: 25 };
 
 impl<'a> System<'a> for LeftWalker<'a> {
     type SystemData = (ReadStorage<'a, LeftMover>, WriteStorage<'a, Position>);
@@ -94,6 +98,8 @@ fn main() {
     gs.ecs.register::<LeftMover>();
     gs.ecs.register::<Player>();
 
+    gs.ecs.insert(new_map(&gs.display, &INIT_PLAYER_POSITION));
+
     // Note we aren't storing the entity, just telling the World it is there.
     // FIXME: unit discard warning?
     build_entity_player(&mut gs);
@@ -105,7 +111,7 @@ fn main() {
 fn build_entity_player(gs: &mut State) -> Entity {
     gs.ecs
         .create_entity()
-        .with(Position { xx: 40, yy: 25 })
+        .with(INIT_PLAYER_POSITION)
         .with(Renderable {
             glyph: bracket_lib::prelude::to_cp437('@'),
             fg: RGB::named(bracket_lib::prelude::YELLOW),
@@ -140,10 +146,14 @@ fn try_move_player(delta_x: i32, delta_y: i32, gs: &mut State) {
         .for_each(|(_player, pos)| {
             let xx_i32 = i32::try_from(pos.xx).unwrap();
             let yy_i32 = i32::try_from(pos.yy).unwrap();
-            pos.xx =
-                u32::try_from(min(gs.display.width_i32() - 1, max(0, xx_i32 + delta_x))).unwrap();
-            pos.yy =
-                u32::try_from(min(gs.display.height_i32() - 1, max(0, yy_i32 + delta_y))).unwrap();
+            pos.xx = (xx_i32 + delta_x)
+                .clamp(0, gs.display.width_i32() - 1)
+                .try_into()
+                .unwrap();
+            pos.yy = (yy_i32 + delta_y)
+                .clamp(0, gs.display.height_i32() - 1)
+                .try_into()
+                .unwrap();
         })
 }
 

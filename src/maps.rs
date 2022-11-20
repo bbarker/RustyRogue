@@ -1,3 +1,5 @@
+use bracket_lib::terminal::{BTerm, RGB};
+
 use crate::{display_state::*, Position};
 
 #[derive(PartialEq, Copy, Clone)]
@@ -10,7 +12,17 @@ pub fn xy_idx(display: &DisplayState, xx: u32, yy: u32) -> usize {
     ((yy * display.width) + xx).try_into().unwrap()
 }
 
-fn new_map(display: &DisplayState, player_position: Position) -> Vec<TileType> {
+pub fn idx_to_xy(display: &DisplayState, ix: usize) -> Position {
+    let display_width: usize = display.width.try_into().unwrap();
+    let xx = ix % display_width;
+    let yy = ix / display_width;
+    Position {
+        xx: xx.try_into().unwrap(),
+        yy: yy.try_into().unwrap(),
+    }
+}
+
+pub fn new_map(display: &DisplayState, player_position: &Position) -> Vec<TileType> {
     let mut map = vec![TileType::Floor; (display.width * display.height).try_into().unwrap()];
     (0..display.width).for_each(|xx| {
         map[xy_idx(display, xx, 0)] = TileType::Wall;
@@ -37,4 +49,26 @@ fn new_map(display: &DisplayState, player_position: Position) -> Vec<TileType> {
         }
     });
     map
+}
+
+pub fn draw_map(ctx: &mut BTerm, display: &DisplayState, map: &[TileType]) {
+    map.iter().enumerate().for_each(|(ix, tile)| {
+        let tile_pos = idx_to_xy(display, ix);
+        match tile {
+            TileType::Floor => ctx.set(
+                tile_pos.xx,
+                tile_pos.yy,
+                RGB::from_f32(0.5, 0.5, 0.5),
+                RGB::from_f32(0., 0., 0.),
+                bracket_lib::prelude::to_cp437('.'),
+            ),
+            TileType::Wall => ctx.set(
+                tile_pos.xx,
+                tile_pos.yy,
+                RGB::from_f32(0., 1.0, 0.),
+                RGB::from_f32(0., 0., 0.),
+                bracket_lib::prelude::to_cp437('#'),
+            ),
+        }
+    })
 }
