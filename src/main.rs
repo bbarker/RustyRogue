@@ -4,6 +4,7 @@ use specs_derive::Component;
 
 pub mod display_state;
 pub mod maps;
+pub mod rect;
 
 use display_state::*;
 use maps::*;
@@ -98,7 +99,10 @@ fn main() {
     gs.ecs.register::<LeftMover>();
     gs.ecs.register::<Player>();
 
-    gs.ecs.insert(new_map(&gs.display, &INIT_PLAYER_POSITION));
+    gs.ecs.insert(new_map_rooms_and_corridors(
+        &gs.display,
+        &INIT_PLAYER_POSITION,
+    ));
 
     // Note we aren't storing the entity, just telling the World it is there.
     // FIXME: unit discard warning?
