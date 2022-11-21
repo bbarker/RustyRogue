@@ -1,6 +1,9 @@
 use bracket_lib::terminal::{BTerm, RGB};
+use itertools::Itertools;
 
 use crate::{display_state::*, Position};
+
+use crate::rect::*;
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum TileType {
@@ -22,7 +25,24 @@ pub fn idx_to_xy(display: &DisplayState, ix: usize) -> Position {
     }
 }
 
-pub fn new_map(display: &DisplayState, player_position: &Position) -> Vec<TileType> {
+pub fn new_map_rooms_and_corridors(
+    display: &DisplayState,
+    player_position: &Position,
+) -> Vec<TileType> {
+    let mut map = vec![TileType::Wall; (display.width * display.height).try_into().unwrap()];
+    map
+}
+
+fn apply_room_to_map(display: &DisplayState, room: &Rect, map: &mut [TileType]) {
+    (room.y1..=room.y2)
+        .cartesian_product(room.x1..=room.x2)
+        .for_each(|(xx, yy)| {
+            map[xy_idx(display, xx, yy)] = TileType::Floor;
+        })
+}
+
+/// Makes a map with solid boundaries and randomly placed walls
+pub fn new_map_test(display: &DisplayState, player_position: &Position) -> Vec<TileType> {
     let mut map = vec![TileType::Floor; (display.width * display.height).try_into().unwrap()];
     (0..display.width).for_each(|xx| {
         map[xy_idx(display, xx, 0)] = TileType::Wall;
