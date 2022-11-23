@@ -1,14 +1,14 @@
-use crate::Position;
+use crate::{Position, PSN_U};
 
 pub struct Rect {
-    pub x1: u32,
-    pub x2: u32,
-    pub y1: u32,
-    pub y2: u32,
+    pub x1: PSN_U,
+    pub x2: PSN_U,
+    pub y1: PSN_U,
+    pub y2: PSN_U,
 }
 
 impl Rect {
-    pub fn new(xx: u32, yy: u32, ww: u32, hh: u32) -> Rect {
+    pub fn new(xx: PSN_U, yy: PSN_U, ww: PSN_U, hh: PSN_U) -> Rect {
         Rect {
             x1: xx,
             y1: yy,

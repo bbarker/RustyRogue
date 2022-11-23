@@ -1,8 +1,10 @@
 use bracket_lib::terminal::BTerm;
 
+use crate::PSN_U;
+
 pub struct DisplayState {
-    pub width: u32,
-    pub height: u32,
+    pub width: PSN_U,
+    pub height: PSN_U,
 }
 
 impl DisplayState {
@@ -15,8 +17,9 @@ impl DisplayState {
 }
 
 pub fn calc_display_state(ctxt: &BTerm) -> DisplayState {
+    let ctxt_char_size = ctxt.get_char_size();
     DisplayState {
-        width: ctxt.get_char_size().0,
-        height: ctxt.get_char_size().1,
+        width: ctxt_char_size.0.try_into().unwrap(),
+        height: ctxt_char_size.1.try_into().unwrap(),
     }
 }

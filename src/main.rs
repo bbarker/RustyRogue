@@ -9,10 +9,12 @@ pub mod rect;
 use display_state::*;
 use maps::*;
 
+pub type PSN_U = u16;
+
 #[derive(Component)]
 pub struct Position {
-    xx: u32,
-    yy: u32,
+    xx: PSN_U,
+    yy: PSN_U,
 }
 
 #[derive(Component)]
@@ -151,11 +153,11 @@ fn try_move_player(delta_x: i32, delta_y: i32, gs: &mut State) {
         .for_each(|(_player, pos)| {
             let xx_i32 = i32::try_from(pos.xx).unwrap();
             let yy_i32 = i32::try_from(pos.yy).unwrap();
-            let try_xx: u32 = (xx_i32 + delta_x)
+            let try_xx: PSN_U = (xx_i32 + delta_x)
                 .clamp(0, gs.display.width_i32() - 1)
                 .try_into()
                 .unwrap();
-            let try_yy: u32 = (yy_i32 + delta_y)
+            let try_yy: PSN_U = (yy_i32 + delta_y)
                 .clamp(0, gs.display.height_i32() - 1)
                 .try_into()
                 .unwrap();

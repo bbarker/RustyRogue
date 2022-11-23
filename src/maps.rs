@@ -2,7 +2,7 @@ use bracket_lib::terminal::{BTerm, RGB};
 use itertools::Itertools;
 use std::cmp::{max, min};
 
-use crate::{display_state::*, Position, INIT_PLAYER_POSITION};
+use crate::{display_state::*, Position, INIT_PLAYER_POSITION, PSN_U};
 
 use crate::rect::*;
 
@@ -12,7 +12,7 @@ pub enum TileType {
     Floor,
 }
 
-pub fn xy_idx(display: &DisplayState, xx: u32, yy: u32) -> usize {
+pub fn xy_idx(display: &DisplayState, xx: PSN_U, yy: PSN_U) -> usize {
     ((yy * display.width) + xx).try_into().unwrap()
 }
 
@@ -28,7 +28,7 @@ pub fn idx_to_xy(display: &DisplayState, ix: usize) -> Position {
 
 pub fn new_map_rooms_and_corridors(
     display: &DisplayState,
-    player_position: &Position,
+    _player_position: &Position,
 ) -> Vec<TileType> {
     let mut map = vec![TileType::Wall; (display.width * display.height).try_into().unwrap()];
     let room1 = Rect::new(20, 15, 10, 15);
@@ -48,7 +48,13 @@ fn map_room(display: &DisplayState, room: &Rect, map: &mut [TileType]) {
         })
 }
 
-fn map_horizontal_tunnel(display: &DisplayState, map: &mut [TileType], x1: u32, x2: u32, yy: u32) {
+fn map_horizontal_tunnel(
+    display: &DisplayState,
+    map: &mut [TileType],
+    x1: PSN_U,
+    x2: PSN_U,
+    yy: PSN_U,
+) {
     (min(x1, x2)..=max(x1, x2)).for_each(|xx| {
         let ix = xy_idx(display, xx, yy);
         if ix > 0 && ix < (display.width * display.height).try_into().unwrap() {
@@ -57,7 +63,13 @@ fn map_horizontal_tunnel(display: &DisplayState, map: &mut [TileType], x1: u32, 
     })
 }
 
-fn map_vertical_tunnel(display: &DisplayState, map: &mut [TileType], y1: u32, y2: u32, xx: u32) {
+fn _map_vertical_tunnel(
+    display: &DisplayState,
+    map: &mut [TileType],
+    y1: PSN_U,
+    y2: PSN_U,
+    xx: PSN_U,
+) {
     (min(y1, y2)..=max(y1, y2)).for_each(|yy| {
         let ix = xy_idx(display, xx, yy);
         if ix > 0 && ix < (display.width * display.height).try_into().unwrap() {
