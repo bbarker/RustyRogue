@@ -1,7 +1,8 @@
 use bracket_lib::terminal::{BTerm, RGB};
 use itertools::Itertools;
+use std::cmp::{max, min};
 
-use crate::{display_state::*, Position};
+use crate::{display_state::*, Position, INIT_PLAYER_POSITION};
 
 use crate::rect::*;
 
@@ -30,15 +31,39 @@ pub fn new_map_rooms_and_corridors(
     player_position: &Position,
 ) -> Vec<TileType> {
     let mut map = vec![TileType::Wall; (display.width * display.height).try_into().unwrap()];
+    let room1 = Rect::new(20, 15, 10, 15);
+    let room2 = Rect::new(35, 15, 10, 15);
+
+    map_room(display, &room1, &mut map);
+    map_room(display, &room2, &mut map);
+    map_horizontal_tunnel(display, &mut map, 25, 40, INIT_PLAYER_POSITION.yy);
     map
 }
 
-fn apply_room_to_map(display: &DisplayState, room: &Rect, map: &mut [TileType]) {
-    (room.y1..=room.y2)
-        .cartesian_product(room.x1..=room.x2)
+fn map_room(display: &DisplayState, room: &Rect, map: &mut [TileType]) {
+    (room.x1..=room.x2)
+        .cartesian_product(room.y1..=room.y2)
         .for_each(|(xx, yy)| {
             map[xy_idx(display, xx, yy)] = TileType::Floor;
         })
+}
+
+fn map_horizontal_tunnel(display: &DisplayState, map: &mut [TileType], x1: u32, x2: u32, yy: u32) {
+    (min(x1, x2)..=max(x1, x2)).for_each(|xx| {
+        let ix = xy_idx(display, xx, yy);
+        if ix > 0 && ix < (display.width * display.height).try_into().unwrap() {
+            map[ix] = TileType::Floor;
+        }
+    })
+}
+
+fn map_vertical_tunnel(display: &DisplayState, map: &mut [TileType], y1: u32, y2: u32, xx: u32) {
+    (min(y1, y2)..=max(y1, y2)).for_each(|yy| {
+        let ix = xy_idx(display, xx, yy);
+        if ix > 0 && ix < (display.width * display.height).try_into().unwrap() {
+            map[ix] = TileType::Floor;
+        }
+    })
 }
 
 /// Makes a map with solid boundaries and randomly placed walls
