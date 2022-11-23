@@ -1,10 +1,10 @@
 use bracket_lib::terminal::BTerm;
 
-use crate::PSN_U;
+use crate::PsnU;
 
 pub struct DisplayState {
-    pub width: PSN_U,
-    pub height: PSN_U,
+    pub width: PsnU,
+    pub height: PsnU,
 }
 
 impl DisplayState {
