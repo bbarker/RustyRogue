@@ -1,3 +1,4 @@
+use bracket_lib::random::RandomNumberGenerator;
 use bracket_lib::terminal::{BTerm, RGB};
 use itertools::Itertools;
 use std::cmp::{max, min};
@@ -31,11 +32,31 @@ pub fn new_map_rooms_and_corridors(
     _player_position: &Position,
 ) -> Vec<TileType> {
     let mut map = vec![TileType::Wall; (display.width * display.height).try_into().unwrap()];
-    let room1 = Rect::new(20, 15, 10, 15);
-    let room2 = Rect::new(35, 15, 10, 15);
 
-    map_room(display, &room1, &mut map);
-    map_room(display, &room2, &mut map);
+    let mut rooms: Vec<Rect> = Vec::new();
+    const MAX_ROOMS: u16 = 30;
+    const MIN_SIZE: PsnU = 6;
+    const MAX_SIZE: PsnU = 10;
+
+    let mut rng = RandomNumberGenerator::new();
+
+    (0..MAX_ROOMS).for_each(|_| {
+        let ww = rng.range(MIN_SIZE, MAX_SIZE);
+        let hh = rng.range(MIN_SIZE, MAX_SIZE);
+        let xx = rng.range(1, display.width - ww - 1);
+        let yy = rng.range(1, display.height - hh - 1);
+
+        let new_room = Rect::new(xx, yy, ww, hh);
+
+        let room_ok = rooms
+            .iter()
+            .all(|other_room| !new_room.intersect(other_room));
+        if room_ok {
+            map_room(display, &new_room, &mut map);
+            rooms.push(new_room)
+        }
+    });
+
     map_horizontal_tunnel(display, &mut map, 25, 40, INIT_PLAYER_POSITION.yy);
     map
 }
