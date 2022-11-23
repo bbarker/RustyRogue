@@ -2,7 +2,7 @@ use bracket_lib::terminal::{BTerm, RGB};
 use itertools::Itertools;
 use std::cmp::{max, min};
 
-use crate::{display_state::*, Position, INIT_PLAYER_POSITION, PSN_U};
+use crate::{display_state::*, Position, PsnU, INIT_PLAYER_POSITION};
 
 use crate::rect::*;
 
@@ -12,7 +12,7 @@ pub enum TileType {
     Floor,
 }
 
-pub fn xy_idx(display: &DisplayState, xx: PSN_U, yy: PSN_U) -> usize {
+pub fn xy_idx(display: &DisplayState, xx: PsnU, yy: PsnU) -> usize {
     ((yy * display.width) + xx).try_into().unwrap()
 }
 
@@ -51,9 +51,9 @@ fn map_room(display: &DisplayState, room: &Rect, map: &mut [TileType]) {
 fn map_horizontal_tunnel(
     display: &DisplayState,
     map: &mut [TileType],
-    x1: PSN_U,
-    x2: PSN_U,
-    yy: PSN_U,
+    x1: PsnU,
+    x2: PsnU,
+    yy: PsnU,
 ) {
     (min(x1, x2)..=max(x1, x2)).for_each(|xx| {
         let ix = xy_idx(display, xx, yy);
@@ -66,9 +66,9 @@ fn map_horizontal_tunnel(
 fn _map_vertical_tunnel(
     display: &DisplayState,
     map: &mut [TileType],
-    y1: PSN_U,
-    y2: PSN_U,
-    xx: PSN_U,
+    y1: PsnU,
+    y2: PsnU,
+    xx: PsnU,
 ) {
     (min(y1, y2)..=max(y1, y2)).for_each(|yy| {
         let ix = xy_idx(display, xx, yy);
