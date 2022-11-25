@@ -1,6 +1,6 @@
 use crate::{Position, PsnU};
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct Rect {
     pub x1: PsnU,
     pub x2: PsnU,

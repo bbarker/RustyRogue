@@ -11,7 +11,7 @@ use maps::*;
 
 pub type PsnU = u16;
 
-#[derive(Component)]
+#[derive(Component, Clone)]
 pub struct Position {
     xx: PsnU,
     yy: PsnU,
@@ -51,8 +51,8 @@ impl GameState for State {
 
         self.run_systems();
 
-        let map = self.ecs.fetch::<Vec<TileType>>();
-        draw_map(ctx, &self.display, &map);
+        let map = self.ecs.fetch::<Map>();
+        draw_map(ctx, &map);
 
         let positions = self.ecs.read_storage::<Position>();
         let renderables = self.ecs.read_storage::<Renderable>();
@@ -99,10 +99,10 @@ fn main() {
     gs.ecs.register::<LeftMover>();
     gs.ecs.register::<Player>();
 
-    let (rooms, map) = new_map_rooms_and_corridors(&gs.display);
-    gs.ecs.insert(map);
+    let map = new_map_rooms_and_corridors(&gs.display);
+    let player_posn = map.rooms.first().unwrap().center();
 
-    let player_posn = rooms.first().unwrap().center();
+    gs.ecs.insert(map);
 
     // Note we aren't storing the entity, just telling the World it is there.
     // FIXME: unit discard warning?
@@ -159,9 +159,9 @@ fn try_move_player(delta_x: i32, delta_y: i32, gs: &mut State) {
                 .clamp(0, gs.display.height_i32() - 1)
                 .try_into()
                 .unwrap();
-            let destination_ix = xy_idx(&gs.display, try_xx, try_yy);
-            let map = gs.ecs.fetch::<Vec<TileType>>();
-            if map[destination_ix] != TileType::Wall {
+            let map = gs.ecs.fetch::<Map>();
+            let destination_ix = map.xy_idx(try_xx, try_yy);
+            if map.map[destination_ix] != TileType::Wall {
                 pos.xx = try_xx;
                 pos.yy = try_yy;
             }
