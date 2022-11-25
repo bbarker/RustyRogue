@@ -173,10 +173,18 @@ fn player_input(gs: &mut State, ctx: &mut BTerm) {
         None => {}
         Some(key) => match key {
             // Player Movement
-            VirtualKeyCode::Left => try_move_player(-1, 0, gs),
-            VirtualKeyCode::Right => try_move_player(1, 0, gs),
-            VirtualKeyCode::Up => try_move_player(0, -1, gs),
-            VirtualKeyCode::Down => try_move_player(0, 1, gs),
+            VirtualKeyCode::Left | VirtualKeyCode::Numpad4 | VirtualKeyCode::A => {
+                try_move_player(-1, 0, gs)
+            }
+            VirtualKeyCode::Right | VirtualKeyCode::Numpad6 | VirtualKeyCode::D => {
+                try_move_player(1, 0, gs)
+            }
+            VirtualKeyCode::Up | VirtualKeyCode::Numpad8 | VirtualKeyCode::W => {
+                try_move_player(0, -1, gs)
+            }
+            VirtualKeyCode::Down | VirtualKeyCode::Numpad2 | VirtualKeyCode::S => {
+                try_move_player(0, 1, gs)
+            }
             _ => {}
         },
     }
