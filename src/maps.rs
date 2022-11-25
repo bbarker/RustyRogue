@@ -33,6 +33,8 @@ pub fn new_map_rooms_and_corridors(
 ) -> Vec<TileType> {
     let mut map = vec![TileType::Wall; (display.width * display.height).try_into().unwrap()];
 
+    // let mut map = new_map_test(display, player_position);
+
     let mut rooms: Vec<Rect> = Vec::new();
     const MAX_ROOMS: u16 = 30;
     const MIN_SIZE: PsnU = 6;
@@ -53,6 +55,45 @@ pub fn new_map_rooms_and_corridors(
             .all(|other_room| !new_room.intersect(other_room));
         if room_ok {
             map_room(display, &new_room, &mut map);
+            match rooms.last() {
+                Some(prev_room) => {
+                    let new_center = new_room.center();
+                    let pre_center = prev_room.center();
+                    if rng.range(0, 2) == 1 {
+                        map_horizontal_tunnel(
+                            display,
+                            &mut map,
+                            pre_center.xx,
+                            new_center.xx,
+                            pre_center.yy,
+                        );
+                        map_vertical_tunnel(
+                            display,
+                            &mut map,
+                            pre_center.yy,
+                            new_center.yy,
+                            new_center.xx,
+                        );
+                    } else {
+                        map_vertical_tunnel(
+                            display,
+                            &mut map,
+                            pre_center.yy,
+                            new_center.yy,
+                            pre_center.xx,
+                        );
+                        map_horizontal_tunnel(
+                            display,
+                            &mut map,
+                            pre_center.xx,
+                            new_center.xx,
+                            new_center.yy,
+                        );
+                    }
+                }
+                None => {}
+            }
+
             rooms.push(new_room)
         }
     });
@@ -84,13 +125,7 @@ fn map_horizontal_tunnel(
     })
 }
 
-fn _map_vertical_tunnel(
-    display: &DisplayState,
-    map: &mut [TileType],
-    y1: PsnU,
-    y2: PsnU,
-    xx: PsnU,
-) {
+fn map_vertical_tunnel(display: &DisplayState, map: &mut [TileType], y1: PsnU, y2: PsnU, xx: PsnU) {
     (min(y1, y2)..=max(y1, y2)).for_each(|yy| {
         let ix = xy_idx(display, xx, yy);
         if ix > 0 && ix < (display.width * display.height).try_into().unwrap() {
