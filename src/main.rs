@@ -69,8 +69,6 @@ struct LeftWalker<'a> {
     display: &'a DisplayState,
 }
 
-const INIT_PLAYER_POSITION: Position = Position { xx: 40, yy: 25 };
-
 impl<'a> System<'a> for LeftWalker<'a> {
     type SystemData = (ReadStorage<'a, LeftMover>, WriteStorage<'a, Position>);
 
@@ -101,22 +99,22 @@ fn main() {
     gs.ecs.register::<LeftMover>();
     gs.ecs.register::<Player>();
 
-    gs.ecs.insert(new_map_rooms_and_corridors(
-        &gs.display,
-        &INIT_PLAYER_POSITION,
-    ));
+    let (rooms, map) = new_map_rooms_and_corridors(&gs.display);
+    gs.ecs.insert(map);
+
+    let player_posn = rooms.first().unwrap().center();
 
     // Note we aren't storing the entity, just telling the World it is there.
     // FIXME: unit discard warning?
-    build_entity_player(&mut gs);
+    build_entity_player(&mut gs, player_posn);
 
     bracket_lib::prelude::main_loop(context, gs).unwrap()
 }
 
-fn build_entity_player(gs: &mut State) -> Entity {
+fn build_entity_player(gs: &mut State, position: Position) -> Entity {
     gs.ecs
         .create_entity()
-        .with(INIT_PLAYER_POSITION)
+        .with(position)
         .with(Renderable {
             glyph: bracket_lib::prelude::to_cp437('@'),
             fg: RGB::named(bracket_lib::prelude::YELLOW),

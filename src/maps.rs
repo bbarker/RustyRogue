@@ -3,7 +3,7 @@ use bracket_lib::terminal::{BTerm, RGB};
 use itertools::Itertools;
 use std::cmp::{max, min};
 
-use crate::{display_state::*, Position, PsnU, INIT_PLAYER_POSITION};
+use crate::{display_state::*, Position, PsnU};
 
 use crate::rect::*;
 
@@ -27,10 +27,7 @@ pub fn idx_to_xy(display: &DisplayState, ix: usize) -> Position {
     }
 }
 
-pub fn new_map_rooms_and_corridors(
-    display: &DisplayState,
-    _player_position: &Position,
-) -> Vec<TileType> {
+pub fn new_map_rooms_and_corridors(display: &DisplayState) -> (Vec<Rect>, Vec<TileType>) {
     let mut map = vec![TileType::Wall; (display.width * display.height).try_into().unwrap()];
 
     // let mut map = new_map_test(display, player_position);
@@ -98,8 +95,7 @@ pub fn new_map_rooms_and_corridors(
         }
     });
 
-    map_horizontal_tunnel(display, &mut map, 25, 40, INIT_PLAYER_POSITION.yy);
-    map
+    (rooms, map)
 }
 
 fn map_room(display: &DisplayState, room: &Rect, map: &mut [TileType]) {
