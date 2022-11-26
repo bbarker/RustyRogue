@@ -1,31 +1,16 @@
-use bracket_lib::prelude::{BTerm, FontCharType, GameState, VirtualKeyCode, RGB};
+use bracket_lib::prelude::{BTerm, GameState, VirtualKeyCode, RGB};
 use specs::prelude::*;
-use specs_derive::Component;
 
+pub mod components;
 pub mod display_state;
 pub mod map;
 pub mod rect;
 
+use components::*;
 use display_state::*;
 use map::*;
 
 pub type PsnU = u16;
-
-#[derive(Component, Clone)]
-pub struct Position {
-    xx: PsnU,
-    yy: PsnU,
-}
-
-#[derive(Component)]
-struct Renderable {
-    glyph: FontCharType,
-    fg: RGB,
-    bg: RGB,
-}
-
-#[derive(Component)]
-struct LeftMover {}
 
 struct State {
     display: DisplayState,
@@ -61,9 +46,6 @@ impl GameState for State {
         })
     }
 }
-
-#[derive(Component, Debug)]
-struct Player {}
 
 struct LeftWalker<'a> {
     display: &'a DisplayState,
