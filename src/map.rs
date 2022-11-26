@@ -1,8 +1,11 @@
+use bracket_lib::prelude::{Algorithm2D, BaseMap};
 use bracket_lib::random::RandomNumberGenerator;
-use bracket_lib::terminal::{BTerm, RGB};
+use bracket_lib::terminal::{BTerm, Point, RGB};
 use itertools::Itertools;
+use specs::*;
 use std::cmp::{max, min};
 
+use crate::components::{Player, Viewshed};
 use crate::{display_state::*, Position, PsnU};
 
 use crate::rect::*;
@@ -45,30 +48,40 @@ pub fn new_map_test(display: &DisplayState, player_position: &Position) -> Vec<T
 }
 */
 
-pub fn draw_map(ctx: &mut BTerm, map: &Map) {
-    map.map.iter().enumerate().for_each(|(ix, tile)| {
-        let tile_pos = map.idx_to_xy(ix);
-        match tile {
-            TileType::Floor => ctx.set(
-                tile_pos.xx,
-                tile_pos.yy,
-                RGB::from_f32(0.5, 0.5, 0.5),
-                RGB::from_f32(0., 0., 0.),
-                bracket_lib::prelude::to_cp437('.'),
-            ),
-            TileType::Wall => ctx.set(
-                tile_pos.xx,
-                tile_pos.yy,
-                RGB::from_f32(0., 1.0, 0.),
-                RGB::from_f32(0., 0., 0.),
-                bracket_lib::prelude::to_cp437('#'),
-            ),
-        }
-    })
+pub fn draw_map(ecs: &World, ctx: &mut BTerm) {
+    let mut viewsheds = ecs.write_storage::<Viewshed>();
+    let mut players = ecs.write_storage::<Player>();
+    let map = ecs.fetch::<Map>();
+
+    (&mut players, &mut viewsheds)
+        .join()
+        .for_each(|(_player, viewshed)| {
+            map.tiles.iter().enumerate().for_each(|(ix, tile)| {
+                let tile_pos = map.idx_to_xy(ix);
+                if viewshed.visible_tiles.contains(&tile_pos.to_point()) {
+                    match tile {
+                        TileType::Floor => ctx.set(
+                            tile_pos.xx,
+                            tile_pos.yy,
+                            RGB::from_f32(0.5, 0.5, 0.5),
+                            RGB::from_f32(0., 0., 0.),
+                            bracket_lib::prelude::to_cp437('.'),
+                        ),
+                        TileType::Wall => ctx.set(
+                            tile_pos.xx,
+                            tile_pos.yy,
+                            RGB::from_f32(0., 1.0, 0.),
+                            RGB::from_f32(0., 0., 0.),
+                            bracket_lib::prelude::to_cp437('#'),
+                        ),
+                    }
+                }
+            })
+        })
 }
 
 pub struct Map {
-    pub map: Vec<TileType>,
+    pub tiles: Vec<TileType>,
     pub rooms: Vec<Rect>,
     pub width: usize,
     pub height: usize,
@@ -102,7 +115,7 @@ impl Map {
         (room.x1..=room.x2)
             .cartesian_product(room.y1..=room.y2)
             .for_each(|(xx, yy)| {
-                self.map[xy_idx(self.width_psnu, xx, yy)] = TileType::Floor;
+                self.tiles[xy_idx(self.width_psnu, xx, yy)] = TileType::Floor;
             })
     }
 
@@ -110,7 +123,7 @@ impl Map {
         (min(x1, x2)..=max(x1, x2)).for_each(|xx| {
             let ix = self.xy_idx(xx, yy);
             if ix > 0 && ix < (self.width * self.height) {
-                self.map[ix] = TileType::Floor;
+                self.tiles[ix] = TileType::Floor;
             }
         })
     }
@@ -119,15 +132,26 @@ impl Map {
         (min(y1, y2)..=max(y1, y2)).for_each(|yy| {
             let ix = self.xy_idx(xx, yy);
             if ix > 0 && ix < (self.width * self.height) {
-                self.map[ix] = TileType::Floor;
+                self.tiles[ix] = TileType::Floor;
             }
         })
     }
 }
 
+impl BaseMap for Map {
+    fn is_opaque(&self, ix: usize) -> bool {
+        self.tiles[ix as usize] == TileType::Wall
+    }
+}
+
+impl Algorithm2D for Map {
+    fn dimensions(&self) -> Point {
+        Point::new(self.width_psnu, self.height_psnu)
+    }
+}
 pub fn new_map_rooms_and_corridors(display: &DisplayState) -> Map {
     let mut map = Map {
-        map: vec![TileType::Wall; (display.width * display.height).try_into().unwrap()],
+        tiles: vec![TileType::Wall; (display.width * display.height).try_into().unwrap()],
         rooms: Vec::new(),
         width: display.width.try_into().unwrap(),
         height: display.height.try_into().unwrap(),

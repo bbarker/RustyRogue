@@ -5,10 +5,12 @@ pub mod components;
 pub mod display_state;
 pub mod map;
 pub mod rect;
+pub mod visibility_system;
 
 use components::*;
 use display_state::*;
 use map::*;
+use visibility_system::VisibilitySystem;
 
 pub type PsnU = u16;
 
@@ -19,10 +21,13 @@ struct State {
 
 impl State {
     fn run_systems(&mut self) {
-        let mut lw = LeftWalker {
+        /*         let mut lw = LeftWalker {
             display: &self.display,
-        };
-        lw.run_now(&self.ecs);
+        }; */
+        let mut vis = VisibilitySystem {};
+        vis.run_now(&self.ecs);
+
+        // lw.run_now(&self.ecs);
         self.ecs.maintain();
     }
 }
@@ -36,8 +41,7 @@ impl GameState for State {
 
         self.run_systems();
 
-        let map = self.ecs.fetch::<Map>();
-        draw_map(ctx, &map);
+        draw_map(&self.ecs, ctx);
 
         let positions = self.ecs.read_storage::<Position>();
         let renderables = self.ecs.read_storage::<Renderable>();
@@ -76,10 +80,11 @@ fn main() {
         ecs: World::new(),
         display: calc_display_state(&context),
     };
-    gs.ecs.register::<Position>();
-    gs.ecs.register::<Renderable>();
     gs.ecs.register::<LeftMover>();
     gs.ecs.register::<Player>();
+    gs.ecs.register::<Position>();
+    gs.ecs.register::<Renderable>();
+    gs.ecs.register::<Viewshed>();
 
     let map = new_map_rooms_and_corridors(&gs.display);
     let player_posn = map.rooms.first().unwrap().center();
@@ -103,6 +108,10 @@ fn build_entity_player(gs: &mut State, position: Position) -> Entity {
             bg: RGB::named(bracket_lib::prelude::BLACK),
         })
         .with(Player {})
+        .with(Viewshed {
+            visible_tiles: Vec::new(),
+            range: 8,
+        })
         .build()
 }
 
@@ -143,7 +152,7 @@ fn try_move_player(delta_x: i32, delta_y: i32, gs: &mut State) {
                 .unwrap();
             let map = gs.ecs.fetch::<Map>();
             let destination_ix = map.xy_idx(try_xx, try_yy);
-            if map.map[destination_ix] != TileType::Wall {
+            if map.tiles[destination_ix] != TileType::Wall {
                 pos.xx = try_xx;
                 pos.yy = try_yy;
             }
