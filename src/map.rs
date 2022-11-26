@@ -155,21 +155,17 @@ pub fn new_map_rooms_and_corridors(display: &DisplayState) -> Map {
             .all(|other_room| !new_room.intersect(other_room));
         if room_ok {
             map.add_room(&new_room);
-            match map.rooms.last() {
-                Some(prev_room) => {
-                    let new_center = new_room.center();
-                    let pre_center = prev_room.center();
-                    if rng.range(0, 2) == 1 {
-                        map.add_horizontal_tunnel(pre_center.xx, new_center.xx, pre_center.yy);
-                        map.add_vertical_tunnel(pre_center.yy, new_center.yy, new_center.xx);
-                    } else {
-                        map.add_vertical_tunnel(pre_center.yy, new_center.yy, pre_center.xx);
-                        map.add_horizontal_tunnel(pre_center.xx, new_center.xx, new_center.yy);
-                    }
+            if let Some(prev_room) = map.rooms.last() {
+                let new_center = new_room.center();
+                let pre_center = prev_room.center();
+                if rng.range(0, 2) == 1 {
+                    map.add_horizontal_tunnel(pre_center.xx, new_center.xx, pre_center.yy);
+                    map.add_vertical_tunnel(pre_center.yy, new_center.yy, new_center.xx);
+                } else {
+                    map.add_vertical_tunnel(pre_center.yy, new_center.yy, pre_center.xx);
+                    map.add_horizontal_tunnel(pre_center.xx, new_center.xx, new_center.yy);
                 }
-                None => {}
             }
-
             map.rooms.push(new_room)
         }
     });
