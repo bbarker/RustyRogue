@@ -3,11 +3,11 @@ use specs::prelude::*;
 use specs_derive::Component;
 
 pub mod display_state;
-pub mod maps;
+pub mod map;
 pub mod rect;
 
 use display_state::*;
-use maps::*;
+use map::*;
 
 pub type PsnU = u16;
 
