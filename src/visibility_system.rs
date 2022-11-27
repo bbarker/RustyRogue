@@ -21,19 +21,22 @@ impl<'a> System<'a> for VisibilitySystem {
         (&entities, &mut viewshed, &pos)
             .join()
             .for_each(|(ent, viewshed, pos)| {
-                viewshed.visible_tiles.clear();
-                viewshed.visible_tiles = field_of_view(pos.to_point(), viewshed.range, &*map);
-                viewshed.visible_tiles.retain(|pt| {
-                    pt.x >= 0
-                        && pt.x < map.width.try_into().unwrap()
-                        && pt.y >= 0
-                        && pt.y < map.height.try_into().unwrap()
-                });
-                if let Some(_p) = player.get(ent) {
-                    viewshed.visible_tiles.iter().for_each(|vis| {
-                        let width = map.width.try_into().unwrap();
-                        map.revealed_tiles[pos_idx(width, *vis)] = true;
+                if viewshed.dirty {
+                    viewshed.visible_tiles.clear();
+                    viewshed.visible_tiles = field_of_view(pos.to_point(), viewshed.range, &*map);
+                    viewshed.visible_tiles.retain(|pt| {
+                        pt.x >= 0
+                            && pt.x < map.width.try_into().unwrap()
+                            && pt.y >= 0
+                            && pt.y < map.height.try_into().unwrap()
                     });
+                    if let Some(_p) = player.get(ent) {
+                        viewshed.visible_tiles.iter().for_each(|vis| {
+                            let width = map.width.try_into().unwrap();
+                            map.revealed_tiles[pos_idx(width, *vis)] = true;
+                        });
+                    }
+                    viewshed.dirty = false;
                 }
             })
     }

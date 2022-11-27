@@ -111,6 +111,7 @@ fn build_entity_player(gs: &mut State, position: Position) -> Entity {
         .with(Viewshed {
             visible_tiles: Vec::new(),
             range: 8,
+            dirty: true,
         })
         .build()
 }
@@ -137,9 +138,10 @@ fn build_entities_happy_folk(gs: &mut State) -> Vec<Entity> {
 fn try_move_player(delta_x: i32, delta_y: i32, gs: &mut State) {
     let mut positions = gs.ecs.write_storage::<Position>();
     let mut players = gs.ecs.write_storage::<Player>();
-    (&mut players, &mut positions)
+    let mut viewsheds = gs.ecs.write_storage::<Viewshed>();
+    (&mut players, &mut positions, &mut viewsheds)
         .join()
-        .for_each(|(_player, pos)| {
+        .for_each(|(_player, pos, viewshed)| {
             let xx_i32 = i32::try_from(pos.xx).unwrap();
             let yy_i32 = i32::try_from(pos.yy).unwrap();
             let try_xx: PsnU = (xx_i32 + delta_x)
@@ -155,6 +157,7 @@ fn try_move_player(delta_x: i32, delta_y: i32, gs: &mut State) {
             if map.tiles[destination_ix] != TileType::Wall {
                 pos.xx = try_xx;
                 pos.yy = try_yy;
+                viewshed.dirty = true;
             }
         })
 }
