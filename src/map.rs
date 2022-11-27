@@ -62,22 +62,28 @@ pub fn draw_map(ecs: &World, ctx: &mut BTerm) {
         let tile_pos = map.idx_to_xy(ix);
         // if viewshed.visible_tiles.contains(&tile_pos.to_point()) {
         if map.revealed_tiles[ix] {
-            match tile {
-                TileType::Floor => ctx.set(
-                    tile_pos.xx,
-                    tile_pos.yy,
+            let (fg, glyph) = match tile {
+                TileType::Floor => (
                     RGB::from_f32(0.5, 0.5, 0.5),
-                    RGB::from_f32(0., 0., 0.),
                     bracket_lib::prelude::to_cp437('.'),
                 ),
-                TileType::Wall => ctx.set(
-                    tile_pos.xx,
-                    tile_pos.yy,
+                TileType::Wall => (
                     RGB::from_f32(0., 1.0, 0.),
-                    RGB::from_f32(0., 0., 0.),
                     bracket_lib::prelude::to_cp437('#'),
                 ),
-            }
+            };
+            let fg = if !map.visible_tiles[ix] {
+                fg.to_greyscale()
+            } else {
+                fg
+            };
+            ctx.set(
+                tile_pos.xx,
+                tile_pos.yy,
+                fg,
+                RGB::from_f32(0., 0., 0.),
+                glyph,
+            )
         }
     })
     //})
@@ -91,6 +97,7 @@ pub struct Map {
     pub width_psnu: PsnU,
     pub height_psnu: PsnU,
     pub revealed_tiles: Vec<bool>,
+    pub visible_tiles: Vec<bool>,
 }
 
 pub fn idx_to_xy(width: usize, ix: usize) -> Position {
@@ -167,6 +174,7 @@ pub fn new_map_rooms_and_corridors(display: &DisplayState) -> Map {
         width_psnu: display.width,
         height_psnu: display.height,
         revealed_tiles: vec![false; (display.width * display.height).try_into().unwrap()],
+        visible_tiles: vec![false; (display.width * display.height).try_into().unwrap()],
     };
 
     const MAX_ROOMS: u16 = 30;
