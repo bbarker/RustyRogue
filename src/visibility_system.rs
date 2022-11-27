@@ -1,3 +1,5 @@
+use crate::{components::Player, map::pos_idx};
+
 use super::{Map, Position, Viewshed};
 use bracket_lib::prelude::field_of_view;
 use specs::prelude::*;
@@ -6,23 +8,33 @@ pub struct VisibilitySystem {}
 
 impl<'a> System<'a> for VisibilitySystem {
     type SystemData = (
-        ReadExpect<'a, Map>,
+        WriteExpect<'a, Map>,
+        Entities<'a>,
         WriteStorage<'a, Viewshed>,
-        ReadStorage<'a, Position>,
+        WriteStorage<'a, Position>,
+        ReadStorage<'a, Player>,
     );
 
     fn run(&mut self, data: Self::SystemData) {
-        let (map, mut viewshed, pos) = data;
+        let (mut map, entities, mut viewshed, pos, player) = data;
 
-        (&mut viewshed, &pos).join().for_each(|(viewshed, pos)| {
-            viewshed.visible_tiles.clear();
-            viewshed.visible_tiles = field_of_view(pos.to_point(), viewshed.range, &*map);
-            viewshed.visible_tiles.retain(|pt| {
-                pt.x >= 0
-                    && pt.x < map.width.try_into().unwrap()
-                    && pt.y >= 0
-                    && pt.y < map.height.try_into().unwrap()
-            });
-        })
+        (&entities, &mut viewshed, &pos)
+            .join()
+            .for_each(|(ent, viewshed, pos)| {
+                viewshed.visible_tiles.clear();
+                viewshed.visible_tiles = field_of_view(pos.to_point(), viewshed.range, &*map);
+                viewshed.visible_tiles.retain(|pt| {
+                    pt.x >= 0
+                        && pt.x < map.width.try_into().unwrap()
+                        && pt.y >= 0
+                        && pt.y < map.height.try_into().unwrap()
+                });
+                if let Some(_p) = player.get(ent) {
+                    viewshed.visible_tiles.iter().for_each(|vis| {
+                        let width = map.width.try_into().unwrap();
+                        map.revealed_tiles[pos_idx(width, *vis)] = true;
+                    });
+                }
+            })
     }
 }

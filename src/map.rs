@@ -5,7 +5,7 @@ use itertools::Itertools;
 use specs::*;
 use std::cmp::{max, min};
 
-use crate::components::{Player, Viewshed};
+use crate::components::Positionable;
 use crate::{display_state::*, Position, PsnU};
 
 use crate::rect::*;
@@ -48,36 +48,39 @@ pub fn new_map_test(display: &DisplayState, player_position: &Position) -> Vec<T
 }
 */
 
+// TODO: factor out the iterator, and have alternative draw_map functions
+//       that can be used in different contexts.
 pub fn draw_map(ecs: &World, ctx: &mut BTerm) {
-    let mut viewsheds = ecs.write_storage::<Viewshed>();
-    let mut players = ecs.write_storage::<Player>();
+    // let mut viewsheds = ecs.write_storage::<Viewshed>();
+    // let mut players = ecs.write_storage::<Player>();
     let map = ecs.fetch::<Map>();
 
-    (&mut players, &mut viewsheds)
-        .join()
-        .for_each(|(_player, viewshed)| {
-            map.tiles.iter().enumerate().for_each(|(ix, tile)| {
-                let tile_pos = map.idx_to_xy(ix);
-                if viewshed.visible_tiles.contains(&tile_pos.to_point()) {
-                    match tile {
-                        TileType::Floor => ctx.set(
-                            tile_pos.xx,
-                            tile_pos.yy,
-                            RGB::from_f32(0.5, 0.5, 0.5),
-                            RGB::from_f32(0., 0., 0.),
-                            bracket_lib::prelude::to_cp437('.'),
-                        ),
-                        TileType::Wall => ctx.set(
-                            tile_pos.xx,
-                            tile_pos.yy,
-                            RGB::from_f32(0., 1.0, 0.),
-                            RGB::from_f32(0., 0., 0.),
-                            bracket_lib::prelude::to_cp437('#'),
-                        ),
-                    }
-                }
-            })
-        })
+    //(&mut players, &mut viewsheds)
+    //    .join()
+    //     .for_each(|(_player, _viewshed)| {
+    map.tiles.iter().enumerate().for_each(|(ix, tile)| {
+        let tile_pos = map.idx_to_xy(ix);
+        // if viewshed.visible_tiles.contains(&tile_pos.to_point()) {
+        if map.revealed_tiles[ix] {
+            match tile {
+                TileType::Floor => ctx.set(
+                    tile_pos.xx,
+                    tile_pos.yy,
+                    RGB::from_f32(0.5, 0.5, 0.5),
+                    RGB::from_f32(0., 0., 0.),
+                    bracket_lib::prelude::to_cp437('.'),
+                ),
+                TileType::Wall => ctx.set(
+                    tile_pos.xx,
+                    tile_pos.yy,
+                    RGB::from_f32(0., 1.0, 0.),
+                    RGB::from_f32(0., 0., 0.),
+                    bracket_lib::prelude::to_cp437('#'),
+                ),
+            }
+        }
+    })
+    //})
 }
 
 pub struct Map {
@@ -87,6 +90,7 @@ pub struct Map {
     pub height: usize,
     pub width_psnu: PsnU,
     pub height_psnu: PsnU,
+    pub revealed_tiles: Vec<bool>,
 }
 
 pub fn idx_to_xy(width: usize, ix: usize) -> Position {
@@ -100,6 +104,11 @@ pub fn idx_to_xy(width: usize, ix: usize) -> Position {
 
 pub fn xy_idx(width: PsnU, xx: PsnU, yy: PsnU) -> usize {
     ((yy * width) + xx).try_into().unwrap()
+}
+
+pub fn pos_idx(width: PsnU, pos: impl Positionable) -> usize {
+    let pos = pos.from();
+    xy_idx(width, pos.xx, pos.yy)
 }
 
 impl Map {
@@ -140,7 +149,7 @@ impl Map {
 
 impl BaseMap for Map {
     fn is_opaque(&self, ix: usize) -> bool {
-        self.tiles[ix as usize] == TileType::Wall
+        self.tiles[ix] == TileType::Wall
     }
 }
 
@@ -157,6 +166,7 @@ pub fn new_map_rooms_and_corridors(display: &DisplayState) -> Map {
         height: display.height.try_into().unwrap(),
         width_psnu: display.width,
         height_psnu: display.height,
+        revealed_tiles: vec![false; (display.width * display.height).try_into().unwrap()],
     };
 
     const MAX_ROOMS: u16 = 30;
