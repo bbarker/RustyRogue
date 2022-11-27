@@ -26,6 +26,25 @@ impl Position {
     }
 }
 
+pub trait Positionable {
+    fn from(self) -> Position;
+}
+
+impl Positionable for Position {
+    fn from(self) -> Position {
+        self
+    }
+}
+
+impl Positionable for Point {
+    fn from(self) -> Position {
+        Position {
+            xx: self.x.try_into().unwrap(),
+            yy: self.y.try_into().unwrap(),
+        }
+    }
+}
+
 #[derive(Component)]
 pub struct Renderable {
     pub glyph: FontCharType,
