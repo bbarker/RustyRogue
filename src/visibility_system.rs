@@ -22,6 +22,7 @@ impl<'a> System<'a> for VisibilitySystem {
             .join()
             .for_each(|(ent, viewshed, pos)| {
                 if viewshed.dirty {
+                    viewshed.dirty = false;
                     viewshed.visible_tiles.clear();
                     viewshed.visible_tiles = field_of_view(pos.to_point(), viewshed.range, &*map);
                     viewshed.visible_tiles.retain(|pt| {
@@ -31,12 +32,14 @@ impl<'a> System<'a> for VisibilitySystem {
                             && pt.y < map.height.try_into().unwrap()
                     });
                     if let Some(_p) = player.get(ent) {
+                        map.visible_tiles = vec![false; map.width * map.height];
                         viewshed.visible_tiles.iter().for_each(|vis| {
                             let width = map.width.try_into().unwrap();
-                            map.revealed_tiles[pos_idx(width, *vis)] = true;
+                            let ix = pos_idx(width, *vis);
+                            map.revealed_tiles[ix] = true;
+                            map.visible_tiles[ix] = true;
                         });
                     }
-                    viewshed.dirty = false;
                 }
             })
     }
