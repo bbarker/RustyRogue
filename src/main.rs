@@ -1,4 +1,8 @@
-use bracket_lib::prelude::{BTerm, GameState, VirtualKeyCode, RGB};
+use bracket_lib::{
+    prelude::{BTerm, GameState, VirtualKeyCode, RGB},
+    random::RandomNumberGenerator,
+    terminal::to_cp437,
+};
 use specs::prelude::*;
 
 pub mod components;
@@ -45,9 +49,14 @@ impl GameState for State {
 
         let positions = self.ecs.read_storage::<Position>();
         let renderables = self.ecs.read_storage::<Renderable>();
-        (&positions, &renderables).join().for_each(|(pos, render)| {
-            ctx.set(pos.xx, pos.yy, render.fg, render.bg, render.glyph);
-        })
+        let map = self.ecs.fetch::<Map>();
+
+        (&positions, &renderables)
+            .join()
+            .filter(|(pos, _)| map.visible_tiles[pos.idx(self.display.width)])
+            .for_each(|(pos, render)| {
+                ctx.set(pos.xx, pos.yy, render.fg, render.bg, render.glyph);
+            });
     }
 }
 
@@ -87,6 +96,8 @@ fn main() {
     gs.ecs.register::<Viewshed>();
 
     let map = new_map_rooms_and_corridors(&gs.display);
+    build_monsters(&mut gs.ecs, &map);
+
     let player_posn = map.rooms.first().unwrap().center();
 
     gs.ecs.insert(map);
@@ -134,6 +145,45 @@ fn build_entities_happy_folk(gs: &mut State) -> Vec<Entity> {
         .collect()
 }
 */
+
+fn build_monsters(ecs: &mut World, map: &Map) -> Vec<Entity> {
+    map.rooms
+        .iter()
+        .skip(1)
+        .map(|room| {
+            let posn = room.center();
+            let mut rng = RandomNumberGenerator::new();
+            let glyph = match rng.range(0, 4) {
+                0 => to_cp437('g'),
+                1 => to_cp437('o'),
+                2 => to_cp437('t'),
+                _ => to_cp437('T'),
+            };
+            let fg = match rng.range(0, 4) {
+                0 => RGB::named(bracket_lib::prelude::RED),
+                1 => RGB::named(bracket_lib::prelude::GREEN),
+                2 => RGB::named(bracket_lib::prelude::BLUE),
+                _ => RGB::named(bracket_lib::prelude::YELLOW),
+            };
+            ecs.create_entity()
+                .with(Position {
+                    xx: posn.xx,
+                    yy: posn.yy,
+                })
+                .with(Renderable {
+                    glyph,
+                    fg,
+                    bg: RGB::named(bracket_lib::prelude::BLACK),
+                })
+                .with(Viewshed {
+                    visible_tiles: Vec::new(),
+                    range: 8,
+                    dirty: true,
+                })
+                .build()
+        })
+        .collect()
+}
 
 fn try_move_player(delta_x: i32, delta_y: i32, gs: &mut State) {
     let mut positions = gs.ecs.write_storage::<Position>();

@@ -14,7 +14,7 @@ pub struct LeftMover {}
 #[derive(Component, Debug)]
 pub struct Player {}
 
-#[derive(Component, Clone)]
+#[derive(Component, Clone, Copy)]
 pub struct Position {
     pub xx: PsnU,
     pub yy: PsnU,
@@ -26,8 +26,20 @@ impl Position {
     }
 }
 
+pub fn xy_idx(width: PsnU, xx: PsnU, yy: PsnU) -> usize {
+    ((yy * width) + xx).try_into().unwrap()
+}
+
 pub trait Positionable {
     fn from(self) -> Position;
+
+    fn idx(self, width: PsnU) -> usize
+    where
+        Self: Sized,
+    {
+        let pos = self.from();
+        xy_idx(width, pos.xx, pos.yy)
+    }
 }
 
 impl Positionable for Position {
