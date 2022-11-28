@@ -1,4 +1,4 @@
-use crate::{components::Player, map::pos_idx};
+use crate::components::{Player, Positionable};
 
 use super::{Map, Position, Viewshed};
 use bracket_lib::prelude::field_of_view;
@@ -35,7 +35,7 @@ impl<'a> System<'a> for VisibilitySystem {
                         map.visible_tiles = vec![false; map.width * map.height];
                         viewshed.visible_tiles.iter().for_each(|vis| {
                             let width = map.width.try_into().unwrap();
-                            let ix = pos_idx(width, *vis);
+                            let ix = vis.idx(width);
                             map.revealed_tiles[ix] = true;
                             map.visible_tiles[ix] = true;
                         });

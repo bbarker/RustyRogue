@@ -5,7 +5,7 @@ use itertools::Itertools;
 use specs::*;
 use std::cmp::{max, min};
 
-use crate::components::Positionable;
+use crate::components::xy_idx;
 use crate::{display_state::*, Position, PsnU};
 
 use crate::rect::*;
@@ -107,15 +107,6 @@ pub fn idx_to_xy(width: usize, ix: usize) -> Position {
         xx: xx.try_into().unwrap(),
         yy: yy.try_into().unwrap(),
     }
-}
-
-pub fn xy_idx(width: PsnU, xx: PsnU, yy: PsnU) -> usize {
-    ((yy * width) + xx).try_into().unwrap()
-}
-
-pub fn pos_idx(width: PsnU, pos: impl Positionable) -> usize {
-    let pos = pos.from();
-    xy_idx(width, pos.xx, pos.yy)
 }
 
 impl Map {
