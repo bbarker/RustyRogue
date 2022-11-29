@@ -8,8 +8,8 @@ use bracket_lib::{
 
 use crate::PsnU;
 
-#[derive(Component)]
-pub struct LeftMover {}
+#[derive(Component, Debug)]
+pub struct Monster {}
 
 #[derive(Component, Debug)]
 pub struct Player {}

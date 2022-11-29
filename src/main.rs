@@ -8,12 +8,14 @@ use specs::prelude::*;
 pub mod components;
 pub mod display_state;
 pub mod map;
+pub mod monster_ai_system;
 pub mod rect;
 pub mod visibility_system;
 
 use components::*;
 use display_state::*;
 use map::*;
+use monster_ai_system::*;
 use visibility_system::VisibilitySystem;
 
 pub type PsnU = u16;
@@ -30,6 +32,8 @@ impl State {
         }; */
         let mut vis = VisibilitySystem {};
         vis.run_now(&self.ecs);
+        let mut mob = MonsterAI {};
+        mob.run_now(&self.ecs);
 
         // lw.run_now(&self.ecs);
         self.ecs.maintain();
@@ -60,7 +64,7 @@ impl GameState for State {
     }
 }
 
-struct LeftWalker<'a> {
+/* struct LeftWalker<'a> {
     display: &'a DisplayState,
 }
 
@@ -76,7 +80,7 @@ impl<'a> System<'a> for LeftWalker<'a> {
             }
         })
     }
-}
+} */
 
 fn main() {
     use bracket_lib::prelude::BTermBuilder;
@@ -89,7 +93,7 @@ fn main() {
         ecs: World::new(),
         display: calc_display_state(&context),
     };
-    gs.ecs.register::<LeftMover>();
+    gs.ecs.register::<Monster>();
     gs.ecs.register::<Player>();
     gs.ecs.register::<Position>();
     gs.ecs.register::<Renderable>();
@@ -180,6 +184,7 @@ fn build_monsters(ecs: &mut World, map: &Map) -> Vec<Entity> {
                     range: 8,
                     dirty: true,
                 })
+                .with(Monster {})
                 .build()
         })
         .collect()
