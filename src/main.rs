@@ -20,9 +20,16 @@ use visibility_system::VisibilitySystem;
 
 pub type PsnU = u16;
 
+#[derive(PartialEq, Copy, Clone)]
+pub enum RunState {
+    Paused,
+    Running,
+}
+
 struct State {
-    display: DisplayState,
     ecs: World,
+    display: DisplayState,
+    runstate: RunState,
 }
 
 impl State {
@@ -45,9 +52,13 @@ impl GameState for State {
         self.display = calc_display_state(ctx);
 
         ctx.cls();
-        player_input(self, ctx);
 
-        self.run_systems();
+        if self.runstate == RunState::Running {
+            self.run_systems();
+            self.runstate = RunState::Paused;
+        } else {
+            self.runstate = player_input(self, ctx);
+        }
 
         draw_map(&self.ecs, ctx);
 
@@ -92,6 +103,7 @@ fn main() {
     let mut gs = State {
         ecs: World::new(),
         display: calc_display_state(&context),
+        runstate: RunState::Running,
     };
     gs.ecs.register::<Monster>();
     gs.ecs.register::<Player>();
@@ -157,11 +169,11 @@ fn build_monsters(ecs: &mut World, map: &Map) -> Vec<Entity> {
         .map(|room| {
             let posn = room.center();
             let mut rng = RandomNumberGenerator::new();
-            let glyph = match rng.range(0, 4) {
-                0 => to_cp437('g'),
-                1 => to_cp437('o'),
-                2 => to_cp437('t'),
-                _ => to_cp437('T'),
+            let (glyph, _name) = match rng.range(0, 4) {
+                0 => (to_cp437('g'), "Goblin"),
+                1 => (to_cp437('o'), "orc"),
+                2 => (to_cp437('t'), "Troll"),
+                _ => (to_cp437('T'), "Tarrasque"),
             };
             let fg = match rng.range(0, 4) {
                 0 => RGB::named(bracket_lib::prelude::RED),
@@ -190,36 +202,41 @@ fn build_monsters(ecs: &mut World, map: &Map) -> Vec<Entity> {
         .collect()
 }
 
-fn try_move_player(delta_x: i32, delta_y: i32, gs: &mut State) {
+fn try_move_player(delta_x: i32, delta_y: i32, gs: &mut State) -> RunState {
     let mut positions = gs.ecs.write_storage::<Position>();
     let mut players = gs.ecs.write_storage::<Player>();
     let mut viewsheds = gs.ecs.write_storage::<Viewshed>();
-    (&mut players, &mut positions, &mut viewsheds)
-        .join()
-        .for_each(|(_player, pos, viewshed)| {
-            let xx_i32 = i32::try_from(pos.xx).unwrap();
-            let yy_i32 = i32::try_from(pos.yy).unwrap();
-            let try_xx: PsnU = (xx_i32 + delta_x)
-                .clamp(0, gs.display.width_i32() - 1)
-                .try_into()
-                .unwrap();
-            let try_yy: PsnU = (yy_i32 + delta_y)
-                .clamp(0, gs.display.height_i32() - 1)
-                .try_into()
-                .unwrap();
-            let map = gs.ecs.fetch::<Map>();
-            let destination_ix = map.xy_idx(try_xx, try_yy);
-            if map.tiles[destination_ix] != TileType::Wall {
-                pos.xx = try_xx;
-                pos.yy = try_yy;
-                viewshed.dirty = true;
-            }
-        })
+    if let Some((_player, pos, viewshed)) =
+        (&mut players, &mut positions, &mut viewsheds).join().next()
+    {
+        let xx_i32 = i32::try_from(pos.xx).unwrap();
+        let yy_i32 = i32::try_from(pos.yy).unwrap();
+        let try_xx: PsnU = (xx_i32 + delta_x)
+            .clamp(0, gs.display.width_i32() - 1)
+            .try_into()
+            .unwrap();
+        let try_yy: PsnU = (yy_i32 + delta_y)
+            .clamp(0, gs.display.height_i32() - 1)
+            .try_into()
+            .unwrap();
+        let map = gs.ecs.fetch::<Map>();
+        let destination_ix = map.xy_idx(try_xx, try_yy);
+        if map.tiles[destination_ix] != TileType::Wall {
+            pos.xx = try_xx;
+            pos.yy = try_yy;
+            viewshed.dirty = true;
+            RunState::Running
+        } else {
+            RunState::Paused
+        }
+    } else {
+        RunState::Paused
+    }
 }
 
-fn player_input(gs: &mut State, ctx: &mut BTerm) {
+fn player_input(gs: &mut State, ctx: &mut BTerm) -> RunState {
     match ctx.key {
-        None => {}
+        None => RunState::Paused,
         Some(key) => match key {
             // Player Movement
             VirtualKeyCode::Left | VirtualKeyCode::Numpad4 | VirtualKeyCode::A => {
@@ -234,7 +251,7 @@ fn player_input(gs: &mut State, ctx: &mut BTerm) {
             VirtualKeyCode::Down | VirtualKeyCode::Numpad2 | VirtualKeyCode::S => {
                 try_move_player(0, 1, gs)
             }
-            _ => {}
+            _ => RunState::Paused,
         },
     }
 }

@@ -1,5 +1,5 @@
-use super::{xy_idx, Map, Monster, Player, Position, PsnU, Viewshed};
-use bracket_lib::prelude::{console, field_of_view, Point};
+use super::{Monster, Position, Viewshed};
+use bracket_lib::prelude::console;
 use specs::prelude::*;
 
 pub struct MonsterAI {}
@@ -16,7 +16,7 @@ impl<'a> System<'a> for MonsterAI {
 
         (&viewshed, &pos, &monster)
             .join()
-            .for_each(|(viewshed, pos, _monster)| {
+            .for_each(|(_viewshed, _pos, _monster)| {
                 console::log(&format!("Monster sees player"));
             });
     }
