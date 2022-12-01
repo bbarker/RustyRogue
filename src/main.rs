@@ -114,21 +114,22 @@ fn main() {
     let map = new_map_rooms_and_corridors(&gs.display);
     build_monsters(&mut gs.ecs, &map);
 
-    let player_posn = map.rooms.first().unwrap().center();
+    let player_posn = PlayerPosition::new(map.rooms.first().unwrap().center());
 
     gs.ecs.insert(map);
 
     // Note we aren't storing the entity, just telling the World it is there.
     // FIXME: unit discard warning?
     build_entity_player(&mut gs, player_posn);
+    gs.ecs.insert(player_posn);
 
     bracket_lib::prelude::main_loop(context, gs).unwrap()
 }
 
-fn build_entity_player(gs: &mut State, position: Position) -> Entity {
+fn build_entity_player(gs: &mut State, position: PlayerPosition) -> Entity {
     gs.ecs
         .create_entity()
-        .with(position)
+        .with(position.pos())
         .with(Renderable {
             glyph: bracket_lib::prelude::to_cp437('@'),
             fg: RGB::named(bracket_lib::prelude::YELLOW),
@@ -224,6 +225,7 @@ fn try_move_player(delta_x: i32, delta_y: i32, gs: &mut State) -> RunState {
         if map.tiles[destination_ix] != TileType::Wall {
             pos.xx = try_xx;
             pos.yy = try_yy;
+            gs.ecs.write_resource::<PlayerPosition>().set(*pos);
             viewshed.dirty = true;
             RunState::Running
         } else {
