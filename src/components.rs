@@ -57,6 +57,21 @@ impl Positionable for Point {
     }
 }
 
+#[derive(Clone, Copy)]
+pub struct PlayerPosition(Position);
+
+impl PlayerPosition {
+    pub fn new(pos: Position) -> Self {
+        Self(pos)
+    }
+    pub fn set(&mut self, pos: Position) {
+        self.0 = pos;
+    }
+    pub fn pos(&self) -> Position {
+        self.0
+    }
+}
+
 #[derive(Component)]
 pub struct Renderable {
     pub glyph: FontCharType,
