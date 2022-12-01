@@ -142,6 +142,9 @@ fn build_entity_player(gs: &mut State, position: PlayerPosition) -> Entity {
             range: 8,
             dirty: true,
         })
+        .with(Name {
+            name: "Player".to_string(),
+        })
         .build()
 }
 
