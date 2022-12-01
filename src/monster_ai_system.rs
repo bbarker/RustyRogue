@@ -1,4 +1,4 @@
-use crate::components::PlayerPosition;
+use crate::components::{Name, PlayerPosition};
 
 use super::{Monster, Viewshed};
 use bracket_lib::prelude::console;
@@ -8,19 +8,20 @@ pub struct MonsterAI {}
 
 impl<'a> System<'a> for MonsterAI {
     type SystemData = (
-        ReadStorage<'a, Viewshed>,
         ReadExpect<'a, PlayerPosition>,
+        ReadStorage<'a, Viewshed>,
         ReadStorage<'a, Monster>,
+        ReadStorage<'a, Name>,
     );
 
     fn run(&mut self, data: Self::SystemData) {
-        let (viewshed, ppos, monster) = data;
+        let (ppos, viewsheds, monsters, names) = data;
 
-        (&viewshed, &monster)
+        (&viewsheds, &monsters, &names)
             .join()
-            .for_each(|(viewshed, _monster)| {
+            .for_each(|(viewshed, _monster, name)| {
                 if viewshed.visible_tiles.contains(&ppos.pos().to_point()) {
-                    console::log(&format!("Monster sees player"));
+                    console::log(format!("{} sees player", name.name));
                 }
             });
     }
