@@ -12,6 +12,11 @@ use crate::PsnU;
 pub struct Monster {}
 
 #[derive(Component, Debug)]
+pub struct Name {
+    pub name: String,
+}
+
+#[derive(Component, Debug)]
 pub struct Player {}
 
 #[derive(Component, Clone, Copy)]

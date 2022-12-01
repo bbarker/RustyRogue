@@ -106,6 +106,7 @@ fn main() {
         runstate: RunState::Running,
     };
     gs.ecs.register::<Monster>();
+    gs.ecs.register::<Name>();
     gs.ecs.register::<Player>();
     gs.ecs.register::<Position>();
     gs.ecs.register::<Renderable>();
@@ -170,7 +171,7 @@ fn build_monsters(ecs: &mut World, map: &Map) -> Vec<Entity> {
         .map(|room| {
             let posn = room.center();
             let mut rng = RandomNumberGenerator::new();
-            let (glyph, _name) = match rng.range(0, 4) {
+            let (glyph, name) = match rng.range(0, 4) {
                 0 => (to_cp437('g'), "Goblin"),
                 1 => (to_cp437('o'), "orc"),
                 2 => (to_cp437('t'), "Troll"),
@@ -198,6 +199,9 @@ fn build_monsters(ecs: &mut World, map: &Map) -> Vec<Entity> {
                     dirty: true,
                 })
                 .with(Monster {})
+                .with(Name {
+                    name: name.to_string(),
+                })
                 .build()
         })
         .collect()
