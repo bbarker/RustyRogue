@@ -1,6 +1,6 @@
 use bracket_lib::prelude::{Algorithm2D, BaseMap};
 use bracket_lib::random::RandomNumberGenerator;
-use bracket_lib::terminal::{BTerm, Point, RGB};
+use bracket_lib::terminal::{BTerm, DistanceAlg, Point, RGB};
 use itertools::Itertools;
 use specs::*;
 use std::cmp::{max, min};
@@ -118,6 +118,15 @@ impl Map {
         xy_idx(self.width_psnu, xx, yy)
     }
 
+    fn is_exit_valid(&self, xx: PsnU, yy: PsnU) -> bool {
+        if xx < 1 || xx > self.width_psnu - 2 || yy < 1 || yy > self.height_psnu - 2 {
+            false
+        } else {
+            let ix = self.xy_idx(xx, yy);
+            self.tiles[ix] == TileType::Floor
+        }
+    }
+
     fn add_room(self: &mut Map, room: &Rect) {
         (room.x1..=room.x2)
             .cartesian_product(room.y1..=room.y2)
@@ -148,6 +157,37 @@ impl Map {
 impl BaseMap for Map {
     fn is_opaque(&self, ix: usize) -> bool {
         self.tiles[ix] == TileType::Wall
+    }
+
+    fn get_available_exits(&self, ix: usize) -> bracket_lib::prelude::SmallVec<[(usize, f32); 10]> {
+        let mut exits = bracket_lib::prelude::SmallVec::new();
+
+        let pos = self.idx_to_xy(ix);
+        let north = self.xy_idx(pos.xx, pos.yy - 1);
+        let south = self.xy_idx(pos.xx, pos.yy + 1);
+        let east = self.xy_idx(pos.xx + 1, pos.yy);
+        let west = self.xy_idx(pos.xx - 1, pos.yy);
+
+        if self.is_exit_valid(pos.xx, pos.yy - 1) {
+            exits.push((north, 1.0))
+        }
+        if self.is_exit_valid(pos.xx, pos.yy + 1) {
+            exits.push((south, 1.0))
+        }
+        if self.is_exit_valid(pos.xx + 1, pos.yy) {
+            exits.push((east, 1.0))
+        }
+        if self.is_exit_valid(pos.xx - 1, pos.yy) {
+            exits.push((west, 1.0))
+        }
+
+        exits
+    }
+
+    fn get_pathing_distance(&self, ix1: usize, ix2: usize) -> f32 {
+        let p1 = self.idx_to_xy(ix1);
+        let p2 = self.idx_to_xy(ix2);
+        DistanceAlg::Pythagoras.distance2d(p1.into(), p2.into())
     }
 }
 
