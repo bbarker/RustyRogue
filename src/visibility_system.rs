@@ -24,7 +24,7 @@ impl<'a> System<'a> for VisibilitySystem {
                 if viewshed.dirty {
                     viewshed.dirty = false;
                     viewshed.visible_tiles.clear();
-                    viewshed.visible_tiles = field_of_view(pos.to_point(), viewshed.range, &*map);
+                    viewshed.visible_tiles = field_of_view((*pos).into(), viewshed.range, &*map);
                     viewshed.visible_tiles.retain(|pt| {
                         pt.x >= 0
                             && pt.x < map.width.try_into().unwrap()

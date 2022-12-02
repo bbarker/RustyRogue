@@ -25,9 +25,9 @@ pub struct Position {
     pub yy: PsnU,
 }
 
-impl Position {
-    pub fn to_point(&self) -> Point {
-        Point::new(self.xx, self.yy)
+impl From<Position> for Point {
+    fn from(pos: Position) -> Self {
+        Point::new(pos.xx, pos.yy)
     }
 }
 

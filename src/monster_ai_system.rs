@@ -1,4 +1,7 @@
-use crate::components::{Name, PlayerPosition};
+use crate::{
+    components::{Name, PlayerPosition, Position, Positionable},
+    map::Map,
+};
 
 use super::{Monster, Viewshed};
 use bracket_lib::prelude::console;
@@ -8,20 +11,31 @@ pub struct MonsterAI {}
 
 impl<'a> System<'a> for MonsterAI {
     type SystemData = (
+        WriteExpect<'a, Map>,
         ReadExpect<'a, PlayerPosition>,
-        ReadStorage<'a, Viewshed>,
+        WriteStorage<'a, Viewshed>,
         ReadStorage<'a, Monster>,
         ReadStorage<'a, Name>,
+        WriteStorage<'a, Position>,
     );
 
     fn run(&mut self, data: Self::SystemData) {
-        let (ppos, viewsheds, monsters, names) = data;
+        let (map, ppos, mut viewsheds, monsters, names, mut positions) = data;
 
-        (&viewsheds, &monsters, &names)
+        (&mut viewsheds, &monsters, &names, &mut positions)
             .join()
-            .for_each(|(viewshed, _monster, name)| {
-                if viewshed.visible_tiles.contains(&ppos.pos().to_point()) {
-                    console::log(format!("{} sees player", name.name));
+            .for_each(|(mut viewshed, _monster, name, position)| {
+                if viewshed.visible_tiles.contains(&ppos.pos().into()) {
+                    console::log(format!("{} shouts insults", name.name));
+                    let path = bracket_lib::prelude::a_star_search(
+                        position.idx(map.width_psnu),
+                        ppos.pos().idx(map.width_psnu),
+                        &*map,
+                    );
+                    if path.success && path.steps.len() > 1 {
+                        *position = map.idx_to_xy(path.steps[1]);
+                        viewshed.dirty = true;
+                    }
                 }
             });
     }
