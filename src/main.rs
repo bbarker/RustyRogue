@@ -262,6 +262,12 @@ fn player_input(gs: &mut State, ctx: &mut BTerm) -> RunState {
             VirtualKeyCode::Down | VirtualKeyCode::Numpad2 | VirtualKeyCode::S => {
                 try_move_player(0, 1, gs)
             }
+            // Diagonals
+            VirtualKeyCode::Numpad7 | VirtualKeyCode::Q => try_move_player(-1, -1, gs),
+            VirtualKeyCode::Numpad9 | VirtualKeyCode::E => try_move_player(1, -1, gs),
+            VirtualKeyCode::Numpad1 | VirtualKeyCode::Z => try_move_player(-1, 1, gs),
+            VirtualKeyCode::Numpad3 | VirtualKeyCode::X => try_move_player(1, 1, gs),
+
             _ => RunState::Paused,
         },
     }
