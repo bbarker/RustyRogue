@@ -177,6 +177,12 @@ impl BaseMap for Map {
         let east = self.xy_idx(pos.xx + 1, pos.yy);
         let west = self.xy_idx(pos.xx - 1, pos.yy);
 
+        let north_west = self.xy_idx(pos.xx - 1, pos.yy - 1);
+        let north_east = self.xy_idx(pos.xx + 1, pos.yy - 1);
+        let south_west = self.xy_idx(pos.xx - 1, pos.yy + 1);
+        let south_east = self.xy_idx(pos.xx + 1, pos.yy + 1);
+
+        // Cardinal directions
         if self.is_exit_valid(pos.xx, pos.yy - 1) {
             exits.push((north, 1.0))
         }
@@ -188,6 +194,20 @@ impl BaseMap for Map {
         }
         if self.is_exit_valid(pos.xx - 1, pos.yy) {
             exits.push((west, 1.0))
+        }
+
+        // Diagonals
+        if self.is_exit_valid(pos.xx - 1, pos.yy - 1) {
+            exits.push((north_west, 1.414))
+        }
+        if self.is_exit_valid(pos.xx + 1, pos.yy - 1) {
+            exits.push((north_east, 1.414))
+        }
+        if self.is_exit_valid(pos.xx - 1, pos.yy + 1) {
+            exits.push((south_west, 1.414))
+        }
+        if self.is_exit_valid(pos.xx + 1, pos.yy + 1) {
+            exits.push((south_east, 1.414))
         }
 
         exits
