@@ -31,15 +31,16 @@ impl<'a> System<'a> for MonsterAI {
                     if distance < 1.5 {
                         // Attack goes here
                         console::log(format!("{} shouts insults", name.name));
-                    }
-                    let path = bracket_lib::prelude::a_star_search(
-                        pos.idx(map.width_psnu),
-                        player_pos.pos().idx(map.width_psnu),
-                        &*map,
-                    );
-                    if path.success && path.steps.len() > 1 {
-                        *pos = map.idx_to_xy(path.steps[1]);
-                        viewshed.dirty = true;
+                    } else {
+                        let path = bracket_lib::prelude::a_star_search(
+                            pos.idx(map.width_psnu),
+                            player_pos.pos().idx(map.width_psnu),
+                            &*map,
+                        );
+                        if path.success && path.steps.len() > 1 {
+                            *pos = map.idx_to_xy(path.steps[1]);
+                            viewshed.dirty = true;
+                        }
                     }
                 }
             });
