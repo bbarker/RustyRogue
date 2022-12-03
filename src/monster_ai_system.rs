@@ -4,7 +4,7 @@ use crate::{
 };
 
 use super::{Monster, Viewshed};
-use bracket_lib::prelude::console;
+use bracket_lib::{prelude::console, terminal::DistanceAlg};
 use specs::prelude::*;
 
 pub struct MonsterAI {}
@@ -20,20 +20,25 @@ impl<'a> System<'a> for MonsterAI {
     );
 
     fn run(&mut self, data: Self::SystemData) {
-        let (map, ppos, mut viewsheds, monsters, names, mut positions) = data;
+        let (map, player_pos, mut viewsheds, monsters, names, mut positions) = data;
 
         (&mut viewsheds, &monsters, &names, &mut positions)
             .join()
-            .for_each(|(mut viewshed, _monster, name, position)| {
-                if viewshed.visible_tiles.contains(&ppos.pos().into()) {
-                    console::log(format!("{} shouts insults", name.name));
+            .for_each(|(mut viewshed, _monster, name, pos)| {
+                if viewshed.visible_tiles.contains(&player_pos.pos().into()) {
+                    let distance =
+                        DistanceAlg::Pythagoras.distance2d((*pos).into(), player_pos.pos().into());
+                    if distance < 1.5 {
+                        // Attack goes here
+                        console::log(format!("{} shouts insults", name.name));
+                    }
                     let path = bracket_lib::prelude::a_star_search(
-                        position.idx(map.width_psnu),
-                        ppos.pos().idx(map.width_psnu),
+                        pos.idx(map.width_psnu),
+                        player_pos.pos().idx(map.width_psnu),
                         &*map,
                     );
                     if path.success && path.steps.len() > 1 {
-                        *position = map.idx_to_xy(path.steps[1]);
+                        *pos = map.idx_to_xy(path.steps[1]);
                         viewshed.dirty = true;
                     }
                 }

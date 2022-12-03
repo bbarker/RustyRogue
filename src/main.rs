@@ -3,11 +3,13 @@ use bracket_lib::{
     random::RandomNumberGenerator,
     terminal::to_cp437,
 };
+use map_indexing_system::MapIndexingSystem;
 use specs::prelude::*;
 
 pub mod components;
 pub mod display_state;
 pub mod map;
+pub mod map_indexing_system;
 pub mod monster_ai_system;
 pub mod rect;
 pub mod visibility_system;
@@ -34,15 +36,13 @@ struct State {
 
 impl State {
     fn run_systems(&mut self) {
-        /*         let mut lw = LeftWalker {
-            display: &self.display,
-        }; */
         let mut vis = VisibilitySystem {};
         vis.run_now(&self.ecs);
         let mut mob = MonsterAI {};
         mob.run_now(&self.ecs);
+        let mut map_index = MapIndexingSystem {};
+        map_index.run_now(&self.ecs);
 
-        // lw.run_now(&self.ecs);
         self.ecs.maintain();
     }
 }
@@ -105,6 +105,7 @@ fn main() {
         display: calc_display_state(&context),
         runstate: RunState::Running,
     };
+    gs.ecs.register::<BlocksTile>();
     gs.ecs.register::<Monster>();
     gs.ecs.register::<Name>();
     gs.ecs.register::<Player>();
@@ -205,6 +206,7 @@ fn build_monsters(ecs: &mut World, map: &Map) -> Vec<Entity> {
                 .with(Name {
                     name: name.to_string(),
                 })
+                .with(BlocksTile {})
                 .build()
         })
         .collect()
@@ -229,7 +231,7 @@ fn try_move_player(delta_x: i32, delta_y: i32, gs: &mut State) -> RunState {
             .unwrap();
         let map = gs.ecs.fetch::<Map>();
         let destination_ix = map.xy_idx(try_xx, try_yy);
-        if map.tiles[destination_ix] != TileType::Wall {
+        if !map.blocked[destination_ix] {
             pos.xx = try_xx;
             pos.yy = try_yy;
             gs.ecs.write_resource::<PlayerPosition>().set(*pos);
