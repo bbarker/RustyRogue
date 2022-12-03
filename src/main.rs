@@ -1,5 +1,5 @@
 use bracket_lib::{
-    prelude::{BTerm, GameState, VirtualKeyCode, RGB},
+    prelude::{console, BTerm, GameState, VirtualKeyCode, RGB},
     random::RandomNumberGenerator,
     terminal::to_cp437,
 };
@@ -242,13 +242,26 @@ fn try_move_player(delta_x: i32, delta_y: i32, gs: &mut State) -> RunState {
             .clamp(0, gs.display.height_i32() - 1)
             .try_into()
             .unwrap();
+        let combat_stats = gs.ecs.read_storage::<CombatStats>();
         let map = gs.ecs.fetch::<Map>();
         let destination_ix = map.xy_idx(try_xx, try_yy);
-        if !map.blocked[destination_ix] {
+        let combat = map.tile_content[destination_ix]
+            .iter()
+            .any(|potential_target| {
+                if let Some(_target) = combat_stats.get(*potential_target) {
+                    console::log("I stab thee with righteous fury!");
+                    true
+                } else {
+                    false
+                }
+            });
+        if !combat && !map.blocked[destination_ix] {
             pos.xx = try_xx;
             pos.yy = try_yy;
             gs.ecs.write_resource::<PlayerPosition>().set(*pos);
             viewshed.dirty = true;
+            RunState::Running
+        } else if combat {
             RunState::Running
         } else {
             RunState::Paused
