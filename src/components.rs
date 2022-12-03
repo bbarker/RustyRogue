@@ -1,12 +1,20 @@
-use specs::prelude::*;
-use specs_derive::Component;
-
 use bracket_lib::{
     prelude::{FontCharType, RGB},
     terminal::Point,
 };
+use serde::{Deserialize, Serialize};
+use specs::{
+    prelude::*,
+    saveload::{ConvertSaveload, Marker},
+    Entity,
+};
 
 use crate::PsnU;
+use specs_derive::{Component, ConvertSaveload};
+use std::convert::Infallible;
+
+// `NoError` alias is deprecated in specs ... but specs_derive needs it
+pub type NoError = Infallible;
 
 #[derive(Component, Debug)]
 pub struct BlocksTile {}
@@ -100,4 +108,9 @@ pub struct Viewshed {
     pub visible_tiles: Vec<Point>,
     pub range: i32,
     pub dirty: bool,
+}
+
+#[derive(Component, Debug, ConvertSaveload, Clone)]
+pub struct EventWantsToMelee {
+    pub target: Entity,
 }
