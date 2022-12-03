@@ -8,17 +8,22 @@ impl<'a> System<'a> for MapIndexingSystem {
         WriteExpect<'a, Map>,
         ReadStorage<'a, Position>,
         ReadStorage<'a, BlocksTile>,
+        Entities<'a>,
     );
 
     fn run(&mut self, data: Self::SystemData) {
-        let (mut map, pos, blockers) = data;
+        let (mut map, pos, blockers, entities) = data;
 
         map.populate_blocked();
-        // map.clear_content_index();
+        map.clear_content_index();
 
-        (&pos, &blockers).join().for_each(|(pos, _blocker)| {
+        (&pos, &entities).join().for_each(|(pos, entity)| {
             let ix = map.pos_idx(*pos);
-            map.blocked[ix] = true;
+            if let Some(_b) = blockers.get(entity) {
+                map.blocked[ix] = true;
+            }
+
+            map.tile_content[ix].push(entity);
         });
     }
 }

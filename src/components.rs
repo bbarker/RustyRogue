@@ -12,6 +12,14 @@ use crate::PsnU;
 pub struct BlocksTile {}
 
 #[derive(Component, Debug)]
+pub struct CombatStats {
+    pub max_hp: u16,
+    pub hp: u16,
+    pub defense: u16,
+    pub power: u16,
+}
+
+#[derive(Component, Debug)]
 pub struct Monster {}
 
 #[derive(Component, Debug)]
