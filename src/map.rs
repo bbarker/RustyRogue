@@ -99,6 +99,7 @@ pub struct Map {
     pub revealed_tiles: Vec<bool>,
     pub visible_tiles: Vec<bool>,
     pub blocked: Vec<bool>,
+    pub tile_content: Vec<Vec<Entity>>,
 }
 
 pub fn idx_to_xy(width: usize, ix: usize) -> Position {
@@ -160,6 +161,10 @@ impl Map {
 
     pub fn populate_blocked(&mut self) {
         self.blocked = self.tiles.iter().map(|t| *t == TileType::Wall).collect();
+    }
+
+    pub fn clear_content_index(&mut self) {
+        self.tile_content.iter_mut().for_each(|vc| vc.clear());
     }
 }
 
@@ -236,6 +241,12 @@ pub fn new_map_rooms_and_corridors(display: &DisplayState) -> Map {
         revealed_tiles: vec![false; (display.width * display.height).try_into().unwrap()],
         visible_tiles: vec![false; (display.width * display.height).try_into().unwrap()],
         blocked: vec![false; (display.width * display.height).try_into().unwrap()],
+
+        /// The map_indexing system already visits each tile in the map to looking for blocking tiles
+        /// so we can instead alter that scan to populate
+        /// which entities are at each tile, preventing us from having to iterate over the join of all
+        /// entities and positions again. We store the result in `tile_content`.
+        tile_content: vec![Vec::new(); (display.width * display.height).try_into().unwrap()],
     };
 
     const MAX_ROOMS: u16 = 30;

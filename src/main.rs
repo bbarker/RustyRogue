@@ -106,6 +106,7 @@ fn main() {
         runstate: RunState::Running,
     };
     gs.ecs.register::<BlocksTile>();
+    gs.ecs.register::<CombatStats>();
     gs.ecs.register::<Monster>();
     gs.ecs.register::<Name>();
     gs.ecs.register::<Player>();
@@ -145,6 +146,12 @@ fn build_entity_player(gs: &mut State, position: PlayerPosition) -> Entity {
         })
         .with(Name {
             name: "Player".to_string(),
+        })
+        .with(CombatStats {
+            max_hp: 30,
+            hp: 30,
+            defense: 2,
+            power: 5,
         })
         .build()
 }
@@ -205,6 +212,12 @@ fn build_monsters(ecs: &mut World, map: &Map) -> Vec<Entity> {
                 .with(Monster {})
                 .with(Name {
                     name: name.to_string(),
+                })
+                .with(CombatStats {
+                    max_hp: 16,
+                    hp: 16,
+                    defense: 1,
+                    power: 4,
                 })
                 .with(BlocksTile {})
                 .build()
