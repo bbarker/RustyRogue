@@ -5,7 +5,7 @@ use itertools::Itertools;
 use specs::*;
 use std::cmp::{max, min};
 
-use crate::components::xy_idx;
+use crate::components::{xy_idx, Positionable};
 use crate::{display_state::*, Position, PsnU};
 
 use crate::rect::*;
@@ -98,6 +98,7 @@ pub struct Map {
     pub height_psnu: PsnU,
     pub revealed_tiles: Vec<bool>,
     pub visible_tiles: Vec<bool>,
+    pub blocked: Vec<bool>,
 }
 
 pub fn idx_to_xy(width: usize, ix: usize) -> Position {
@@ -118,12 +119,16 @@ impl Map {
         xy_idx(self.width_psnu, xx, yy)
     }
 
+    pub fn pos_idx(self: &Map, pos: impl Positionable) -> usize {
+        pos.idx(self.width_psnu)
+    }
+
     fn is_exit_valid(&self, xx: PsnU, yy: PsnU) -> bool {
         if xx < 1 || xx > self.width_psnu - 2 || yy < 1 || yy > self.height_psnu - 2 {
             false
         } else {
             let ix = self.xy_idx(xx, yy);
-            self.tiles[ix] == TileType::Floor
+            !self.blocked[ix]
         }
     }
 
@@ -151,6 +156,10 @@ impl Map {
                 self.tiles[ix] = TileType::Floor;
             }
         })
+    }
+
+    pub fn populate_blocked(&mut self) {
+        self.blocked = self.tiles.iter().map(|t| *t == TileType::Wall).collect();
     }
 }
 
@@ -206,6 +215,7 @@ pub fn new_map_rooms_and_corridors(display: &DisplayState) -> Map {
         height_psnu: display.height,
         revealed_tiles: vec![false; (display.width * display.height).try_into().unwrap()],
         visible_tiles: vec![false; (display.width * display.height).try_into().unwrap()],
+        blocked: vec![false; (display.width * display.height).try_into().unwrap()],
     };
 
     const MAX_ROOMS: u16 = 30;

@@ -9,6 +9,9 @@ use bracket_lib::{
 use crate::PsnU;
 
 #[derive(Component, Debug)]
+pub struct BlocksTile {}
+
+#[derive(Component, Debug)]
 pub struct Monster {}
 
 #[derive(Component, Debug)]
