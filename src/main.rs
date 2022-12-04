@@ -10,6 +10,7 @@ pub mod components;
 pub mod display_state;
 pub mod map;
 pub mod map_indexing_system;
+pub mod melee_combat_system;
 pub mod monster_ai_system;
 pub mod rect;
 pub mod visibility_system;
@@ -107,6 +108,8 @@ fn main() {
     };
     gs.ecs.register::<BlocksTile>();
     gs.ecs.register::<CombatStats>();
+    gs.ecs.register::<EventIncomingDamage>();
+    gs.ecs.register::<EventWantsToMelee>();
     gs.ecs.register::<Monster>();
     gs.ecs.register::<Name>();
     gs.ecs.register::<Player>();
@@ -226,11 +229,16 @@ fn build_monsters(ecs: &mut World, map: &Map) -> Vec<Entity> {
 }
 
 fn try_move_player(delta_x: i32, delta_y: i32, gs: &mut State) -> RunState {
+    let entities = gs.ecs.entities();
+
     let mut positions = gs.ecs.write_storage::<Position>();
     let mut players = gs.ecs.write_storage::<Player>();
     let mut viewsheds = gs.ecs.write_storage::<Viewshed>();
-    if let Some((_player, pos, viewshed)) =
-        (&mut players, &mut positions, &mut viewsheds).join().next()
+    let mut wants_to_melee = gs.ecs.write_storage::<EventWantsToMelee>();
+    if let Some((entity, _player, pos, viewshed)) =
+        (&entities, &mut players, &mut positions, &mut viewsheds)
+            .join()
+            .next()
     {
         let xx_i32 = i32::try_from(pos.xx).unwrap();
         let yy_i32 = i32::try_from(pos.yy).unwrap();
@@ -248,8 +256,16 @@ fn try_move_player(delta_x: i32, delta_y: i32, gs: &mut State) -> RunState {
         let combat = map.tile_content[destination_ix]
             .iter()
             .any(|potential_target| {
-                if let Some(_target) = combat_stats.get(*potential_target) {
+                if let Some(_c_stats) = combat_stats.get(*potential_target) {
                     console::log("I stab thee with righteous fury!");
+                    wants_to_melee
+                        .insert(
+                            entity,
+                            EventWantsToMelee {
+                                target: *potential_target,
+                            },
+                        )
+                        .expect("Add target failed");
                     true
                 } else {
                     false
