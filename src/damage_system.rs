@@ -1,5 +1,10 @@
 use bracket_lib::prelude::console;
 
+use crate::{
+    components::{Position, Positionable},
+    map::Map,
+};
+
 use super::{CombatStats, EventIncomingDamage};
 use specs::prelude::*;
 
@@ -26,13 +31,22 @@ impl<'a> System<'a> for DamageSystem {
 pub fn delete_the_dead(ecs: &mut World) {
     let mut dead: Vec<Entity> = Vec::new();
     {
-        let combat_stats = ecs.read_storage::<CombatStats>();
         let entities = ecs.entities();
-        (&entities, &combat_stats).join().for_each(|(ent, stats)| {
-            if stats.hp < 1 {
-                dead.push(ent);
-            }
-        });
+        let combat_stats = ecs.read_storage::<CombatStats>();
+        let positions = ecs.read_storage::<Position>();
+        (&entities, &combat_stats, &positions)
+            .join()
+            .for_each(|(ent, stats, pos)| {
+                if stats.hp < 1 {
+                    dead.push(ent);
+                    let ix = {
+                        let map = ecs.fetch::<Map>();
+                        map.pos_idx(pos.from())
+                    };
+                    let map = &mut ecs.fetch_mut::<Map>();
+                    map.blocked[ix] = false;
+                }
+            });
     }
     dead.iter().for_each(|victim| {
         ecs.delete_entity(*victim).unwrap_or_else(|_| {
