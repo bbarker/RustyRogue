@@ -25,10 +25,6 @@ impl<'a> System<'a> for MeleeCombatSystem {
             .for_each(|(_ent, name, stats, wants_melee)| {
                 let target = wants_melee.target;
                 let target_name = names.get(target).unwrap_or(&debug_name);
-                console::log(format!(
-                    "**** DEBUG: target_name: {} ****",
-                    target_name.name
-                ));
                 let target_stats_opt = combat_stats.get(target);
                 if let Some(target_stats) = target_stats_opt {
                     let damage = u16::max(0, stats.power - target_stats.defense);
@@ -46,5 +42,6 @@ impl<'a> System<'a> for MeleeCombatSystem {
                     }
                 }
             });
+        wants_melee.clear();
     }
 }

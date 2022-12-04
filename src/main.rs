@@ -59,7 +59,9 @@ impl GameState for State {
     fn tick(&mut self, ctx: &mut BTerm) {
         self.display = calc_display_state(ctx);
 
+        delete_the_dead(&mut self.ecs);
         ctx.cls();
+        draw_map(&self.ecs, ctx);
 
         if self.runstate == RunState::Running {
             self.run_systems();
@@ -67,9 +69,6 @@ impl GameState for State {
         } else {
             self.runstate = player_input(self, ctx);
         }
-
-        delete_the_dead(&mut self.ecs);
-        draw_map(&self.ecs, ctx);
 
         let positions = self.ecs.read_storage::<Position>();
         let renderables = self.ecs.read_storage::<Renderable>();
