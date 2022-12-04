@@ -7,6 +7,7 @@ use map_indexing_system::MapIndexingSystem;
 use specs::prelude::*;
 
 pub mod components;
+pub mod damage_system;
 pub mod display_state;
 pub mod map;
 pub mod map_indexing_system;
@@ -16,8 +17,10 @@ pub mod rect;
 pub mod visibility_system;
 
 use components::*;
+use damage_system::*;
 use display_state::*;
 use map::*;
+use melee_combat_system::*;
 use monster_ai_system::*;
 use visibility_system::VisibilitySystem;
 
@@ -43,6 +46,10 @@ impl State {
         mob.run_now(&self.ecs);
         let mut map_index = MapIndexingSystem {};
         map_index.run_now(&self.ecs);
+        let mut melee = MeleeCombatSystem {};
+        melee.run_now(&self.ecs);
+        let mut damage = DamageSystem {};
+        damage.run_now(&self.ecs);
 
         self.ecs.maintain();
     }
@@ -61,6 +68,7 @@ impl GameState for State {
             self.runstate = player_input(self, ctx);
         }
 
+        delete_the_dead(&mut self.ecs);
         draw_map(&self.ecs, ctx);
 
         let positions = self.ecs.read_storage::<Position>();
@@ -75,24 +83,6 @@ impl GameState for State {
             });
     }
 }
-
-/* struct LeftWalker<'a> {
-    display: &'a DisplayState,
-}
-
-impl<'a> System<'a> for LeftWalker<'a> {
-    type SystemData = (ReadStorage<'a, LeftMover>, WriteStorage<'a, Position>);
-
-    fn run(&mut self, (lefty, mut pos): Self::SystemData) {
-        (&lefty, &mut pos).join().for_each(|(_lefty, pos)| {
-            if pos.xx == 0 {
-                pos.xx = self.display.width - 1;
-            } else {
-                pos.xx -= 1
-            }
-        })
-    }
-} */
 
 fn main() {
     use bracket_lib::prelude::BTermBuilder;
