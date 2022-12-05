@@ -1,5 +1,3 @@
-use bracket_lib::prelude::console;
-
 use crate::{
     components::{Position, Positionable},
     map::Map,
@@ -49,8 +47,7 @@ pub fn delete_the_dead(ecs: &mut World) {
             });
     }
     dead.iter().for_each(|victim| {
-        ecs.delete_entity(*victim).unwrap_or_else(|_| {
-            console::log(format!("Unable to delete entity with id {}", victim.id()))
-        })
+        ecs.delete_entity(*victim)
+            .unwrap_or_else(|_| panic!("Unable to delete entity with id {}", victim.id()))
     });
 }

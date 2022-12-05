@@ -113,9 +113,12 @@ fn main() {
 
     gs.ecs.insert(map);
 
-    // Note we aren't storing the entity, just telling the World it is there.
     // FIXME: unit discard warning?
-    build_entity_player(&mut gs, player_posn);
+    let player_entity = build_entity_player(&mut gs, player_posn);
+
+    // TODO: what happens if we don't insert player_entity? it is
+    // already registered through the Player component
+    gs.ecs.insert(player_entity);
     gs.ecs.insert(player_posn);
 
     bracket_lib::prelude::main_loop(context, gs).unwrap()
