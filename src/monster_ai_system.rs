@@ -1,7 +1,4 @@
-use crate::{
-    components::{EventWantsToMelee, Name, Player, PlayerPosition, Position, Positionable},
-    map::Map,
-};
+use crate::{components::*, map::Map, system_with_players::get_player_entities_with_pos};
 
 use super::{Monster, Viewshed};
 use bracket_lib::{prelude::console, terminal::DistanceAlg};
@@ -14,7 +11,6 @@ impl<'a> System<'a> for MonsterAI {
         Entities<'a>,
         WriteExpect<'a, Map>,
         ReadStorage<'a, Player>,
-        ReadExpect<'a, PlayerPosition>,
         WriteStorage<'a, Viewshed>,
         ReadStorage<'a, Monster>,
         ReadStorage<'a, Name>,
@@ -27,7 +23,6 @@ impl<'a> System<'a> for MonsterAI {
             entities,
             map,
             players,
-            player_pos,
             mut viewsheds,
             monsters,
             names,
@@ -35,43 +30,47 @@ impl<'a> System<'a> for MonsterAI {
             mut wants_to_melee,
         ) = data;
 
-        let player_entities = (&entities, &players)
-            .join()
-            .map(|(ent, _)| ent)
-            .collect::<Vec<_>>();
+        // TODO: extract this into a function
+        let player_entities_with_pos =
+            get_player_entities_with_pos(&entities, &players, &positions);
 
         (&entities, &mut viewsheds, &monsters, &names, &mut positions)
             .join()
             .for_each(|(entity, viewshed, _monster, name, pos)| {
-                player_entities.iter().for_each(|player_entity| {
-                    if viewshed.visible_tiles.contains(&player_pos.pos().into()) {
-                        let distance = DistanceAlg::Pythagoras
-                            .distance2d((*pos).into(), player_pos.pos().into());
-                        if distance < 1.5 {
-                            wants_to_melee
-                                .insert(
-                                    entity,
-                                    EventWantsToMelee {
-                                        target: *player_entity,
-                                    },
-                                )
-                                .unwrap_or_else(|_| {
-                                    panic!("Unable to insert attack on player from {}", name.name,)
-                                });
-                            console::log(format!("{} shouts insults", name.name));
-                        } else {
-                            let path = bracket_lib::prelude::a_star_search(
-                                pos.idx(map.width_psnu),
-                                player_pos.pos().idx(map.width_psnu),
-                                &*map,
-                            );
-                            if path.success && path.steps.len() > 1 {
-                                *pos = map.idx_to_xy(path.steps[1]);
-                                viewshed.dirty = true;
+                player_entities_with_pos
+                    .iter()
+                    .for_each(|(player_entity, player_pos)| {
+                        if viewshed.visible_tiles.contains(&(*player_pos).into()) {
+                            let distance = DistanceAlg::Pythagoras
+                                .distance2d((*pos).into(), (*player_pos).into());
+                            if distance < 1.5 {
+                                wants_to_melee
+                                    .insert(
+                                        entity,
+                                        EventWantsToMelee {
+                                            target: *player_entity,
+                                        },
+                                    )
+                                    .unwrap_or_else(|_| {
+                                        panic!(
+                                            "Unable to insert attack on player from {}",
+                                            name.name,
+                                        )
+                                    });
+                                console::log(format!("{} shouts insults", name.name));
+                            } else {
+                                let path = bracket_lib::prelude::a_star_search(
+                                    pos.idx(map.width_psnu),
+                                    player_pos.idx(map.width_psnu),
+                                    &*map,
+                                );
+                                if path.success && path.steps.len() > 1 {
+                                    *pos = map.idx_to_xy(path.steps[1]);
+                                    viewshed.dirty = true;
+                                }
                             }
                         }
-                    }
-                })
+                    })
             });
     }
 }

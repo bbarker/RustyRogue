@@ -14,6 +14,7 @@ pub mod map_indexing_system;
 pub mod melee_combat_system;
 pub mod monster_ai_system;
 pub mod rect;
+pub mod system_with_players;
 pub mod visibility_system;
 
 use components::*;
@@ -109,7 +110,7 @@ fn main() {
     let map = new_map_rooms_and_corridors(&gs.display);
     build_monsters(&mut gs.ecs, &map);
 
-    let player_posn = PlayerPosition::new(map.rooms.first().unwrap().center());
+    let player_posn = map.rooms.first().unwrap().center();
 
     gs.ecs.insert(map);
 
@@ -120,10 +121,10 @@ fn main() {
     bracket_lib::prelude::main_loop(context, gs).unwrap()
 }
 
-fn build_entity_player(gs: &mut State, position: PlayerPosition) -> Entity {
+fn build_entity_player(gs: &mut State, position: Position) -> Entity {
     gs.ecs
         .create_entity()
-        .with(position.pos())
+        .with(position)
         .with(Renderable {
             glyph: bracket_lib::prelude::to_cp437('@'),
             fg: RGB::named(bracket_lib::prelude::YELLOW),
@@ -262,7 +263,6 @@ fn try_move_player(delta_x: i32, delta_y: i32, gs: &mut State) -> RunState {
         if !combat && !map.blocked[destination_ix] {
             pos.xx = try_xx;
             pos.yy = try_yy;
-            gs.ecs.write_resource::<PlayerPosition>().set(*pos);
             viewshed.dirty = true;
             RunState::Running
         } else if combat {
