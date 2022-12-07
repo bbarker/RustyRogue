@@ -36,6 +36,7 @@ pub fn delete_the_dead(ecs: &mut World) {
             .join()
             .for_each(|(ent, stats, pos)| {
                 if stats.hp < 1 {
+                    // TODO: add different handling for player death
                     dead.push(ent);
                     let ix = {
                         let map = ecs.fetch::<Map>();

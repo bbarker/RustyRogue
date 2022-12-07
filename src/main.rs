@@ -29,14 +29,15 @@ pub type PsnU = u16;
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum RunState {
-    Paused,
-    Running,
+    AwaitingInput,
+    PreRun,
+    PlayerTurn,
+    MonsterTurn,
 }
 
 struct State {
     ecs: World,
     display: DisplayState,
-    runstate: RunState,
 }
 
 impl State {
@@ -60,16 +61,37 @@ impl GameState for State {
     fn tick(&mut self, ctx: &mut BTerm) {
         self.display = calc_display_state(ctx);
 
-        delete_the_dead(&mut self.ecs);
         ctx.cls();
-        draw_map(&self.ecs, ctx);
 
-        if self.runstate == RunState::Running {
-            self.run_systems();
-            self.runstate = RunState::Paused;
-        } else {
-            self.runstate = player_input(self, ctx);
+        // This might be a good candidate for mutual TCO, someday
+        // Also, look into bracket/resource handling patterns
+        let mut newrunstate = {
+            let runstate = self.ecs.fetch::<RunState>();
+            *runstate
+        };
+        match newrunstate {
+            RunState::PreRun => {
+                self.run_systems();
+                newrunstate = RunState::AwaitingInput;
+            }
+            RunState::AwaitingInput => newrunstate = player_input(self, ctx),
+            RunState::PlayerTurn => {
+                self.run_systems();
+                newrunstate = RunState::MonsterTurn;
+            }
+            RunState::MonsterTurn => {
+                self.run_systems();
+                newrunstate = RunState::AwaitingInput;
+            }
         }
+        {
+            let mut runstate = self.ecs.fetch_mut::<RunState>();
+            *runstate = newrunstate;
+        }
+
+        delete_the_dead(&mut self.ecs);
+
+        draw_map(&self.ecs, ctx);
 
         let positions = self.ecs.read_storage::<Position>();
         let renderables = self.ecs.read_storage::<Renderable>();
@@ -94,7 +116,6 @@ fn main() {
     let mut gs = State {
         ecs: World::new(),
         display: calc_display_state(&context),
-        runstate: RunState::Running,
     };
     gs.ecs.register::<BlocksTile>();
     gs.ecs.register::<CombatStats>();
@@ -107,11 +128,12 @@ fn main() {
     gs.ecs.register::<Renderable>();
     gs.ecs.register::<Viewshed>();
 
+    gs.ecs.insert(RunState::PreRun);
+
     let map = new_map_rooms_and_corridors(&gs.display);
     build_monsters(&mut gs.ecs, &map);
 
     let player_posn = map.rooms.first().unwrap().center();
-
     gs.ecs.insert(map);
 
     // FIXME: unit discard warning?
@@ -264,20 +286,20 @@ fn try_move_player(delta_x: i32, delta_y: i32, gs: &mut State) -> RunState {
             pos.xx = try_xx;
             pos.yy = try_yy;
             viewshed.dirty = true;
-            RunState::Running
+            RunState::PlayerTurn
         } else if combat {
-            RunState::Running
+            RunState::PlayerTurn
         } else {
-            RunState::Paused
+            RunState::AwaitingInput
         }
     } else {
-        RunState::Paused
+        RunState::AwaitingInput
     }
 }
 
 fn player_input(gs: &mut State, ctx: &mut BTerm) -> RunState {
     match ctx.key {
-        None => RunState::Paused,
+        None => RunState::AwaitingInput,
         Some(key) => match key {
             // Player Movement
             VirtualKeyCode::Left | VirtualKeyCode::Numpad4 | VirtualKeyCode::A => {
@@ -298,7 +320,7 @@ fn player_input(gs: &mut State, ctx: &mut BTerm) -> RunState {
             VirtualKeyCode::Numpad1 | VirtualKeyCode::Z => try_move_player(-1, 1, gs),
             VirtualKeyCode::Numpad3 | VirtualKeyCode::X => try_move_player(1, 1, gs),
 
-            _ => RunState::Paused,
+            _ => RunState::AwaitingInput,
         },
     }
 }
