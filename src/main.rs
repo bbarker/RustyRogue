@@ -165,8 +165,8 @@ fn build_entity_player(gs: &mut State, position: Position) -> Entity {
             name: "Player".to_string(),
         })
         .with(CombatStats {
-            max_hp: 30,
-            hp: 30,
+            max_hp: 100, // TODO: Should be 30
+            hp: 100,     // Should be 30
             defense: 2,
             power: 5,
         })
