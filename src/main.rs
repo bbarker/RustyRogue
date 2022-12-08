@@ -9,6 +9,7 @@ use specs::prelude::*;
 pub mod components;
 pub mod damage_system;
 pub mod display_state;
+pub mod gui;
 pub mod map;
 pub mod map_indexing_system;
 pub mod melee_combat_system;
@@ -20,6 +21,7 @@ pub mod visibility_system;
 use components::*;
 use damage_system::*;
 use display_state::*;
+use gui::*;
 use map::*;
 use melee_combat_system::*;
 use monster_ai_system::*;
@@ -92,6 +94,7 @@ impl GameState for State {
         delete_the_dead(&mut self.ecs);
 
         draw_map(&self.ecs, ctx);
+        draw_ui(&self.ecs, ctx, &self.display);
 
         let positions = self.ecs.read_storage::<Position>();
         let renderables = self.ecs.read_storage::<Renderable>();

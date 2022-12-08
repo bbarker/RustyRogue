@@ -92,8 +92,9 @@ pub fn draw_map(ecs: &World, ctx: &mut BTerm) {
 pub struct Map {
     pub tiles: Vec<TileType>,
     pub rooms: Vec<Rect>,
-    pub width: usize,
-    pub height: usize,
+    width: usize,
+    height: usize,
+    tile_count: usize,
     pub width_psnu: PsnU,
     pub height_psnu: PsnU,
     pub revealed_tiles: Vec<bool>,
@@ -112,6 +113,18 @@ pub fn idx_to_xy(width: usize, ix: usize) -> Position {
 }
 
 impl Map {
+    pub fn width(&self) -> usize {
+        self.width
+    }
+
+    pub fn height(&self) -> usize {
+        self.height
+    }
+
+    pub fn tile_count(&self) -> usize {
+        self.tile_count
+    }
+
     pub fn idx_to_xy(self: &Map, ix: usize) -> Position {
         idx_to_xy(self.width, ix)
     }
@@ -144,7 +157,7 @@ impl Map {
     fn add_horizontal_tunnel(self: &mut Map, x1: PsnU, x2: PsnU, yy: PsnU) {
         (min(x1, x2)..=max(x1, x2)).for_each(|xx| {
             let ix = self.xy_idx(xx, yy);
-            if ix > 0 && ix < (self.width * self.height) {
+            if ix > 0 && ix < (self.tile_count) {
                 self.tiles[ix] = TileType::Floor;
             }
         })
@@ -153,7 +166,7 @@ impl Map {
     fn add_vertical_tunnel(self: &mut Map, y1: PsnU, y2: PsnU, xx: PsnU) {
         (min(y1, y2)..=max(y1, y2)).for_each(|yy| {
             let ix = self.xy_idx(xx, yy);
-            if ix > 0 && ix < (self.width * self.height) {
+            if ix > 0 && ix < (self.tile_count) {
                 self.tiles[ix] = TileType::Floor;
             }
         })
@@ -231,22 +244,27 @@ impl Algorithm2D for Map {
     }
 }
 pub fn new_map_rooms_and_corridors(display: &DisplayState) -> Map {
+    let map_width = display.width.try_into().unwrap();
+    let display_height: usize = display.height.try_into().unwrap();
+    let map_height = display_height - crate::gui::PANEL_HEIGHT;
+    let map_tile_count: usize = map_width * map_height;
     let mut map = Map {
-        tiles: vec![TileType::Wall; (display.width * display.height).try_into().unwrap()],
+        tiles: vec![TileType::Wall; map_tile_count],
         rooms: Vec::new(),
-        width: display.width.try_into().unwrap(),
-        height: display.height.try_into().unwrap(),
+        width: map_width,
+        height: map_height,
+        tile_count: map_tile_count,
         width_psnu: display.width,
         height_psnu: display.height,
-        revealed_tiles: vec![false; (display.width * display.height).try_into().unwrap()],
-        visible_tiles: vec![false; (display.width * display.height).try_into().unwrap()],
-        blocked: vec![false; (display.width * display.height).try_into().unwrap()],
+        revealed_tiles: vec![false; map_tile_count],
+        visible_tiles: vec![false; map_tile_count],
+        blocked: vec![false; map_tile_count],
 
         /// The map_indexing system already visits each tile in the map to looking for blocking tiles
         /// so we can instead alter that scan to populate
         /// which entities are at each tile, preventing us from having to iterate over the join of all
         /// entities and positions again. We store the result in `tile_content`.
-        tile_content: vec![Vec::new(); (display.width * display.height).try_into().unwrap()],
+        tile_content: vec![Vec::new(); map_tile_count],
     };
 
     const MAX_ROOMS: u16 = 30;
@@ -258,8 +276,8 @@ pub fn new_map_rooms_and_corridors(display: &DisplayState) -> Map {
     (0..MAX_ROOMS).for_each(|_| {
         let ww = rng.range(MIN_SIZE, MAX_SIZE);
         let hh = rng.range(MIN_SIZE, MAX_SIZE);
-        let xx = rng.range(1, display.width - ww - 1);
-        let yy = rng.range(1, display.height - hh - 1);
+        let xx = rng.range(1, map_width as u16 - ww - 1);
+        let yy = rng.range(1, map_height as u16 - hh - 1);
 
         let new_room = Rect::new(xx, yy, ww, hh);
 
