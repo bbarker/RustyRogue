@@ -27,14 +27,14 @@ impl<'a> System<'a> for VisibilitySystem {
                     viewshed.visible_tiles = field_of_view((*pos).into(), viewshed.range, &*map);
                     viewshed.visible_tiles.retain(|pt| {
                         pt.x >= 0
-                            && pt.x < map.width.try_into().unwrap()
+                            && pt.x < map.width().try_into().unwrap()
                             && pt.y >= 0
-                            && pt.y < map.height.try_into().unwrap()
+                            && pt.y < map.height().try_into().unwrap()
                     });
                     if let Some(_p) = player.get(ent) {
-                        map.visible_tiles = vec![false; map.width * map.height];
+                        map.visible_tiles = vec![false; map.tile_count()];
                         viewshed.visible_tiles.iter().for_each(|vis| {
-                            let width = map.width.try_into().unwrap();
+                            let width = map.width().try_into().unwrap();
                             let ix = vis.idx(width);
                             map.revealed_tiles[ix] = true;
                             map.visible_tiles[ix] = true;
