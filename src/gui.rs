@@ -1,3 +1,5 @@
+use std::cmp::max;
+
 use bracket_lib::{
     prelude::{BTerm, RGB},
     terminal::{BLACK, RED, WHITE, YELLOW},
@@ -11,21 +13,24 @@ use crate::{
 };
 
 pub const PANEL_HEIGHT: usize = 7;
+pub const PANEL_HEIGHT_SAFE: usize = max(PANEL_HEIGHT, 1);
 
 fn panel_top(display_state: &DisplayState) -> PsnU {
     display_state.height - (PANEL_HEIGHT as PsnU)
 }
 
 pub fn draw_ui(ecs: &World, ctx: &mut BTerm, display_state: &DisplayState) {
-    ctx.draw_box(
-        0,
-        panel_top(display_state),
-        display_state.width - 1,
-        PANEL_HEIGHT - 1,
-        RGB::named(WHITE),
-        RGB::named(BLACK),
-    );
-    draw_health_bar(ecs, ctx, display_state);
+    if PANEL_HEIGHT > 0 {
+        ctx.draw_box(
+            0,
+            panel_top(display_state),
+            display_state.width - 1,
+            PANEL_HEIGHT_SAFE - 1,
+            RGB::named(WHITE),
+            RGB::named(BLACK),
+        );
+        draw_health_bar(ecs, ctx, display_state);
+    }
 }
 
 fn draw_health_bar(ecs: &World, ctx: &mut BTerm, display_state: &DisplayState) {

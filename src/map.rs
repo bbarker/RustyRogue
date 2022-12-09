@@ -173,7 +173,9 @@ impl Map {
     }
 
     pub fn populate_blocked(&mut self) {
-        self.blocked = self.tiles.iter().map(|t| *t == TileType::Wall).collect();
+        // FIXME: player can hit self in bottom right corner, how can this be?
+        // GPT-3: This is because the player is not added to the map yet, so the player is not blocking the tile
+        () // self.blocked = self.tiles.iter().map(|t| *t == TileType::Wall).collect();
     }
 
     pub fn clear_content_index(&mut self) {
@@ -183,7 +185,7 @@ impl Map {
 
 impl BaseMap for Map {
     fn is_opaque(&self, ix: usize) -> bool {
-        self.tiles[ix] == TileType::Wall
+        self.tiles[ix.clamp(0, self.tile_count - 1)] == TileType::Wall
     }
 
     fn get_available_exits(&self, ix: usize) -> bracket_lib::prelude::SmallVec<[(usize, f32); 10]> {

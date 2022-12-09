@@ -1,3 +1,5 @@
+#![feature(const_cmp)]
+
 use bracket_lib::{
     prelude::{console, BTerm, GameState, VirtualKeyCode, RGB},
     random::RandomNumberGenerator,
@@ -261,8 +263,7 @@ fn try_move_player(delta_x: i32, delta_y: i32, gs: &mut State) -> RunState {
             .try_into()
             .unwrap();
         let try_yy: PsnU = (yy_i32 + delta_y)
-            // FIXME: -2 is a hack to avoid the panel
-            .clamp(0, gs.display.height_i32() - PANEL_HEIGHT as i32 - 2)
+            .clamp(0, gs.display.height_i32() - PANEL_HEIGHT as i32 - 1)
             .try_into()
             .unwrap();
         let combat_stats = gs.ecs.read_storage::<CombatStats>();
