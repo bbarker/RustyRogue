@@ -271,6 +271,7 @@ fn try_move_player(delta_x: i32, delta_y: i32, gs: &mut State) -> RunState {
         let destination_ix = map.xy_idx(try_xx, try_yy);
         let combat = map.tile_content[destination_ix]
             .iter()
+            .filter(|potential_target| potential_target.id() != entity.id())
             .any(|potential_target| {
                 if let Some(_c_stats) = combat_stats.get(*potential_target) {
                     console::log("I stab thee with righteous fury!");
