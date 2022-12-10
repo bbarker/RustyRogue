@@ -1,4 +1,4 @@
-use std::cmp::max;
+use std::cmp::{max, min};
 
 use bracket_lib::{
     prelude::{BTerm, RGB},
@@ -9,11 +9,13 @@ use specs::prelude::*;
 use crate::{
     components::{CombatStats, Player},
     display_state::DisplayState,
+    gamelog::GameLog,
     PsnU,
 };
 
 pub const PANEL_HEIGHT: usize = 7;
 pub const PANEL_HEIGHT_SAFE: usize = max(PANEL_HEIGHT, 1);
+pub const PANEL_HEIGHT_INTERIOR: usize = min(PANEL_HEIGHT, PANEL_HEIGHT - 2);
 
 fn panel_top(display_state: &DisplayState) -> PsnU {
     display_state.height - (PANEL_HEIGHT as PsnU)
@@ -30,9 +32,35 @@ pub fn draw_ui(ecs: &World, ctx: &mut BTerm, display_state: &DisplayState) {
             RGB::named(BLACK),
         );
         draw_health_bar(ecs, ctx, display_state);
+        draw_log(ecs, ctx, display_state);
     }
 }
 
+fn draw_log(ecs: &World, ctx: &mut BTerm, display_state: &DisplayState) {
+    let log = ecs.fetch::<GameLog>();
+    log.entries
+        .iter()
+        .take(PANEL_HEIGHT_INTERIOR)
+        .enumerate()
+        .for_each(|(line_num, msg)| {
+            ctx.print(2, panel_top(display_state) + 1 + line_num as PsnU, format!("{} [{}]", msg, line_num));
+        })
+}
+
+/*
+fn draw_log(ecs: &World, ctx: &mut BTerm, display_state: &DisplayState) {
+    let log = ecs.fetch::<GameLog>();
+    let yy = panel_top(display_state) + 1;
+    let mut line_num: PsnU = 0;
+    for msg in log.entries.iter().rev() {
+        if line_num >= PANEL_HEIGHT as PsnU - 1 {
+            break;
+        }
+        ctx.print(2, yy + line_num, msg);
+        line_num += 1;
+    }
+}
+*/
 fn draw_health_bar(ecs: &World, ctx: &mut BTerm, display_state: &DisplayState) {
     let combat_stats = ecs.read_storage::<CombatStats>();
     let players = ecs.read_storage::<Player>();
