@@ -11,6 +11,7 @@ use specs::prelude::*;
 pub mod components;
 pub mod damage_system;
 pub mod display_state;
+pub mod gamelog;
 pub mod gui;
 pub mod map;
 pub mod map_indexing_system;
@@ -134,6 +135,18 @@ fn main() {
     gs.ecs.register::<Viewshed>();
 
     gs.ecs.insert(RunState::PreRun);
+    gs.ecs.insert(gamelog::GameLog {
+        entries: vec![
+            "Welcome to Rusty Rogue! (1)".to_string(),
+            "Welcome to Rusty Rogue! (2)".to_string(),
+            "Welcome to Rusty Rogue! (3)".to_string(),
+            "Welcome to Rusty Rogue! (4)".to_string(),
+            "Welcome to Rusty Rogue! (5)".to_string(),
+            "Welcome to Rusty Rogue! (6)".to_string(),
+            "Welcome to Rusty Rogue! (7)".to_string(),
+            "Welcome to Rusty Rogue! (8)".to_string(),
+        ],
+    });
 
     let map = new_map_rooms_and_corridors(&gs.display);
     build_monsters(&mut gs.ecs, &map);
