@@ -136,16 +136,7 @@ fn main() {
 
     gs.ecs.insert(RunState::PreRun);
     gs.ecs.insert(gamelog::GameLog {
-        entries: vec![
-            "Welcome to Rusty Rogue! (1)".to_string(),
-            "Welcome to Rusty Rogue! (2)".to_string(),
-            "Welcome to Rusty Rogue! (3)".to_string(),
-            "Welcome to Rusty Rogue! (4)".to_string(),
-            "Welcome to Rusty Rogue! (5)".to_string(),
-            "Welcome to Rusty Rogue! (6)".to_string(),
-            "Welcome to Rusty Rogue! (7)".to_string(),
-            "Welcome to Rusty Rogue! (8)".to_string(),
-        ],
+        entries: vec!["Welcome to Rusty Rogue!".to_string()],
     });
 
     let map = new_map_rooms_and_corridors(&gs.display);

@@ -40,27 +40,14 @@ fn draw_log(ecs: &World, ctx: &mut BTerm, display_state: &DisplayState) {
     let log = ecs.fetch::<GameLog>();
     log.entries
         .iter()
+        .rev()
         .take(PANEL_HEIGHT_INTERIOR)
         .enumerate()
         .for_each(|(line_num, msg)| {
-            ctx.print(2, panel_top(display_state) + 1 + line_num as PsnU, format!("{} [{}]", msg, line_num));
+            ctx.print(2, panel_top(display_state) + 1 + line_num as PsnU, msg);
         })
 }
 
-/*
-fn draw_log(ecs: &World, ctx: &mut BTerm, display_state: &DisplayState) {
-    let log = ecs.fetch::<GameLog>();
-    let yy = panel_top(display_state) + 1;
-    let mut line_num: PsnU = 0;
-    for msg in log.entries.iter().rev() {
-        if line_num >= PANEL_HEIGHT as PsnU - 1 {
-            break;
-        }
-        ctx.print(2, yy + line_num, msg);
-        line_num += 1;
-    }
-}
-*/
 fn draw_health_bar(ecs: &World, ctx: &mut BTerm, display_state: &DisplayState) {
     let combat_stats = ecs.read_storage::<CombatStats>();
     let players = ecs.read_storage::<Player>();
