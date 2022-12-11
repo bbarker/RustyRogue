@@ -1,4 +1,4 @@
-use bracket_lib::prelude::console;
+use crate::gamelog::GameLog;
 
 use super::{CombatStats, EventIncomingDamage, EventWantsToMelee, Name};
 use specs::prelude::*;
@@ -8,6 +8,7 @@ pub struct MeleeCombatSystem {}
 impl<'a> System<'a> for MeleeCombatSystem {
     type SystemData = (
         Entities<'a>,
+        WriteExpect<'a, GameLog>,
         ReadStorage<'a, Name>,
         ReadStorage<'a, CombatStats>,
         WriteStorage<'a, EventIncomingDamage>,
@@ -15,7 +16,7 @@ impl<'a> System<'a> for MeleeCombatSystem {
     );
 
     fn run(&mut self, data: Self::SystemData) {
-        let (entities, names, combat_stats, mut inflict_damage, mut wants_melee) = data;
+        let (entities, mut log, names, combat_stats, mut inflict_damage, mut wants_melee) = data;
 
         let debug_name = Name {
             name: "<no name for entity>".to_string(),
@@ -30,12 +31,12 @@ impl<'a> System<'a> for MeleeCombatSystem {
                     let damage = u16::max(0, stats.power - target_stats.defense);
                     if damage > 0 && target_stats.hp > 0 {
                         EventIncomingDamage::new_damage(&mut inflict_damage, target, damage);
-                        console::log(format!(
+                        log.entries.push(format!(
                             "{} hits {} for {} hp.",
                             name.name, target_name.name, damage
                         ));
                     } else {
-                        console::log(format!(
+                        log.entries.push(format!(
                             "{} is unable to hurt {}.",
                             name.name, target_name.name
                         ));
