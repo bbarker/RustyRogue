@@ -1,5 +1,6 @@
 use crate::{
-    components::{Position, Positionable},
+    components::{Name, Position, Positionable},
+    gamelog::GameLog,
     map::Map,
 };
 
@@ -30,7 +31,9 @@ pub fn delete_the_dead(ecs: &mut World) {
     let mut dead: Vec<Entity> = Vec::new();
     {
         let entities = ecs.entities();
+        let mut log = ecs.write_resource::<GameLog>();
         let combat_stats = ecs.read_storage::<CombatStats>();
+        let names = ecs.read_storage::<Name>();
         let positions = ecs.read_storage::<Position>();
         (&entities, &combat_stats, &positions)
             .join()
@@ -38,6 +41,9 @@ pub fn delete_the_dead(ecs: &mut World) {
                 if stats.hp < 1 {
                     // TODO: add different handling for player death
                     dead.push(ent);
+                    if let Some(victim_name) = names.get(ent) {
+                        log.entries.push(format!("{} is dead.", victim_name.name));
+                    }
                     let ix = {
                         let map = ecs.fetch::<Map>();
                         map.pos_idx(pos.from())
