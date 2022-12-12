@@ -10,6 +10,8 @@ use crate::{display_state::*, Position, PsnU};
 
 use crate::rect::*;
 
+const MOVE_THROUGH_WALLS: bool = true;
+
 #[derive(PartialEq, Clone)]
 pub enum TileType {
     Wall,
@@ -173,7 +175,11 @@ impl Map {
     }
 
     pub fn populate_blocked(&mut self) {
-        self.blocked = self.tiles.iter().map(|t| *t == TileType::Wall).collect();
+        if MOVE_THROUGH_WALLS {
+            self.blocked = vec![false; self.tile_count];
+        } else {
+            self.blocked = self.tiles.iter().map(|t| *t == TileType::Wall).collect();
+        }
     }
 
     pub fn clear_content_index(&mut self) {
