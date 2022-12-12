@@ -38,7 +38,7 @@ pub struct Name {
 #[derive(Component, Debug)]
 pub struct Player {}
 
-#[derive(Component, Clone, Copy)]
+#[derive(Component, Clone, Copy, PartialEq)]
 pub struct Position {
     pub xx: PsnU,
     pub yy: PsnU,
@@ -77,6 +77,15 @@ impl Positionable for Point {
         Position {
             xx: self.x.try_into().unwrap(),
             yy: self.y.try_into().unwrap(),
+        }
+    }
+}
+
+impl Positionable for (i32, i32) {
+    fn from(self) -> Position {
+        Position {
+            xx: self.0.try_into().unwrap(),
+            yy: self.1.try_into().unwrap(),
         }
     }
 }

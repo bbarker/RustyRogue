@@ -2,14 +2,15 @@ use std::cmp::{max, min};
 
 use bracket_lib::{
     prelude::{BTerm, RGB},
-    terminal::{BLACK, RED, WHITE, YELLOW},
+    terminal::{BLACK, MAGENTA, RED, WHITE, YELLOW},
 };
 use specs::prelude::*;
 
 use crate::{
-    components::{CombatStats, Player},
+    components::{CombatStats, Name, Player, Position, Positionable},
     display_state::DisplayState,
     gamelog::GameLog,
+    map::Map,
     PsnU,
 };
 
@@ -34,6 +35,10 @@ pub fn draw_ui(ecs: &World, ctx: &mut BTerm, display_state: &DisplayState) {
         draw_health_bar(ecs, ctx, display_state);
         draw_log(ecs, ctx, display_state);
     }
+
+    let mouse_pos = ctx.mouse_pos();
+    ctx.set_bg(mouse_pos.0, mouse_pos.1, RGB::named(MAGENTA));
+    draw_tooltips(ecs, ctx)
 }
 
 fn draw_log(ecs: &World, ctx: &mut BTerm, display_state: &DisplayState) {
@@ -75,4 +80,36 @@ fn draw_health_bar(ecs: &World, ctx: &mut BTerm, display_state: &DisplayState) {
                 RGB::named(BLACK),
             )
         })
+}
+
+fn draw_tooltips(ecs: &World, ctx: &mut BTerm) {
+    let map = ecs.fetch::<Map>();
+    let names = ecs.read_storage::<Name>();
+    let positions = ecs.read_storage::<Position>();
+
+    let mouse_pos = ctx.mouse_pos();
+    if mouse_pos.0 < (map.width() as i32) && mouse_pos.1 < (map.height() as i32) {
+        let tooltip = (&names, &positions)
+            .join()
+            .filter(|(_name, pos)| (**pos) == mouse_pos.from())
+            .map(|(name, _pos)| name.name.to_string())
+            .collect::<Vec<String>>();
+
+        if !tooltip.is_empty() {
+            let width = 1 + tooltip.iter().map(|line| line.len()).max().unwrap_or(0);
+            let height = 1 + tooltip.len();
+            let xx = mouse_pos.0 - (width / 2) as i32;
+            let yy = mouse_pos.1 - (height / 2) as i32;
+            ctx.draw_box(xx, yy, width, height, RGB::named(WHITE), RGB::named(BLACK));
+            tooltip.iter().enumerate().for_each(|(ii, line)| {
+                ctx.print_color(
+                    xx + 1,
+                    yy + 1 + ii as i32,
+                    RGB::named(WHITE),
+                    RGB::named(BLACK),
+                    line,
+                )
+            })
+        }
+    }
 }
