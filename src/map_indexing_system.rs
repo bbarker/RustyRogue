@@ -14,6 +14,8 @@ impl<'a> System<'a> for MapIndexingSystem {
     fn run(&mut self, data: Self::SystemData) {
         let (mut map, pos, blockers, entities) = data;
 
+        // Perform map-based blocking before entity-based blocking, so that
+        // populate_blocked won't clear entities that are blocking.
         map.populate_blocked();
         map.clear_content_index();
 
