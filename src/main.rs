@@ -114,11 +114,14 @@ impl GameState for State {
 
 fn main() {
     use bracket_lib::prelude::BTermBuilder;
-    let context = BTermBuilder::simple80x50()
-        .with_title("Rusty Rogue")
-        .build()
-        .unwrap(); // TODO: better error handling from software tools
-
+    let context = {
+        let mut ctxt = BTermBuilder::simple80x50()
+            .with_title("Rusty Rogue")
+            .build()
+            .unwrap(); // TODO: better error handling from software tools
+        ctxt.with_post_scanlines(true); // gives a retro burn-in effect
+        ctxt
+    };
     let mut gs = State {
         ecs: World::new(),
         display: calc_display_state(&context),
