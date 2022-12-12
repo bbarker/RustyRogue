@@ -98,13 +98,24 @@ fn draw_tooltips(ecs: &World, ctx: &mut BTerm) {
         if !tooltip.is_empty() {
             let width = 1 + tooltip.iter().map(|line| line.len()).max().unwrap_or(0);
             let height = 1 + tooltip.len();
-            let xx = mouse_pos.0 - (width / 2) as i32;
-            let yy = mouse_pos.1 - (height / 2) as i32;
-            ctx.draw_box(xx, yy, width, height, RGB::named(WHITE), RGB::named(BLACK));
+
+            let (tooltip_x, tooltip_y) = if (mouse_pos.0 as usize + width + 1) > map.width() {
+                (mouse_pos.0 - width as i32, mouse_pos.1)
+            } else {
+                (mouse_pos.0 + 1, mouse_pos.1)
+            };
+            ctx.draw_box(
+                tooltip_x,
+                tooltip_y,
+                width,
+                height,
+                RGB::named(WHITE),
+                RGB::named(BLACK),
+            );
             tooltip.iter().enumerate().for_each(|(ii, line)| {
                 ctx.print_color(
-                    xx + 1,
-                    yy + 1 + ii as i32,
+                    tooltip_x + 1,
+                    tooltip_y + 1 + ii as i32,
                     RGB::named(WHITE),
                     RGB::named(BLACK),
                     line,
