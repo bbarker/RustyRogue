@@ -6,7 +6,7 @@ use specs::*;
 use std::cmp::{max, min};
 
 use crate::components::{xy_idx, Positionable};
-use crate::{display_state::*, Position, PsnU};
+use crate::{Position, PsnU, State};
 
 use crate::rect::*;
 
@@ -249,9 +249,9 @@ impl Algorithm2D for Map {
         Point::new(self.width_psnu, self.height_psnu)
     }
 }
-pub fn new_map_rooms_and_corridors(display: &DisplayState) -> Map {
-    let map_width = display.width.try_into().unwrap();
-    let display_height: usize = display.height.try_into().unwrap();
+pub fn new_map_rooms_and_corridors(gs: &State) -> Map {
+    let map_width = gs.display.width.try_into().unwrap();
+    let display_height: usize = gs.display.height.try_into().unwrap();
     let map_height = display_height - crate::gui::PANEL_HEIGHT;
     let map_tile_count: usize = map_width * map_height;
     let mut map = Map {
@@ -260,8 +260,8 @@ pub fn new_map_rooms_and_corridors(display: &DisplayState) -> Map {
         width: map_width,
         height: map_height,
         tile_count: map_tile_count,
-        width_psnu: display.width,
-        height_psnu: display.height,
+        width_psnu: gs.display.width,
+        height_psnu: gs.display.height,
         revealed_tiles: vec![false; map_tile_count],
         visible_tiles: vec![false; map_tile_count],
         blocked: vec![false; map_tile_count],
@@ -277,7 +277,7 @@ pub fn new_map_rooms_and_corridors(display: &DisplayState) -> Map {
     const MIN_SIZE: PsnU = 6;
     const MAX_SIZE: PsnU = 10;
 
-    let mut rng = RandomNumberGenerator::new();
+    let mut rng = gs.ecs.write_resource::<RandomNumberGenerator>();
 
     (0..MAX_ROOMS).for_each(|_| {
         let ww = rng.range(MIN_SIZE, MAX_SIZE);
