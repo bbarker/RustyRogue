@@ -40,9 +40,9 @@ pub enum RunState {
     MonsterTurn,
 }
 
-struct State {
-    ecs: World,
-    display: DisplayState,
+pub struct State {
+    pub ecs: World,
+    pub display: DisplayState,
 }
 
 impl State {
@@ -142,8 +142,9 @@ fn main() {
     gs.ecs.insert(gamelog::GameLog {
         entries: vec!["Welcome to Rusty Rogue!".to_string()],
     });
+    gs.ecs.insert(RandomNumberGenerator::new());
 
-    let map = new_map_rooms_and_corridors(&gs.display);
+    let map = new_map_rooms_and_corridors(&gs);
     build_monsters(&mut gs.ecs, &map);
 
     let player_posn = map.rooms.first().unwrap().center();
@@ -183,43 +184,30 @@ fn build_entity_player(gs: &mut State, position: Position) -> Entity {
         .build()
 }
 
-/*
-fn build_entities_happy_folk(gs: &mut State) -> Vec<Entity> {
-    (0..10)
-        .map(|ii| {
-            gs.ecs
-                .create_entity()
-                .with(Position { xx: 7 * ii, yy: 20 })
-                .with(Renderable {
-                    glyph: bracket_lib::prelude::to_cp437('☺'),
-                    fg: RGB::named(bracket_lib::prelude::RED),
-                    bg: RGB::named(bracket_lib::prelude::BLACK),
-                })
-                .with(LeftMover {})
-                .build()
-        })
-        .collect()
-}
-*/
-
 fn build_monsters(ecs: &mut World, map: &Map) -> Vec<Entity> {
     map.rooms
         .iter()
         .skip(1)
         .map(|room| {
             let posn = room.center();
-            let mut rng = RandomNumberGenerator::new();
-            let (glyph, name) = match rng.range(0, 4) {
-                0 => (to_cp437('g'), "Goblin"),
-                1 => (to_cp437('o'), "orc"),
-                2 => (to_cp437('t'), "Troll"),
-                _ => (to_cp437('T'), "Tarrasque"),
+
+            let (glyph, name) = {
+                let mut rng = ecs.write_resource::<RandomNumberGenerator>();
+                match rng.range(0, 4) {
+                    0 => (to_cp437('g'), "Goblin"),
+                    1 => (to_cp437('o'), "orc"),
+                    2 => (to_cp437('t'), "Troll"),
+                    _ => (to_cp437('T'), "Tarrasque"),
+                }
             };
-            let fg = match rng.range(0, 4) {
-                0 => RGB::named(bracket_lib::prelude::RED),
-                1 => RGB::named(bracket_lib::prelude::GREEN),
-                2 => RGB::named(bracket_lib::prelude::BLUE),
-                _ => RGB::named(bracket_lib::prelude::YELLOW),
+            let fg = {
+                let mut rng = ecs.write_resource::<RandomNumberGenerator>();
+                match rng.range(0, 4) {
+                    0 => RGB::named(bracket_lib::prelude::RED),
+                    1 => RGB::named(bracket_lib::prelude::GREEN),
+                    2 => RGB::named(bracket_lib::prelude::BLUE),
+                    _ => RGB::named(bracket_lib::prelude::YELLOW),
+                }
             };
             ecs.create_entity()
                 .with(Position {
