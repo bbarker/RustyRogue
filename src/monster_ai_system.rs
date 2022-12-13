@@ -1,7 +1,10 @@
-use crate::{components::*, map::Map, system_with_players::get_player_entities_with_pos, RunState};
+use crate::{
+    components::*, gamelog::GameLog, map::Map, system_with_players::get_player_entities_with_pos,
+    RunState,
+};
 
 use super::{Monster, Viewshed};
-use bracket_lib::{prelude::console, terminal::DistanceAlg};
+use bracket_lib::terminal::DistanceAlg;
 use specs::prelude::*;
 
 pub struct MonsterAI {}
@@ -9,6 +12,7 @@ pub struct MonsterAI {}
 impl<'a> System<'a> for MonsterAI {
     type SystemData = (
         Entities<'a>,
+        WriteExpect<'a, GameLog>,
         ReadExpect<'a, RunState>,
         WriteExpect<'a, Map>,
         ReadStorage<'a, Player>,
@@ -22,6 +26,7 @@ impl<'a> System<'a> for MonsterAI {
     fn run(&mut self, data: Self::SystemData) {
         let (
             entities,
+            mut log,
             runstate,
             map,
             players,
@@ -59,7 +64,7 @@ impl<'a> System<'a> for MonsterAI {
                                                 name.name,
                                             )
                                         });
-                                    console::log(format!("{} shouts insults", name.name));
+                                    log.entries.push(format!("{} shouts insults", name.name));
                                 } else {
                                     let path = bracket_lib::prelude::a_star_search(
                                         pos.idx(map.width_psnu),
