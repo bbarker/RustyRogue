@@ -1,7 +1,7 @@
 #![feature(const_cmp)]
 
 use bracket_lib::{
-    prelude::{console, BTerm, GameState, VirtualKeyCode, RGB},
+    prelude::{BTerm, GameState, VirtualKeyCode, RGB},
     random::RandomNumberGenerator,
     terminal::to_cp437,
 };
@@ -119,7 +119,8 @@ fn main() {
             .with_title("Rusty Rogue")
             .build()
             .unwrap(); // TODO: better error handling from software tools
-        ctxt.with_post_scanlines(true); // gives a retro burn-in effect
+        ctxt.with_post_scanlines(true);
+        // ^ gives a retro "scanlines and screen burn" effect
         ctxt
     };
     let mut gs = State {
@@ -253,6 +254,7 @@ fn build_monsters(ecs: &mut World, map: &Map) -> Vec<Entity> {
 
 fn try_move_player(delta_x: i32, delta_y: i32, gs: &mut State) -> RunState {
     let entities = gs.ecs.entities();
+    let mut log = gs.ecs.write_resource::<gamelog::GameLog>();
 
     let mut positions = gs.ecs.write_storage::<Position>();
     let mut players = gs.ecs.write_storage::<Player>();
@@ -281,7 +283,8 @@ fn try_move_player(delta_x: i32, delta_y: i32, gs: &mut State) -> RunState {
             .filter(|potential_target| potential_target.id() != entity.id())
             .any(|potential_target| {
                 if let Some(_c_stats) = combat_stats.get(*potential_target) {
-                    console::log("I stab thee with righteous fury!");
+                    log.entries
+                        .push("I stab thee with righteous fury!".to_string());
                     wants_to_melee
                         .insert(
                             entity,
