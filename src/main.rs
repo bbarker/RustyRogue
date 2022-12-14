@@ -1,9 +1,8 @@
 #![feature(const_cmp)]
 
 use bracket_lib::{
-    prelude::{BTerm, GameState, VirtualKeyCode, RGB},
+    prelude::{BTerm, GameState, VirtualKeyCode},
     random::RandomNumberGenerator,
-    terminal::to_cp437,
 };
 use map_indexing_system::MapIndexingSystem;
 use specs::prelude::*;
@@ -164,52 +163,7 @@ fn build_monsters(ecs: &mut World, map: &Map) -> Vec<Entity> {
         .skip(1)
         .map(|room| {
             let posn = room.center();
-
-            let (glyph, name) = {
-                let mut rng = ecs.write_resource::<RandomNumberGenerator>();
-                match rng.range(0, 4) {
-                    0 => (to_cp437('g'), "Goblin"),
-                    1 => (to_cp437('o'), "orc"),
-                    2 => (to_cp437('t'), "Troll"),
-                    _ => (to_cp437('T'), "Tarrasque"),
-                }
-            };
-            let fg = {
-                let mut rng = ecs.write_resource::<RandomNumberGenerator>();
-                match rng.range(0, 4) {
-                    0 => RGB::named(bracket_lib::prelude::RED),
-                    1 => RGB::named(bracket_lib::prelude::GREEN),
-                    2 => RGB::named(bracket_lib::prelude::BLUE),
-                    _ => RGB::named(bracket_lib::prelude::YELLOW),
-                }
-            };
-            ecs.create_entity()
-                .with(Position {
-                    xx: posn.xx,
-                    yy: posn.yy,
-                })
-                .with(Renderable {
-                    glyph,
-                    fg,
-                    bg: RGB::named(bracket_lib::prelude::BLACK),
-                })
-                .with(Viewshed {
-                    visible_tiles: Vec::new(),
-                    range: 8,
-                    dirty: true,
-                })
-                .with(Monster {})
-                .with(Name {
-                    name: name.to_string(),
-                })
-                .with(CombatStats {
-                    max_hp: 16,
-                    hp: 16,
-                    defense: 1,
-                    power: 4,
-                })
-                .with(BlocksTile {})
-                .build()
+            spawner::random_monster(ecs, posn)
         })
         .collect()
 }
