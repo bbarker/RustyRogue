@@ -18,6 +18,7 @@ pub mod map_indexing_system;
 pub mod melee_combat_system;
 pub mod monster_ai_system;
 pub mod rect;
+pub mod spawner;
 pub mod system_with_players;
 pub mod visibility_system;
 
@@ -151,37 +152,10 @@ fn main() {
     gs.ecs.insert(map);
 
     // FIXME: unit discard warning?
-    build_entity_player(&mut gs, player_posn);
+    spawner::player(&mut gs, player_posn);
     gs.ecs.insert(player_posn);
 
     bracket_lib::prelude::main_loop(context, gs).unwrap()
-}
-
-fn build_entity_player(gs: &mut State, position: Position) -> Entity {
-    gs.ecs
-        .create_entity()
-        .with(position)
-        .with(Renderable {
-            glyph: bracket_lib::prelude::to_cp437('@'),
-            fg: RGB::named(bracket_lib::prelude::YELLOW),
-            bg: RGB::named(bracket_lib::prelude::BLACK),
-        })
-        .with(Player {})
-        .with(Viewshed {
-            visible_tiles: Vec::new(),
-            range: 8,
-            dirty: true,
-        })
-        .with(Name {
-            name: "Player".to_string(),
-        })
-        .with(CombatStats {
-            max_hp: 100, // TODO: Should be 30
-            hp: 100,     // Should be 30
-            defense: 2,
-            power: 5,
-        })
-        .build()
 }
 
 fn build_monsters(ecs: &mut World, map: &Map) -> Vec<Entity> {
