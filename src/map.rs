@@ -61,7 +61,7 @@ pub fn draw_map(ecs: &World, ctx: &mut BTerm) {
     //    .join()
     //     .for_each(|(_player, _viewshed)| {
     map.tiles.iter().enumerate().for_each(|(ix, tile)| {
-        let tile_pos = map.idx_to_xy(ix);
+        let tile_pos = map.idx_to_pos(ix);
         // if viewshed.visible_tiles.contains(&tile_pos.to_point()) {
         if map.revealed_tiles[ix] {
             let (fg, glyph) = match tile {
@@ -105,7 +105,7 @@ pub struct Map {
     pub tile_content: Vec<Vec<Entity>>,
 }
 
-pub fn idx_to_xy(width: usize, ix: usize) -> Position {
+pub fn idx_to_pos(width: usize, ix: usize) -> Position {
     let xx = ix % width;
     let yy = ix / width;
     Position {
@@ -127,8 +127,8 @@ impl Map {
         self.tile_count
     }
 
-    pub fn idx_to_xy(self: &Map, ix: usize) -> Position {
-        idx_to_xy(self.width, ix)
+    pub fn idx_to_pos(self: &Map, ix: usize) -> Position {
+        idx_to_pos(self.width, ix)
     }
 
     pub fn xy_idx(self: &Map, xx: PsnU, yy: PsnU) -> usize {
@@ -195,7 +195,7 @@ impl BaseMap for Map {
     fn get_available_exits(&self, ix: usize) -> bracket_lib::prelude::SmallVec<[(usize, f32); 10]> {
         let mut exits = bracket_lib::prelude::SmallVec::new();
 
-        let pos = self.idx_to_xy(ix);
+        let pos = self.idx_to_pos(ix);
         let north = self.xy_idx(pos.xx, pos.yy - 1);
         let south = self.xy_idx(pos.xx, pos.yy + 1);
         let east = self.xy_idx(pos.xx + 1, pos.yy);
@@ -238,8 +238,8 @@ impl BaseMap for Map {
     }
 
     fn get_pathing_distance(&self, ix1: usize, ix2: usize) -> f32 {
-        let p1 = self.idx_to_xy(ix1);
-        let p2 = self.idx_to_xy(ix2);
+        let p1 = self.idx_to_pos(ix1);
+        let p2 = self.idx_to_pos(ix2);
         DistanceAlg::Pythagoras.distance2d(p1.into(), p2.into())
     }
 }

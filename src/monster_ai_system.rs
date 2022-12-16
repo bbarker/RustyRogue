@@ -72,7 +72,7 @@ impl<'a> System<'a> for MonsterAI {
                                         &*map,
                                     );
                                     if path.success && path.steps.len() > 1 {
-                                        *pos = map.idx_to_xy(path.steps[1]);
+                                        *pos = map.idx_to_pos(path.steps[1]);
                                         viewshed.dirty = true;
                                     }
                                 }
