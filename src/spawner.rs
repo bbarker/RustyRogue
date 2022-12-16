@@ -2,12 +2,18 @@ use bracket_lib::{
     random::RandomNumberGenerator,
     terminal::{FontCharType, BLUE, GREEN, RED, RGB, YELLOW},
 };
+use itertools::Itertools;
 use specs::prelude::*;
 
 use crate::{
     components::{BlocksTile, CombatStats, Monster, Name, Player, Position, Renderable, Viewshed},
+    map::Map,
+    rect::Rect,
     State,
 };
+
+const MAX_ROOM_MONSTERS: u16 = 4;
+// const MAX_ROOM_ITEMS: u16 = 2;
 
 pub fn player(gs: &mut State, position: Position) -> Entity {
     gs.ecs
@@ -37,6 +43,15 @@ pub fn player(gs: &mut State, position: Position) -> Entity {
 }
 
 pub fn random_monster(ecs: &mut World, position: Position) -> Entity {
+    let pos_ix = {
+        let map = ecs.read_resource::<Map>();
+        map.pos_idx(position)
+    };
+    {
+        let mut map = ecs.write_resource::<Map>();
+        map.blocked[pos_ix] = true;
+    }
+
     let roll = {
         let mut rng = ecs.write_resource::<RandomNumberGenerator>();
         rng.range(0, 4) // TODO: refactor monsters as an ADT?
@@ -124,4 +139,56 @@ fn monster<S: ToString>(
         })
         .with(BlocksTile {})
         .build()
+}
+
+pub fn spawn_room(ecs: &mut World, room: &Rect) -> Vec<Entity> {
+    let num_monsters = {
+        let mut rng = ecs.write_resource::<RandomNumberGenerator>();
+        rng.range(0, MAX_ROOM_MONSTERS + 1)
+    };
+    //let num_items = rng.range(0, MAX_ROOM_ITEMS + 1);
+    spawn_in_room(ecs, room, num_monsters, random_monster)
+}
+
+/// Fills a room with monsters and items
+pub fn spawn_in_room(
+    ecs: &mut World,
+    room: &Rect,
+    num_indices: u16,
+    spawn_fn: fn(&mut World, Position) -> Entity,
+) -> Vec<Entity> {
+    let fill_indices: Vec<usize> = {
+        let mut rng = ecs.write_resource::<RandomNumberGenerator>();
+        let map = &mut ecs.fetch_mut::<Map>();
+
+        let mut free_room_indices: Vec<usize> = (room.x1..=room.x2)
+            .cartesian_product(room.y1..=room.y2)
+            .map(|(x, y)| map.xy_idx(x, y))
+            .filter(|ix| !map.blocked[*ix])
+            .collect();
+
+        (0..num_indices)
+            .map(|_| {
+                let idx = rng.range(0, free_room_indices.len());
+                free_room_indices.remove(idx)
+            })
+            .collect()
+    };
+
+    fill_indices
+        .iter()
+        .map(|ix| {
+            let pos = {
+                let map = &mut ecs.fetch_mut::<Map>();
+                map.idx_to_pos(*ix)
+            };
+            spawn_fn(
+                ecs,
+                Position {
+                    xx: pos.xx,
+                    yy: pos.yy,
+                },
+            )
+        })
+        .collect()
 }

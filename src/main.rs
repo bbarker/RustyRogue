@@ -5,6 +5,7 @@ use bracket_lib::{
     random::RandomNumberGenerator,
 };
 use map_indexing_system::MapIndexingSystem;
+use spawner::spawn_room;
 use specs::prelude::*;
 
 pub mod components;
@@ -145,10 +146,10 @@ fn main() {
     gs.ecs.insert(RandomNumberGenerator::new());
 
     let map = new_map_rooms_and_corridors(&gs);
-    build_monsters(&mut gs.ecs, &map);
 
     let player_posn = map.rooms.first().unwrap().center();
     gs.ecs.insert(map);
+    populate_rooms(&mut gs.ecs);
 
     // FIXME: unit discard warning?
     spawner::player(&mut gs, player_posn);
@@ -157,14 +158,15 @@ fn main() {
     bracket_lib::prelude::main_loop(context, gs).unwrap()
 }
 
-fn build_monsters(ecs: &mut World, map: &Map) -> Vec<Entity> {
-    map.rooms
+fn populate_rooms(ecs: &mut World) -> Vec<Entity> {
+    let rooms = {
+        let map = ecs.read_resource::<Map>();
+        map.rooms.clone()
+    };
+    rooms
         .iter()
         .skip(1)
-        .map(|room| {
-            let posn = room.center();
-            spawner::random_monster(ecs, posn)
-        })
+        .flat_map(|room| spawn_room(ecs, room))
         .collect()
 }
 
