@@ -6,14 +6,16 @@ use itertools::Itertools;
 use specs::prelude::*;
 
 use crate::{
-    components::{BlocksTile, CombatStats, Monster, Name, Player, Position, Renderable, Viewshed},
+    components::{
+        BlocksTile, CombatStats, Item, Monster, Name, Player, Position, Renderable, Viewshed,
+    },
     map::Map,
     rect::Rect,
     State,
 };
 
 const MAX_ROOM_MONSTERS: u16 = 4;
-// const MAX_ROOM_ITEMS: u16 = 2;
+const MAX_ROOM_ITEMS: u16 = 2;
 
 pub fn player(gs: &mut State, position: Position) -> Entity {
     gs.ecs
@@ -39,6 +41,21 @@ pub fn player(gs: &mut State, position: Position) -> Entity {
             defense: 2,
             power: 5,
         })
+        .build()
+}
+
+pub fn health_potion(ecs: &mut World, position: Position) -> Entity {
+    ecs.create_entity()
+        .with(position)
+        .with(Renderable {
+            glyph: bracket_lib::prelude::to_cp437('¡'),
+            fg: RGB::named(bracket_lib::prelude::VIOLET),
+            bg: RGB::named(bracket_lib::prelude::BLACK),
+        })
+        .with(Name {
+            name: "Health Potion".to_string(),
+        })
+        .with(Item {})
         .build()
 }
 
@@ -142,12 +159,17 @@ fn monster<S: ToString>(
 }
 
 pub fn spawn_room(ecs: &mut World, room: &Rect) -> Vec<Entity> {
-    let num_monsters = {
+    let (num_monsters, num_items) = {
         let mut rng = ecs.write_resource::<RandomNumberGenerator>();
-        rng.range(0, MAX_ROOM_MONSTERS + 1)
+        let monsters = rng.range(0, MAX_ROOM_MONSTERS + 1);
+        let items = rng.range(0, MAX_ROOM_ITEMS + 1);
+        (monsters, items)
     };
-    //let num_items = rng.range(0, MAX_ROOM_ITEMS + 1);
-    spawn_in_room(ecs, room, num_monsters, random_monster)
+    vec![
+        spawn_in_room(ecs, room, num_monsters, random_monster),
+        spawn_in_room(ecs, room, num_items, health_potion),
+    ]
+    .concat()
 }
 
 /// Fills a room with monsters and items
@@ -164,7 +186,7 @@ pub fn spawn_in_room(
         let mut free_room_indices: Vec<usize> = (room.x1..=room.x2)
             .cartesian_product(room.y1..=room.y2)
             .map(|(x, y)| map.xy_idx(x, y))
-            .filter(|ix| !map.blocked[*ix])
+            .filter(|ix| !map.blocked[*ix] && map.tile_content[*ix].is_empty())
             .collect();
 
         (0..num_indices)
@@ -182,13 +204,17 @@ pub fn spawn_in_room(
                 let map = &mut ecs.fetch_mut::<Map>();
                 map.idx_to_pos(*ix)
             };
-            spawn_fn(
+            let entity = spawn_fn(
                 ecs,
                 Position {
                     xx: pos.xx,
                     yy: pos.yy,
                 },
-            )
+            );
+            let map = &mut ecs.fetch_mut::<Map>();
+            map.tile_content[*ix].push(entity);
+            // TODO: ^ make our own entity wrapper to avoid having to remember to do this
+            entity
         })
         .collect()
 }

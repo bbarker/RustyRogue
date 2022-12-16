@@ -28,6 +28,9 @@ pub struct CombatStats {
 }
 
 #[derive(Component, Debug)]
+pub struct Item {}
+
+#[derive(Component, Debug)]
 pub struct Monster {}
 
 #[derive(Component, Debug)]
@@ -88,6 +91,11 @@ impl Positionable for (i32, i32) {
             yy: self.1.try_into().unwrap(),
         }
     }
+}
+
+#[derive(Component, Debug)]
+pub struct Potion {
+    pub heal_amount: u16,
 }
 
 #[derive(Component)]
