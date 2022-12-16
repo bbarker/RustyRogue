@@ -132,10 +132,12 @@ fn main() {
     gs.ecs.register::<CombatStats>();
     gs.ecs.register::<EventIncomingDamage>();
     gs.ecs.register::<EventWantsToMelee>();
+    gs.ecs.register::<Item>();
     gs.ecs.register::<Monster>();
     gs.ecs.register::<Name>();
     gs.ecs.register::<Player>();
     gs.ecs.register::<Position>();
+    gs.ecs.register::<Potion>();
     gs.ecs.register::<Renderable>();
     gs.ecs.register::<Viewshed>();
 
