@@ -28,6 +28,44 @@ pub struct CombatStats {
 }
 
 #[derive(Component, Debug)]
+pub struct EventIncomingDamage {
+    pub amount: Vec<u16>,
+}
+
+impl EventIncomingDamage {
+    pub fn new_damage(store: &mut WriteStorage<EventIncomingDamage>, victim: Entity, amount: u16) {
+        if let Some(dmg) = store.get_mut(victim) {
+            dmg.amount.push(amount);
+        } else {
+            store
+                .insert(
+                    victim,
+                    EventIncomingDamage {
+                        amount: vec![amount],
+                    },
+                )
+                .expect("Unable to insert damage event");
+        }
+    }
+}
+
+#[derive(Component, Debug, ConvertSaveload, Clone)]
+pub struct EventWantsToMelee {
+    pub target: Entity,
+}
+
+#[derive(Component, Debug)]
+pub struct EventWantsToPickupItem {
+    pub collected_by: Entity,
+    pub item: Entity,
+}
+
+#[derive(Component, Debug)]
+pub struct InBackpack {
+    pub owner: Entity,
+}
+
+#[derive(Component, Debug)]
 pub struct Item {}
 
 #[derive(Component, Debug)]
@@ -105,36 +143,9 @@ pub struct Renderable {
     pub bg: RGB,
 }
 
-#[derive(Component, Debug)]
-pub struct EventIncomingDamage {
-    pub amount: Vec<u16>,
-}
-
-impl EventIncomingDamage {
-    pub fn new_damage(store: &mut WriteStorage<EventIncomingDamage>, victim: Entity, amount: u16) {
-        if let Some(dmg) = store.get_mut(victim) {
-            dmg.amount.push(amount);
-        } else {
-            store
-                .insert(
-                    victim,
-                    EventIncomingDamage {
-                        amount: vec![amount],
-                    },
-                )
-                .expect("Unable to insert damage event");
-        }
-    }
-}
-
 #[derive(Component)]
 pub struct Viewshed {
     pub visible_tiles: Vec<Point>,
     pub range: i32,
     pub dirty: bool,
-}
-
-#[derive(Component, Debug, ConvertSaveload, Clone)]
-pub struct EventWantsToMelee {
-    pub target: Entity,
 }
