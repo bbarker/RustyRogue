@@ -76,8 +76,27 @@ pub struct Name {
     pub name: String,
 }
 
-#[derive(Component, Debug)]
+#[derive(Component, Debug, Clone)]
 pub struct Player {}
+
+pub trait IsPlayer {
+    fn from(self) -> Player;
+}
+
+impl<T> IsPlayer for &T
+where
+    T: IsPlayer + Clone,
+{
+    fn from(self) -> Player {
+        self.clone().from()
+    }
+}
+
+impl IsPlayer for Player {
+    fn from(self) -> Player {
+        self
+    }
+}
 
 #[derive(Component, Clone, Copy, PartialEq)]
 pub struct Position {
@@ -104,6 +123,15 @@ pub trait Positionable {
     {
         let pos = self.from();
         xy_idx(width, pos.xx, pos.yy)
+    }
+}
+
+impl<T> Positionable for &T
+where
+    T: Positionable + Clone,
+{
+    fn from(self) -> Position {
+        (*self).clone().from()
     }
 }
 

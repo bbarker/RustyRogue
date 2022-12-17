@@ -1,8 +1,12 @@
 use bracket_lib::terminal::{BTerm, VirtualKeyCode};
-use specs::*;
+use itertools::Itertools;
+use specs::{world::EntitiesRes, *};
 
 use crate::{
-    components::{CombatStats, EventWantsToMelee, Player, Position, Viewshed},
+    components::{
+        CombatStats, EventWantsToMelee, EventWantsToPickupItem, IsPlayer, Item, Player, Position,
+        Positionable, Viewshed,
+    },
     gamelog,
     gui::PANEL_HEIGHT,
     map::Map,
@@ -93,7 +97,63 @@ pub fn player_input(gs: &mut State, ctx: &mut BTerm) -> RunState {
             VirtualKeyCode::Numpad1 | VirtualKeyCode::Z => try_move_player(-1, 1, gs),
             VirtualKeyCode::Numpad3 | VirtualKeyCode::X => try_move_player(1, 1, gs),
 
+            // Misc Actions
+            VirtualKeyCode::G => get_item(&mut gs.ecs),
+
             _ => RunState::AwaitingInput,
         },
     }
+}
+
+pub fn get_player_entities_with_pos<P: Join, R: Join>(
+    entities: &Read<EntitiesRes>,
+    players: P,
+    positions: R,
+) -> Vec<(Entity, Position)>
+where
+    P::Type: IsPlayer,
+    R::Type: Positionable,
+{
+    (entities, players, positions)
+        .join()
+        .map(|(ent, _, pos)| (ent, pos.from()))
+        .collect::<Vec<_>>()
+}
+
+fn get_item(ecs: &mut World) -> RunState {
+    let entities = ecs.entities();
+    let players = ecs.read_storage::<Player>();
+    let positions = ecs.read_storage::<Position>();
+    let items = ecs.read_storage::<Item>();
+    let mut gamelog = ecs.write_resource::<gamelog::GameLog>();
+
+    let player_posns = get_player_entities_with_pos(&entities, &players, &positions);
+
+    let player_target_items: Vec<EventWantsToPickupItem> = (&entities, &items, &positions)
+        .join()
+        .cartesian_product(player_posns)
+        .filter_map(|((item_entity, _, pos), player_pos)| {
+            if player_pos.1 == *pos {
+                Some(EventWantsToPickupItem {
+                    collected_by: player_pos.0,
+                    item: item_entity,
+                })
+            } else {
+                None
+            }
+        })
+        .collect();
+    if player_target_items.is_empty() {
+        gamelog
+            .entries
+            .push("There is nothing here to pick up.".to_string());
+    } else {
+        player_target_items.into_iter().for_each(|wants_to_pickup| {
+            let mut pickup = ecs.write_storage::<EventWantsToPickupItem>();
+            pickup
+                .insert(wants_to_pickup.collected_by, wants_to_pickup)
+                .unwrap_or_else(|_| panic!("Unable to insert pickup event"));
+        })
+    }
+    RunState::AwaitingInput
 }
