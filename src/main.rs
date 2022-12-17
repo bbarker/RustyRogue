@@ -4,6 +4,7 @@ use bracket_lib::{
     prelude::{BTerm, GameState, VirtualKeyCode},
     random::RandomNumberGenerator,
 };
+use inventory_system::ItemCollectionSystem;
 use map_indexing_system::MapIndexingSystem;
 use spawner::spawn_room;
 use specs::prelude::*;
@@ -13,6 +14,7 @@ pub mod damage_system;
 pub mod display_state;
 pub mod gamelog;
 pub mod gui;
+pub mod inventory_system;
 pub mod map;
 pub mod map_indexing_system;
 pub mod melee_combat_system;
@@ -58,6 +60,8 @@ impl State {
         melee.run_now(&self.ecs);
         let mut damage = DamageSystem {};
         damage.run_now(&self.ecs);
+        let mut pickup = ItemCollectionSystem {};
+        pickup.run_now(&self.ecs);
 
         self.ecs.maintain();
     }
@@ -132,6 +136,8 @@ fn main() {
     gs.ecs.register::<CombatStats>();
     gs.ecs.register::<EventIncomingDamage>();
     gs.ecs.register::<EventWantsToMelee>();
+    gs.ecs.register::<EventWantsToPickupItem>();
+    gs.ecs.register::<InBackpack>();
     gs.ecs.register::<Item>();
     gs.ecs.register::<Monster>();
     gs.ecs.register::<Name>();
