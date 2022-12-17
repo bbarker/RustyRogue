@@ -1,6 +1,5 @@
 use crate::{
-    components::*, gamelog::GameLog, map::Map, system_with_players::get_player_entities_with_pos,
-    RunState,
+    components::*, gamelog::GameLog, map::Map, player::get_player_entities_with_pos, RunState,
 };
 
 use super::{Monster, Viewshed};

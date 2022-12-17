@@ -21,7 +21,6 @@ mod melee_combat_system;
 mod monster_ai_system;
 mod rect;
 mod spawner;
-mod system_with_players;
 mod visibility_system;
 
 mod player;
