@@ -36,8 +36,8 @@ pub fn player(gs: &mut State, position: Position) -> Entity {
             name: "Player".to_string(),
         })
         .with(CombatStats {
-            max_hp: 100, // TODO: Should be 30
-            hp: 100,     // Should be 30
+            max_hp: 300, // TODO: Should be 30
+            hp: 300,     // Should be 30
             defense: 2,
             power: 5,
         })
@@ -49,7 +49,7 @@ pub fn health_potion(ecs: &mut World, position: Position) -> Entity {
         .with(position)
         .with(Renderable {
             glyph: bracket_lib::prelude::to_cp437('¡'),
-            fg: RGB::named(bracket_lib::prelude::VIOLET),
+            fg: RGB::named(bracket_lib::prelude::RED),
             bg: RGB::named(bracket_lib::prelude::BLACK),
         })
         .with(Name {

@@ -2,16 +2,17 @@ use std::cmp::{max, min};
 
 use bracket_lib::{
     prelude::{BTerm, RGB},
-    terminal::{BLACK, MAGENTA, RED, WHITE, YELLOW},
+    terminal::{VirtualKeyCode, BLACK, MAGENTA, RED, WHITE, YELLOW},
 };
 use specs::prelude::*;
 
 use crate::{
-    components::{CombatStats, Name, Player, Position, Positionable},
+    components::{CombatStats, InBackpack, Name, Player, Position, Positionable},
     display_state::DisplayState,
     gamelog::GameLog,
     map::Map,
-    PsnU,
+    player::{get_player_unwrap, PLAYER_NAME},
+    PsnU, State,
 };
 
 pub const PANEL_HEIGHT: usize = 7;
@@ -122,5 +123,79 @@ fn draw_tooltips(ecs: &World, ctx: &mut BTerm) {
                 )
             })
         }
+    }
+}
+
+#[derive(Clone, Copy, PartialEq)]
+pub enum ItemMenuResult {
+    Cancel,
+    NoResponse,
+    // Selected,
+}
+
+pub fn show_inventory(gs: &mut State, ctx: &mut BTerm) -> ItemMenuResult {
+    let names = gs.ecs.read_storage::<Name>();
+    let backpack = gs.ecs.read_storage::<InBackpack>();
+
+    let player_entity = get_player_unwrap(&gs.ecs, PLAYER_NAME);
+
+    let inventory = (&backpack, &names)
+        .join()
+        .filter(|item| item.0.owner == player_entity);
+
+    let inventory_size = inventory.count();
+
+    // (start at: mid height - half of item size):
+    let x_init = 15;
+    let y_init = (gs.display.height - inventory_size as PsnU) / 2;
+    let y_box_init = (y_init - 2).clamp(0, y_init);
+    ctx.draw_box(
+        x_init,
+        y_box_init,
+        x_init * 2 + 1,
+        inventory_size + 3,
+        RGB::named(WHITE),
+        RGB::named(BLACK),
+    );
+    ctx.print_color(
+        x_init + 3,
+        y_box_init,
+        RGB::named(YELLOW),
+        RGB::named(BLACK),
+        "Inventory",
+    );
+    ctx.print_color(
+        x_init + 3,
+        y_init + inventory_size as PsnU + 1,
+        RGB::named(YELLOW),
+        RGB::named(BLACK),
+        "ESCAPE to cancel",
+    );
+
+    // TODO: need to review this and improve it:
+    (&backpack, &names)
+        .join()
+        .enumerate()
+        .for_each(|(jj, (item, name))| {
+            if item.owner == player_entity {
+                ctx.print_color(
+                    x_init + 3,
+                    y_init + jj as PsnU,
+                    RGB::named(WHITE),
+                    RGB::named(BLACK),
+                    &name.name,
+                )
+            }
+        });
+
+    if let Some(key) = ctx.key {
+        if VirtualKeyCode::Escape == key {
+            // TODO: match
+            ItemMenuResult::Cancel
+        } else {
+            ItemMenuResult::NoResponse
+        }
+    } else {
+        ItemMenuResult::NoResponse
     }
 }

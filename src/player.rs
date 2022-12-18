@@ -4,14 +4,16 @@ use specs::{world::EntitiesRes, *};
 
 use crate::{
     components::{
-        CombatStats, EventWantsToMelee, EventWantsToPickupItem, IsPlayer, Item, Player, Position,
-        Positionable, Viewshed,
+        CombatStats, EventWantsToMelee, EventWantsToPickupItem, IsPlayer, Item, Name, Player,
+        Position, Positionable, Viewshed,
     },
     gamelog,
     gui::PANEL_HEIGHT,
     map::Map,
     PsnU, RunState, State,
 };
+
+pub const PLAYER_NAME: &str = "Player";
 
 pub fn try_move_player(delta_x: i32, delta_y: i32, gs: &mut State) -> RunState {
     let entities = gs.ecs.entities();
@@ -97,8 +99,11 @@ pub fn player_input(gs: &mut State, ctx: &mut BTerm) -> RunState {
             VirtualKeyCode::Numpad1 | VirtualKeyCode::Z => try_move_player(-1, 1, gs),
             VirtualKeyCode::Numpad3 | VirtualKeyCode::X => try_move_player(1, 1, gs),
 
-            // Misc Actions
+            // Misc Map Actions
             VirtualKeyCode::G => get_item(&mut gs.ecs),
+
+            // Menus
+            VirtualKeyCode::I => RunState::ShowInventory,
 
             _ => RunState::AwaitingInput,
         },
@@ -118,6 +123,43 @@ where
         .join()
         .map(|(ent, _, pos)| (ent, pos.from()))
         .collect::<Vec<_>>()
+}
+
+pub fn get_player_no_ecs<P: Join>(
+    entities: &Read<EntitiesRes>,
+    names: &ReadStorage<Name>,
+    players: P,
+    player_name: impl Into<String>,
+) -> Option<Entity>
+where
+    P::Type: IsPlayer,
+{
+    let pname = player_name.into();
+    (entities, players, names)
+        .join()
+        .filter_map(
+            |(ent, _, name)| {
+                if pname == name.name {
+                    Some(ent)
+                } else {
+                    None
+                }
+            },
+        )
+        .next()
+}
+
+pub fn get_player(ecs: &World, player_name: impl Into<String>) -> Option<Entity> {
+    let entities = ecs.entities();
+    let names = ecs.read_storage::<Name>();
+    let players = ecs.read_storage::<Player>();
+
+    get_player_no_ecs(&entities, &names, &players, player_name)
+}
+
+pub fn get_player_unwrap(ecs: &World, player_name: impl Into<String>) -> Entity {
+    let name = player_name.into();
+    get_player(ecs, &name).unwrap_or_else(|| panic!("Player {} not found", name))
 }
 
 fn get_item(ecs: &mut World) -> RunState {
@@ -155,5 +197,5 @@ fn get_item(ecs: &mut World) -> RunState {
                 .unwrap_or_else(|_| panic!("Unable to insert pickup event"));
         })
     }
-    RunState::AwaitingInput
+    RunState::PlayerTurn
 }
