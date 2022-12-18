@@ -10,7 +10,7 @@ use crate::{Position, PsnU, State};
 
 use crate::rect::*;
 
-const MOVE_THROUGH_WALLS: bool = true;
+const MOVE_THROUGH_WALLS: bool = false;
 
 #[derive(PartialEq, Clone)]
 pub enum TileType {
