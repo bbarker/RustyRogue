@@ -2,7 +2,7 @@ use std::cmp::{max, min};
 
 use bracket_lib::{
     prelude::{BTerm, RGB},
-    terminal::{VirtualKeyCode, BLACK, MAGENTA, RED, WHITE, YELLOW},
+    terminal::{to_cp437, FontCharType, VirtualKeyCode, BLACK, MAGENTA, RED, WHITE, YELLOW},
 };
 use specs::prelude::*;
 
@@ -134,6 +134,7 @@ pub enum ItemMenuResult {
 }
 
 pub fn show_inventory(gs: &mut State, ctx: &mut BTerm) -> ItemMenuResult {
+    const ESCAPE_MSG: &str = "ESCAPE to cancel";
     let names = gs.ecs.read_storage::<Name>();
     let backpack = gs.ecs.read_storage::<InBackpack>();
 
@@ -143,7 +144,11 @@ pub fn show_inventory(gs: &mut State, ctx: &mut BTerm) -> ItemMenuResult {
         .join()
         .filter(|item| item.0.owner == player_entity);
 
-    let inventory_size = inventory.count();
+    let (inventory_size, max_item_name_length) = inventory
+        .fold((0, 0), |(size, max_length), (_item, name)| {
+            (size + 1, max_length.max(name.name.len()))
+        });
+    let box_width = max(max_item_name_length, ESCAPE_MSG.len()) + 3 + 1;
 
     // (start at: mid height - half of item size):
     let x_init = 15;
@@ -152,7 +157,7 @@ pub fn show_inventory(gs: &mut State, ctx: &mut BTerm) -> ItemMenuResult {
     ctx.draw_box(
         x_init,
         y_box_init,
-        x_init * 2 + 1,
+        box_width,
         inventory_size + 3,
         RGB::named(WHITE),
         RGB::named(BLACK),
@@ -169,17 +174,38 @@ pub fn show_inventory(gs: &mut State, ctx: &mut BTerm) -> ItemMenuResult {
         y_init + inventory_size as PsnU + 1,
         RGB::named(YELLOW),
         RGB::named(BLACK),
-        "ESCAPE to cancel",
+        ESCAPE_MSG,
     );
 
-    // TODO: need to review this and improve it:
     (&backpack, &names)
         .join()
         .enumerate()
         .for_each(|(jj, (item, name))| {
             if item.owner == player_entity {
-                ctx.print_color(
+                ctx.set(
+                    x_init + 1,
+                    y_init + jj as PsnU,
+                    RGB::named(WHITE),
+                    RGB::named(BLACK),
+                    to_cp437('('),
+                );
+                ctx.set(
+                    // assign the item a letter in the menu
+                    x_init + 2,
+                    y_init + jj as PsnU,
+                    RGB::named(WHITE),
+                    RGB::named(BLACK),
+                    97 + jj as FontCharType,
+                );
+                ctx.set(
                     x_init + 3,
+                    y_init + jj as PsnU,
+                    RGB::named(WHITE),
+                    RGB::named(BLACK),
+                    to_cp437(')'),
+                );
+                ctx.print_color(
+                    x_init + 4,
                     y_init + jj as PsnU,
                     RGB::named(WHITE),
                     RGB::named(BLACK),
