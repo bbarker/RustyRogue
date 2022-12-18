@@ -82,6 +82,26 @@ impl GameState for State {
             let runstate = self.ecs.fetch::<RunState>();
             *runstate
         };
+
+        draw_map(&self.ecs, ctx);
+        draw_ui(&self.ecs, ctx, &self.display);
+
+        delete_the_dead(&mut self.ecs);
+
+        {
+            // draw renderables
+            let positions = self.ecs.read_storage::<Position>();
+            let renderables = self.ecs.read_storage::<Renderable>();
+            let map = self.ecs.fetch::<Map>();
+
+            (&positions, &renderables)
+                .join()
+                .filter(|(pos, _)| map.visible_tiles[pos.idx(self.display.width)])
+                .for_each(|(pos, render)| {
+                    ctx.set(pos.xx, pos.yy, render.fg, render.bg, render.glyph);
+                });
+        }
+
         match newrunstate {
             RunState::PreRun => {
                 self.run_systems();
@@ -106,22 +126,6 @@ impl GameState for State {
             let mut runstate = self.ecs.fetch_mut::<RunState>();
             *runstate = newrunstate;
         }
-
-        delete_the_dead(&mut self.ecs);
-
-        draw_map(&self.ecs, ctx);
-        draw_ui(&self.ecs, ctx, &self.display);
-
-        let positions = self.ecs.read_storage::<Position>();
-        let renderables = self.ecs.read_storage::<Renderable>();
-        let map = self.ecs.fetch::<Map>();
-
-        (&positions, &renderables)
-            .join()
-            .filter(|(pos, _)| map.visible_tiles[pos.idx(self.display.width)])
-            .for_each(|(pos, render)| {
-                ctx.set(pos.xx, pos.yy, render.fg, render.bg, render.glyph);
-            });
     }
 }
 
