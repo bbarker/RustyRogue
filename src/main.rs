@@ -1,4 +1,5 @@
 #![feature(const_cmp)]
+#![feature(const_trait_impl)]
 
 use bracket_lib::{
     prelude::{BTerm, GameState},
@@ -21,6 +22,7 @@ mod melee_combat_system;
 mod monster_ai_system;
 mod rect;
 mod spawner;
+mod util;
 mod visibility_system;
 
 mod player;
@@ -117,8 +119,22 @@ impl GameState for State {
                 newrunstate = RunState::AwaitingInput;
             }
             RunState::ShowInventory => {
-                if gui::show_inventory(self, ctx) == gui::ItemMenuResult::Cancel {
-                    newrunstate = RunState::AwaitingInput;
+                let result = show_inventory(self, ctx);
+                match result.0 {
+                    gui::ItemMenuResult::Cancel => newrunstate = RunState::AwaitingInput,
+                    gui::ItemMenuResult::NoResponse => newrunstate = RunState::ShowInventory,
+                    gui::ItemMenuResult::Selected => {
+                        let item_entity = result
+                            .1
+                            .unwrap_or_else(|| panic!("Item selected but not found!"));
+                        let names = self.ecs.read_storage::<Name>();
+                        let mut gamelog = self.ecs.fetch_mut::<gamelog::GameLog>();
+                        gamelog.entries.push(format!(
+                            "You try to use the {}, but it isn't written yet!",
+                            names.get(item_entity).unwrap().name,
+                        ));
+                        newrunstate = RunState::AwaitingInput;
+                    }
                 }
             }
         }
