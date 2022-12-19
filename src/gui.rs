@@ -2,7 +2,10 @@ use std::cmp::{max, min};
 
 use bracket_lib::{
     prelude::{BTerm, RGB},
-    terminal::{to_cp437, FontCharType, VirtualKeyCode, BLACK, MAGENTA, RED, WHITE, YELLOW},
+    terminal::{
+        letter_to_option, to_cp437, FontCharType, VirtualKeyCode, BLACK, MAGENTA, RED, WHITE,
+        YELLOW,
+    },
 };
 use specs::prelude::*;
 
@@ -12,6 +15,7 @@ use crate::{
     gamelog::GameLog,
     map::Map,
     player::{get_player_unwrap, PLAYER_NAME},
+    util::*,
     PsnU, State,
 };
 
@@ -130,11 +134,12 @@ fn draw_tooltips(ecs: &World, ctx: &mut BTerm) {
 pub enum ItemMenuResult {
     Cancel,
     NoResponse,
-    // Selected,
+    Selected,
 }
 
-pub fn show_inventory(gs: &mut State, ctx: &mut BTerm) -> ItemMenuResult {
+pub fn show_inventory(gs: &mut State, ctx: &mut BTerm) -> (ItemMenuResult, Option<Entity>) {
     const ESCAPE_MSG: &str = "ESCAPE to cancel";
+    let entities = gs.ecs.entities();
     let names = gs.ecs.read_storage::<Name>();
     let backpack = gs.ecs.read_storage::<InBackpack>();
 
@@ -177,10 +182,10 @@ pub fn show_inventory(gs: &mut State, ctx: &mut BTerm) -> ItemMenuResult {
         ESCAPE_MSG,
     );
 
-    (&backpack, &names)
+    let useable: Vec<Entity> = (&entities, &backpack, &names)
         .join()
         .enumerate()
-        .for_each(|(jj, (item, name))| {
+        .filter_map(|(jj, (entity, item, name))| {
             if item.owner == player_entity {
                 ctx.set(
                     x_init + 1,
@@ -210,18 +215,26 @@ pub fn show_inventory(gs: &mut State, ctx: &mut BTerm) -> ItemMenuResult {
                     RGB::named(WHITE),
                     RGB::named(BLACK),
                     &name.name,
-                )
+                );
+                Some(entity)
+            } else {
+                None
             }
-        });
+        })
+        .collect();
 
     if let Some(key) = ctx.key {
-        if VirtualKeyCode::Escape == key {
-            // TODO: match
-            ItemMenuResult::Cancel
-        } else {
-            ItemMenuResult::NoResponse
+        match key {
+            VirtualKeyCode::Escape => (ItemMenuResult::Cancel, None),
+            _ => {
+                if let Some(selection) = letter_to_option(key).clamp_opt(0, inventory_size - 1) {
+                    (ItemMenuResult::Selected, Some(useable[selection as usize]))
+                } else {
+                    (ItemMenuResult::NoResponse, None)
+                }
+            }
         }
     } else {
-        ItemMenuResult::NoResponse
+        (ItemMenuResult::NoResponse, None)
     }
 }
