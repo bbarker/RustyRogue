@@ -1,5 +1,10 @@
 use specs::prelude::*;
 
+use crate::{
+    components::{CombatStats, EventWantsToDrinkPotion, Potion},
+    player::PLAYER_NAME,
+};
+
 use super::{gamelog::GameLog, EventWantsToPickupItem, InBackpack, Name, Player, Position};
 
 pub struct ItemCollectionSystem {}
@@ -40,5 +45,52 @@ impl<'a> System<'a> for ItemCollectionSystem {
             },
         );
         wants_pickup.clear();
+    }
+}
+
+pub struct PotionUseSystem {}
+
+impl<'a> System<'a> for PotionUseSystem {
+    type SystemData = (
+        Entities<'a>,
+        ReadStorage<'a, Player>,
+        WriteExpect<'a, GameLog>,
+        WriteStorage<'a, EventWantsToDrinkPotion>,
+        ReadStorage<'a, Name>,
+        ReadStorage<'a, Potion>,
+        WriteStorage<'a, CombatStats>,
+    );
+
+    fn run(&mut self, data: Self::SystemData) {
+        let (entities, players, mut log, mut wants_drink, names, potions, mut combat_stats) = data;
+
+        (
+            &entities,
+            &players,
+            &mut wants_drink,
+            &mut combat_stats,
+            &names,
+        )
+            .join()
+            .for_each(|(_player_entity, _player, drink, stats, player_name)| {
+                let potion = potions.get(drink.potion);
+                match potion {
+                    None => {}
+                    Some(potion) => {
+                        stats.hp = u16::min(stats.max_hp, stats.hp + potion.heal_amount);
+                        if player_name.name == PLAYER_NAME {
+                            log.entries.push(format!(
+                                "You drink the {}, healing {} hp.",
+                                names.get(drink.potion).unwrap().name,
+                                potion.heal_amount
+                            ));
+                            entities.delete(drink.potion).unwrap_or_else(|_| {
+                                panic!("Delete potion failed for player {}", player_name.name)
+                            });
+                        }
+                    }
+                }
+            });
+        wants_drink.clear();
     }
 }

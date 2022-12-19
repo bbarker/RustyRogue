@@ -5,7 +5,7 @@ use bracket_lib::{
     prelude::{BTerm, GameState},
     random::RandomNumberGenerator,
 };
-use inventory_system::ItemCollectionSystem;
+use inventory_system::{ItemCollectionSystem, PotionUseSystem};
 use map_indexing_system::MapIndexingSystem;
 use spawner::spawn_room;
 use specs::prelude::*;
@@ -67,6 +67,8 @@ impl State {
         damage.run_now(&self.ecs);
         let mut pickup = ItemCollectionSystem {};
         pickup.run_now(&self.ecs);
+        let mut potions = PotionUseSystem {};
+        potions.run_now(&self.ecs);
 
         self.ecs.maintain();
     }
@@ -163,6 +165,7 @@ fn main() {
     gs.ecs.register::<BlocksTile>();
     gs.ecs.register::<CombatStats>();
     gs.ecs.register::<EventIncomingDamage>();
+    gs.ecs.register::<EventWantsToDrinkPotion>();
     gs.ecs.register::<EventWantsToMelee>();
     gs.ecs.register::<EventWantsToPickupItem>();
     gs.ecs.register::<InBackpack>();

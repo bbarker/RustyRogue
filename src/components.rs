@@ -49,6 +49,11 @@ impl EventIncomingDamage {
     }
 }
 
+#[derive(Component, Debug)]
+pub struct EventWantsToDrinkPotion {
+    pub potion: Entity,
+}
+
 #[derive(Component, Debug, ConvertSaveload, Clone)]
 pub struct EventWantsToMelee {
     pub target: Entity,
