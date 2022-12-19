@@ -13,6 +13,7 @@ use crate::{
     PsnU, RunState, State,
 };
 
+// TODO: add this to a sub-state "Option<ClientState>" in State
 pub const PLAYER_NAME: &str = "Player";
 
 pub fn try_move_player(delta_x: i32, delta_y: i32, gs: &mut State) -> RunState {
