@@ -7,7 +7,8 @@ use specs::prelude::*;
 
 use crate::{
     components::{
-        BlocksTile, CombatStats, Item, Monster, Name, Player, Position, Renderable, Viewshed,
+        BlocksTile, CombatStats, Item, Monster, Name, Player, Position, Potion, Renderable,
+        Viewshed,
     },
     map::Map,
     rect::Rect,
@@ -36,8 +37,8 @@ pub fn player(gs: &mut State, position: Position) -> Entity {
             name: "Player".to_string(),
         })
         .with(CombatStats {
-            max_hp: 300, // TODO: Should be 30
-            hp: 300,     // Should be 30
+            max_hp: 100, // TODO: Should be 30
+            hp: 100,     // Should be 30
             defense: 2,
             power: 5,
         })
@@ -56,6 +57,7 @@ pub fn health_potion(ecs: &mut World, position: Position) -> Entity {
             name: "Health Potion".to_string(),
         })
         .with(Item {})
+        .with(Potion { heal_amount: 8 })
         .build()
 }
 

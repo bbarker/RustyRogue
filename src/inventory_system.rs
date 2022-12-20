@@ -1,4 +1,3 @@
-use bracket_lib::terminal::console;
 use specs::prelude::*;
 
 use crate::{
@@ -25,6 +24,8 @@ impl<'a> System<'a> for ItemCollectionSystem {
         let (entities, players, mut log, names, mut backpack, mut positions, mut wants_pickup) =
             data;
 
+        // TODO: (multi-player: fix this to be player-specific -
+        // prevent other players from picking up the same item)
         (&entities, &players, &mut wants_pickup).join().for_each(
             |(player_entity, _player, pickup)| {
                 positions.remove(pickup.item);
@@ -79,10 +80,6 @@ impl<'a> System<'a> for PotionUseSystem {
                     None => {}
                     Some(potion) => {
                         stats.hp = u16::min(stats.max_hp, stats.hp + potion.heal_amount);
-                        console::log(&format!(
-                            "Player {} drinks a potion, healing {} hp.",
-                            player_name.name, potion.heal_amount
-                        )); // DEBUG
                         if player_name.name == PLAYER_NAME {
                             log.entries.push(format!(
                                 "You drink the {}, healing {} hp.",
