@@ -1,3 +1,4 @@
+use bracket_lib::terminal::console;
 use specs::prelude::*;
 
 use crate::{
@@ -78,6 +79,10 @@ impl<'a> System<'a> for PotionUseSystem {
                     None => {}
                     Some(potion) => {
                         stats.hp = u16::min(stats.max_hp, stats.hp + potion.heal_amount);
+                        console::log(&format!(
+                            "Player {} drinks a potion, healing {} hp.",
+                            player_name.name, potion.heal_amount
+                        )); // DEBUG
                         if player_name.name == PLAYER_NAME {
                             log.entries.push(format!(
                                 "You drink the {}, healing {} hp.",

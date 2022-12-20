@@ -109,33 +109,45 @@ impl GameState for State {
         match newrunstate {
             RunState::PreRun => {
                 self.run_systems();
+                self.ecs.maintain();
                 newrunstate = RunState::AwaitingInput;
             }
             RunState::AwaitingInput => newrunstate = player_input(self, ctx),
             RunState::PlayerTurn => {
                 self.run_systems();
+                self.ecs.maintain();
                 newrunstate = RunState::MonsterTurn;
             }
             RunState::MonsterTurn => {
                 self.run_systems();
+                self.ecs.maintain();
                 newrunstate = RunState::AwaitingInput;
             }
             RunState::ShowInventory => {
                 let result = show_inventory(self, ctx);
                 match result.0 {
                     gui::ItemMenuResult::Cancel => newrunstate = RunState::AwaitingInput,
-                    gui::ItemMenuResult::NoResponse => newrunstate = RunState::ShowInventory,
+                    gui::ItemMenuResult::NoResponse => {}
                     gui::ItemMenuResult::Selected => {
                         let item_entity = result
                             .1
                             .unwrap_or_else(|| panic!("Item selected but not found!"));
+                        let mut intent = self.ecs.write_storage::<EventWantsToDrinkPotion>();
+                        intent
+                            .insert(
+                                get_player_unwrap(&self.ecs, PLAYER_NAME),
+                                EventWantsToDrinkPotion {
+                                    potion: item_entity,
+                                },
+                            )
+                            .unwrap_or_else(|_| panic!("Tried to drink a potion but failed!"));
                         let names = self.ecs.read_storage::<Name>();
                         let mut gamelog = self.ecs.fetch_mut::<gamelog::GameLog>();
                         gamelog.entries.push(format!(
                             "You try to use the {}, but it isn't written yet!",
                             names.get(item_entity).unwrap().name,
                         ));
-                        newrunstate = RunState::AwaitingInput;
+                        newrunstate = RunState::PlayerTurn;
                     }
                 }
             }
