@@ -2,6 +2,11 @@
 
 ## Specs
 
+### Fetching an Entity that doesn't exist will crash
+
+This will compile fine, but fetching an entity that doesn't exist will crash,
+and you'll likely need to look at the backtrace to figure out what happened.
+
 ### Multiple fetches
 
 Multiple fetches are unsafe:
@@ -29,3 +34,9 @@ let ix = {
 };
 let map = &mut ecs.fetch_mut::<Map>();
 ```
+
+
+### Fetching a resource mutably and immutably simultaneously
+
+Similar to the above; unlike the rust borrow checker, specs can't do this check at compile time.
+So it does it at runtime.
