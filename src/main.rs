@@ -127,7 +127,7 @@ impl GameState for State {
                 newrunstate = RunState::AwaitingInput;
             }
             RunState::ShowInventory => {
-                let result = show_inventory(self, ctx);
+                let result = show_inventory(self, ctx, "Inventory: Use Item");
                 match result.0 {
                     gui::ItemMenuResult::Cancel => newrunstate = RunState::AwaitingInput,
                     gui::ItemMenuResult::NoResponse => {}
@@ -147,7 +147,7 @@ impl GameState for State {
                         let names = self.ecs.read_storage::<Name>();
                         let mut gamelog = self.ecs.fetch_mut::<gamelog::GameLog>();
                         gamelog.entries.push(format!(
-                            "You try to use the {}, but it isn't written yet!",
+                            "You use the {}.",
                             names.get(item_entity).unwrap().name,
                         ));
                         newrunstate = RunState::PlayerTurn;
@@ -155,8 +155,30 @@ impl GameState for State {
                 }
             }
             RunState::ShowDropItem => {
-                let todo = true;
-                todo!()
+                let result = gui::show_inventory(self, ctx, "Inventory: Drop Item");
+                match result.0 {
+                    gui::ItemMenuResult::Cancel => newrunstate = RunState::AwaitingInput,
+                    gui::ItemMenuResult::NoResponse => {}
+                    gui::ItemMenuResult::Selected => {
+                        let item_entity = result
+                            .1
+                            .unwrap_or_else(|| panic!("Item selected but not found!"));
+                        let mut intent = self.ecs.write_storage::<EventWantsToDropItem>();
+                        intent
+                            .insert(
+                                get_player_unwrap(&self.ecs, PLAYER_NAME),
+                                EventWantsToDropItem { item: item_entity },
+                            )
+                            .unwrap_or_else(|_| panic!("Tried to drop item but failed!"));
+                        let names = self.ecs.read_storage::<Name>();
+                        let mut gamelog = self.ecs.fetch_mut::<gamelog::GameLog>();
+                        gamelog.entries.push(format!(
+                            "You drop the {}.",
+                            names.get(item_entity).unwrap().name,
+                        ));
+                        newrunstate = RunState::PlayerTurn;
+                    }
+                }
             }
         }
         {
