@@ -137,8 +137,13 @@ pub enum ItemMenuResult {
     Selected,
 }
 
-pub fn show_inventory(gs: &mut State, ctx: &mut BTerm) -> (ItemMenuResult, Option<Entity>) {
+pub fn show_inventory(
+    gs: &mut State,
+    ctx: &mut BTerm,
+    title: impl Into<String>,
+) -> (ItemMenuResult, Option<Entity>) {
     const ESCAPE_MSG: &str = "ESCAPE to cancel";
+    let title_str = title.into();
     let entities = gs.ecs.entities();
     let names = gs.ecs.read_storage::<Name>();
     let backpack = gs.ecs.read_storage::<InBackpack>();
@@ -153,7 +158,7 @@ pub fn show_inventory(gs: &mut State, ctx: &mut BTerm) -> (ItemMenuResult, Optio
         .fold((0, 0), |(size, max_length), (_item, name)| {
             (size + 1, max_length.max(name.name.len()))
         });
-    let box_width = max(max_item_name_length, ESCAPE_MSG.len()) + 3 + 1;
+    let box_width = max(max(max_item_name_length, ESCAPE_MSG.len()), title_str.len()) + 4;
 
     // (start at: mid height - half of item size):
     let x_init = 15;
@@ -172,7 +177,7 @@ pub fn show_inventory(gs: &mut State, ctx: &mut BTerm) -> (ItemMenuResult, Optio
         y_box_init,
         RGB::named(YELLOW),
         RGB::named(BLACK),
-        "Inventory",
+        title_str,
     );
     ctx.print_color(
         x_init + 3,
