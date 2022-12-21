@@ -2,19 +2,14 @@ use bracket_lib::{
     prelude::{FontCharType, RGB},
     terminal::Point,
 };
-use serde::{Deserialize, Serialize};
-use specs::{
-    prelude::*,
-    saveload::{ConvertSaveload, Marker},
-    Entity,
-};
+use specs::{prelude::*, Entity};
 
 use crate::PsnU;
-use specs_derive::{Component, ConvertSaveload};
-use std::convert::Infallible;
+use specs_derive::Component;
 
+// use std::convert::Infallible;
 // `NoError` alias is deprecated in specs ... but specs_derive needs it
-pub type NoError = Infallible;
+// pub type NoError = Infallible;
 
 #[derive(Component, Debug)]
 pub struct BlocksTile {}
@@ -54,7 +49,12 @@ pub struct EventWantsToDrinkPotion {
     pub potion: Entity,
 }
 
-#[derive(Component, Debug, ConvertSaveload, Clone)]
+#[derive(Component, Debug, Clone)]
+pub struct EventWantsToDropItem {
+    pub item: Entity,
+}
+
+#[derive(Component, Debug, Clone)]
 pub struct EventWantsToMelee {
     pub target: Entity,
 }

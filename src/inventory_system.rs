@@ -1,7 +1,7 @@
 use specs::prelude::*;
 
 use crate::{
-    components::{CombatStats, EventWantsToDrinkPotion, Potion},
+    components::{CombatStats, EventWantsToDrinkPotion, EventWantsToDropItem, Potion},
     player::PLAYER_NAME,
 };
 
@@ -94,5 +94,42 @@ impl<'a> System<'a> for PotionUseSystem {
                 }
             });
         wants_drink.clear();
+    }
+}
+
+pub struct ItemDropSystem {}
+
+impl<'a> System<'a> for ItemDropSystem {
+    type SystemData = (
+        Entities<'a>,
+        WriteStorage<'a, EventWantsToDropItem>,
+        ReadStorage<'a, Name>,
+        WriteStorage<'a, Position>,
+        WriteStorage<'a, InBackpack>,
+        WriteExpect<'a, GameLog>,
+    );
+
+    fn run(&mut self, data: Self::SystemData) {
+        let (entities, mut wants_drop, names, mut positions, mut backpack, mut log) = data;
+        (&entities, &wants_drop)
+            .join()
+            .for_each(|(entity, to_drop)| {
+                let dropper_pos = positions.get(entity).unwrap();
+                positions
+                    .insert(to_drop.item, *dropper_pos)
+                    .unwrap_or_else(|_| panic!("Unable to drop item!"));
+                backpack.remove(to_drop.item);
+                let item_name = names
+                    .get(to_drop.item)
+                    .map(|n| n.name.clone())
+                    .unwrap_or_else(|| format!("item {}", to_drop.item.id()));
+                let dropper_name = names
+                    .get(entity)
+                    .map(|n| n.name.clone())
+                    .unwrap_or_else(|| format!("Entity {}", entity.id()));
+                log.entries
+                    .push(format!("{} drops the {}.", dropper_name, item_name));
+            });
+        wants_drop.clear();
     }
 }

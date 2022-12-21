@@ -5,7 +5,7 @@ use bracket_lib::{
     prelude::{BTerm, GameState},
     random::RandomNumberGenerator,
 };
-use inventory_system::{ItemCollectionSystem, PotionUseSystem};
+use inventory_system::{ItemCollectionSystem, ItemDropSystem, PotionUseSystem};
 use map_indexing_system::MapIndexingSystem;
 use spawner::spawn_room;
 use specs::prelude::*;
@@ -46,6 +46,7 @@ pub enum RunState {
     PlayerTurn,
     MonsterTurn,
     ShowInventory,
+    ShowDropItem,
 }
 
 pub struct State {
@@ -69,6 +70,8 @@ impl State {
         pickup.run_now(&self.ecs);
         let mut potions = PotionUseSystem {};
         potions.run_now(&self.ecs);
+        let mut drop_items = ItemDropSystem {};
+        drop_items.run_now(&self.ecs);
 
         self.ecs.maintain();
     }
@@ -151,6 +154,10 @@ impl GameState for State {
                     }
                 }
             }
+            RunState::ShowDropItem => {
+                let todo = true;
+                todo!()
+            }
         }
         {
             let mut runstate = self.ecs.fetch_mut::<RunState>();
@@ -178,6 +185,7 @@ fn main() {
     gs.ecs.register::<CombatStats>();
     gs.ecs.register::<EventIncomingDamage>();
     gs.ecs.register::<EventWantsToDrinkPotion>();
+    gs.ecs.register::<EventWantsToDropItem>();
     gs.ecs.register::<EventWantsToMelee>();
     gs.ecs.register::<EventWantsToPickupItem>();
     gs.ecs.register::<InBackpack>();
