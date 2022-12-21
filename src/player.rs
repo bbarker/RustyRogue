@@ -81,6 +81,10 @@ pub fn player_input(gs: &mut State, ctx: &mut BTerm) -> RunState {
     match ctx.key {
         None => RunState::AwaitingInput,
         Some(key) => match key {
+            // Menus
+            VirtualKeyCode::I => RunState::ShowInventory,
+            VirtualKeyCode::D if ctx.shift => RunState::ShowDropItem,
+
             // Player Movement
             VirtualKeyCode::Left | VirtualKeyCode::Numpad4 | VirtualKeyCode::A => {
                 try_move_player(-1, 0, gs)
@@ -102,9 +106,6 @@ pub fn player_input(gs: &mut State, ctx: &mut BTerm) -> RunState {
 
             // Misc Map Actions
             VirtualKeyCode::G => get_item(&mut gs.ecs),
-
-            // Menus
-            VirtualKeyCode::I => RunState::ShowInventory,
 
             _ => RunState::AwaitingInput,
         },
