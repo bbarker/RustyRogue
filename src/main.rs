@@ -6,6 +6,7 @@ use bracket_lib::{
     random::RandomNumberGenerator,
 };
 use inventory_system::{ItemCollectionSystem, ItemDropSystem, PotionUseSystem};
+use itertools::Itertools;
 use map_indexing_system::MapIndexingSystem;
 use spawner::spawn_room;
 use specs::prelude::*;
@@ -104,6 +105,7 @@ impl GameState for State {
             (&positions, &renderables)
                 .join()
                 .filter(|(pos, _)| map.visible_tiles[pos.idx(self.display.width)])
+                .sorted_by(|aa, bb| (aa.1.render_order).cmp(&bb.1.render_order))
                 .for_each(|(pos, render)| {
                     ctx.set(pos.xx, pos.yy, render.fg, render.bg, render.glyph);
                 });

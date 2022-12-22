@@ -174,6 +174,7 @@ pub struct Renderable {
     pub glyph: FontCharType,
     pub fg: RGB,
     pub bg: RGB,
+    pub render_order: u16,
 }
 
 #[derive(Component)]

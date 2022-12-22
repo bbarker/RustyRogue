@@ -26,6 +26,7 @@ pub fn player(gs: &mut State, position: Position) -> Entity {
             glyph: bracket_lib::prelude::to_cp437('@'),
             fg: RGB::named(bracket_lib::prelude::YELLOW),
             bg: RGB::named(bracket_lib::prelude::BLACK),
+            render_order: 0,
         })
         .with(Player {})
         .with(Viewshed {
@@ -52,6 +53,7 @@ pub fn health_potion(ecs: &mut World, position: Position) -> Entity {
             glyph: bracket_lib::prelude::to_cp437('¡'),
             fg: RGB::named(bracket_lib::prelude::RED),
             bg: RGB::named(bracket_lib::prelude::BLACK),
+            render_order: 2,
         })
         .with(Name {
             name: "Health Potion".to_string(),
@@ -140,6 +142,7 @@ fn monster<S: ToString>(
             glyph,
             fg,
             bg: RGB::named(bracket_lib::prelude::BLACK),
+            render_order: 1,
         })
         .with(Viewshed {
             visible_tiles: Vec::new(),
