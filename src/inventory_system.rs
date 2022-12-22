@@ -1,7 +1,9 @@
 use specs::prelude::*;
 
 use crate::{
-    components::{CombatStats, EventWantsToDrinkPotion, EventWantsToDropItem, Potion},
+    components::{
+        CombatStats, Consumable, EventWantsToDropItem, EventWantsToUseItem, ProvidesHealing,
+    },
     player::PLAYER_NAME,
 };
 
@@ -50,21 +52,31 @@ impl<'a> System<'a> for ItemCollectionSystem {
     }
 }
 
-pub struct PotionUseSystem {}
+pub struct ItemUseSystem {}
 
-impl<'a> System<'a> for PotionUseSystem {
+impl<'a> System<'a> for ItemUseSystem {
     type SystemData = (
         Entities<'a>,
         ReadStorage<'a, Player>,
         WriteExpect<'a, GameLog>,
-        WriteStorage<'a, EventWantsToDrinkPotion>,
+        WriteStorage<'a, EventWantsToUseItem>,
         ReadStorage<'a, Name>,
-        ReadStorage<'a, Potion>,
+        ReadStorage<'a, ProvidesHealing>,
         WriteStorage<'a, CombatStats>,
+        ReadStorage<'a, Consumable>,
     );
 
     fn run(&mut self, data: Self::SystemData) {
-        let (entities, players, mut log, mut wants_drink, names, potions, mut combat_stats) = data;
+        let (
+            entities,
+            players,
+            mut log,
+            mut wants_drink,
+            names,
+            healing,
+            mut combat_stats,
+            consumables,
+        ) = data;
 
         (
             &entities,
@@ -74,21 +86,30 @@ impl<'a> System<'a> for PotionUseSystem {
             &names,
         )
             .join()
-            .for_each(|(_player_entity, _player, drink, stats, player_name)| {
-                let potion = potions.get(drink.potion);
-                match potion {
+            .for_each(|(_player_entity, _player, useitem, stats, player_name)| {
+                let item_heals = healing.get(useitem.item);
+                match item_heals {
                     None => {}
-                    Some(potion) => {
-                        stats.hp = u16::min(stats.max_hp, stats.hp + potion.heal_amount);
+                    Some(healer) => {
+                        stats.hp = u16::min(stats.max_hp, stats.hp + healer.heal_amount);
                         if player_name.name == PLAYER_NAME {
                             log.entries.push(format!(
                                 "You drink the {}, healing {} hp.",
-                                names.get(drink.potion).unwrap().name,
-                                potion.heal_amount
+                                names.get(useitem.item).unwrap().name,
+                                healer.heal_amount
                             ));
-                            entities.delete(drink.potion).unwrap_or_else(|_| {
-                                panic!("Delete potion failed for player {}", player_name.name)
-                            });
+                            let consumable = consumables.get(useitem.item);
+                            match consumable {
+                                None => {}
+                                Some(_) => {
+                                    entities.delete(useitem.item).unwrap_or_else(|_| {
+                                        panic!(
+                                            "Delete potion failed for player {}",
+                                            player_name.name
+                                        )
+                                    });
+                                }
+                            }
                         }
                     }
                 }
