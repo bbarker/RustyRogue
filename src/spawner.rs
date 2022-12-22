@@ -7,8 +7,8 @@ use specs::prelude::*;
 
 use crate::{
     components::{
-        BlocksTile, CombatStats, Consumable, Item, Monster, Name, Player, Position,
-        ProvidesHealing, Renderable, Viewshed,
+        BlocksTile, CombatStats, Consumable, InflictsDamage, Item, Monster, Name, Player, Position,
+        ProvidesHealing, Ranged, Renderable, Viewshed,
     },
     map::Map,
     rect::Rect,
@@ -62,6 +62,36 @@ pub fn health_potion(ecs: &mut World, position: Position) -> Entity {
         .with(Consumable {})
         .with(ProvidesHealing { heal_amount: 8 })
         .build()
+}
+
+pub fn magic_missile_scroll(ecs: &mut World, position: Position) -> Entity {
+    ecs.create_entity()
+        .with(position)
+        .with(Renderable {
+            glyph: bracket_lib::prelude::to_cp437(')'),
+            fg: RGB::named(bracket_lib::prelude::CYAN),
+            bg: RGB::named(bracket_lib::prelude::BLACK),
+            render_order: 2,
+        })
+        .with(Name {
+            name: "Magic Missile Scroll".to_string(),
+        })
+        .with(Item {})
+        .with(Consumable {})
+        .with(Ranged { range: 6 })
+        .with(InflictsDamage { damage: 8 })
+        .build()
+}
+
+pub fn random_item(ecs: &mut World, position: Position) -> Entity {
+    let roll = {
+        let mut rng = ecs.write_resource::<RandomNumberGenerator>();
+        rng.range(0, 100)
+    };
+    match roll {
+        x if x < 70 => health_potion(ecs, position),
+        _ => magic_missile_scroll(ecs, position),
+    }
 }
 
 pub fn random_monster(ecs: &mut World, position: Position) -> Entity {
@@ -173,7 +203,7 @@ pub fn spawn_room(ecs: &mut World, room: &Rect) -> Vec<Entity> {
     };
     vec![
         spawn_in_room(ecs, room, num_monsters, random_monster),
-        spawn_in_room(ecs, room, num_items, health_potion),
+        spawn_in_room(ecs, room, num_items, random_item),
     ]
     .concat()
 }

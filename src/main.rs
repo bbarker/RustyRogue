@@ -212,12 +212,14 @@ fn main() {
     gs.ecs.register::<EventWantsToMelee>();
     gs.ecs.register::<EventWantsToPickupItem>();
     gs.ecs.register::<InBackpack>();
+    gs.ecs.register::<InflictsDamage>();
     gs.ecs.register::<Item>();
     gs.ecs.register::<Monster>();
     gs.ecs.register::<Name>();
     gs.ecs.register::<Player>();
     gs.ecs.register::<Position>();
     gs.ecs.register::<ProvidesHealing>();
+    gs.ecs.register::<Ranged>();
     gs.ecs.register::<Renderable>();
     gs.ecs.register::<Viewshed>();
 
