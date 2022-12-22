@@ -5,7 +5,7 @@ use bracket_lib::{
     prelude::{BTerm, GameState},
     random::RandomNumberGenerator,
 };
-use inventory_system::{ItemCollectionSystem, ItemDropSystem, PotionUseSystem};
+use inventory_system::{ItemCollectionSystem, ItemDropSystem, ItemUseSystem};
 use itertools::Itertools;
 use map_indexing_system::MapIndexingSystem;
 use spawner::spawn_room;
@@ -69,7 +69,7 @@ impl State {
         damage.run_now(&self.ecs);
         let mut pickup = ItemCollectionSystem {};
         pickup.run_now(&self.ecs);
-        let mut potions = PotionUseSystem {};
+        let mut potions = ItemUseSystem {};
         potions.run_now(&self.ecs);
         let mut drop_items = ItemDropSystem {};
         drop_items.run_now(&self.ecs);
@@ -137,13 +137,11 @@ impl GameState for State {
                         let item_entity = result
                             .1
                             .unwrap_or_else(|| panic!("Item selected but not found!"));
-                        let mut intent = self.ecs.write_storage::<EventWantsToDrinkPotion>();
+                        let mut intent = self.ecs.write_storage::<EventWantsToUseItem>();
                         intent
                             .insert(
                                 get_player_unwrap(&self.ecs, PLAYER_NAME),
-                                EventWantsToDrinkPotion {
-                                    potion: item_entity,
-                                },
+                                EventWantsToUseItem { item: item_entity },
                             )
                             .unwrap_or_else(|_| panic!("Tried to drink a potion but failed!"));
                         let names = self.ecs.read_storage::<Name>();
@@ -207,8 +205,9 @@ fn main() {
     };
     gs.ecs.register::<BlocksTile>();
     gs.ecs.register::<CombatStats>();
+    gs.ecs.register::<Consumable>();
     gs.ecs.register::<EventIncomingDamage>();
-    gs.ecs.register::<EventWantsToDrinkPotion>();
+    gs.ecs.register::<EventWantsToUseItem>();
     gs.ecs.register::<EventWantsToDropItem>();
     gs.ecs.register::<EventWantsToMelee>();
     gs.ecs.register::<EventWantsToPickupItem>();
@@ -218,7 +217,7 @@ fn main() {
     gs.ecs.register::<Name>();
     gs.ecs.register::<Player>();
     gs.ecs.register::<Position>();
-    gs.ecs.register::<Potion>();
+    gs.ecs.register::<ProvidesHealing>();
     gs.ecs.register::<Renderable>();
     gs.ecs.register::<Viewshed>();
 

@@ -23,6 +23,9 @@ pub struct CombatStats {
 }
 
 #[derive(Component, Debug)]
+pub struct Consumable {}
+
+#[derive(Component, Debug)]
 pub struct EventIncomingDamage {
     pub amount: Vec<u16>,
 }
@@ -45,8 +48,8 @@ impl EventIncomingDamage {
 }
 
 #[derive(Component, Debug)]
-pub struct EventWantsToDrinkPotion {
-    pub potion: Entity,
+pub struct EventWantsToUseItem {
+    pub item: Entity,
 }
 
 #[derive(Component, Debug, Clone)]
@@ -165,7 +168,7 @@ impl Positionable for (i32, i32) {
 }
 
 #[derive(Component, Debug)]
-pub struct Potion {
+pub struct ProvidesHealing {
     pub heal_amount: u16,
 }
 
