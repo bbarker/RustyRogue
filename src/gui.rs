@@ -3,14 +3,16 @@ use std::cmp::{max, min};
 use bracket_lib::{
     prelude::{BTerm, RGB},
     terminal::{
-        letter_to_option, to_cp437, FontCharType, VirtualKeyCode, BLACK, MAGENTA, RED, WHITE,
-        YELLOW,
+        letter_to_option, to_cp437, DistanceAlg, FontCharType, Point, VirtualKeyCode, BLACK, BLUE,
+        CYAN, MAGENTA, RED, WHITE, YELLOW,
     },
 };
+use itertools::FoldWhile::{Continue, Done};
+use itertools::Itertools;
 use specs::prelude::*;
 
 use crate::{
-    components::{CombatStats, InBackpack, Name, Player, Position, Positionable},
+    components::{CombatStats, InBackpack, Name, Player, Position, Positionable, Viewshed},
     display_state::DisplayState,
     gamelog::GameLog,
     map::Map,
@@ -241,5 +243,78 @@ pub fn show_inventory(
         }
     } else {
         (ItemMenuResult::NoResponse, None)
+    }
+}
+
+pub fn ranged_target(
+    gs: &mut State,
+    ctx: &mut BTerm,
+    range: u16,
+) -> (ItemMenuResult, Option<Position>) {
+    let positions = gs.ecs.read_storage::<Position>();
+
+    let player_entity = get_player_unwrap(&gs.ecs, PLAYER_NAME);
+    let player_pos = positions.get(player_entity).unwrap_or_else(|| {
+        panic!(
+            "Player entity {} does not have a position component",
+            player_entity.id()
+        )
+    });
+    let viewsheds = gs.ecs.read_storage::<Viewshed>();
+
+    ctx.print_color(
+        5,
+        0,
+        RGB::named(YELLOW),
+        RGB::named(BLACK),
+        "Select Target:",
+    );
+
+    let visible_opt = viewsheds.get(player_entity);
+    if let Some(visible) = visible_opt {
+        // Highlight available target cells
+        let available_cells: Vec<Point> = visible
+            .visible_tiles
+            .iter()
+            .filter_map(|pos| {
+                let distance = DistanceAlg::Pythagoras.distance2d(*pos, (*player_pos).into());
+                if distance <= range as f32 {
+                    ctx.set_bg(pos.x, pos.y, RGB::named(BLUE));
+                    Some(*pos)
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        // Draw mouse cursor
+        let mouse_pos: Point = ctx.mouse_pos().into();
+        let valid_target = available_cells
+            .iter()
+            .fold_while(false, |_, pos| {
+                if *pos == mouse_pos {
+                    Done(true)
+                } else {
+                    Continue(false)
+                }
+            })
+            .is_done();
+        if valid_target {
+            ctx.set_bg(mouse_pos.x, mouse_pos.y, RGB::named(CYAN));
+            if ctx.left_click {
+                (ItemMenuResult::Selected, Some(mouse_pos.from()))
+            } else {
+                (ItemMenuResult::NoResponse, None)
+            }
+        } else {
+            ctx.set_bg(mouse_pos.x, mouse_pos.y, RGB::named(RED));
+            if ctx.left_click {
+                (ItemMenuResult::Cancel, None)
+            } else {
+                (ItemMenuResult::NoResponse, None)
+            }
+        }
+    } else {
+        (ItemMenuResult::Cancel, None)
     }
 }

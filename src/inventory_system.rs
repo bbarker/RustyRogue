@@ -2,8 +2,10 @@ use specs::prelude::*;
 
 use crate::{
     components::{
-        CombatStats, Consumable, EventWantsToDropItem, EventWantsToUseItem, ProvidesHealing,
+        CombatStats, Consumable, EventIncomingDamage, EventWantsToDropItem, EventWantsToUseItem,
+        InflictsDamage, ProvidesHealing,
     },
+    map::Map,
     player::PLAYER_NAME,
 };
 
@@ -57,31 +59,37 @@ pub struct ItemUseSystem {}
 impl<'a> System<'a> for ItemUseSystem {
     type SystemData = (
         Entities<'a>,
+        ReadExpect<'a, Map>,
         ReadStorage<'a, Player>,
         WriteExpect<'a, GameLog>,
         WriteStorage<'a, EventWantsToUseItem>,
         ReadStorage<'a, Name>,
         ReadStorage<'a, ProvidesHealing>,
+        ReadStorage<'a, InflictsDamage>,
         WriteStorage<'a, CombatStats>,
+        WriteStorage<'a, EventIncomingDamage>,
         ReadStorage<'a, Consumable>,
     );
 
     fn run(&mut self, data: Self::SystemData) {
         let (
             entities,
+            map,
             players,
             mut log,
-            mut wants_drink,
+            mut wants_use_item,
             names,
             healing,
+            damaging,
             mut combat_stats,
+            mut incoming_damage,
             consumables,
         ) = data;
 
         (
             &entities,
             &players,
-            &mut wants_drink,
+            &mut wants_use_item,
             &mut combat_stats,
             &names,
         )
@@ -103,18 +111,57 @@ impl<'a> System<'a> for ItemUseSystem {
                                 None => {}
                                 Some(_) => {
                                     entities.delete(useitem.item).unwrap_or_else(|_| {
-                                        panic!(
-                                            "Delete potion failed for player {}",
-                                            player_name.name
-                                        )
+                                        panic!("Delete item failed for player {}", player_name.name)
                                     });
                                 }
                             }
                         }
                     }
                 }
+                let item_damages = damaging.get(useitem.item);
+                match item_damages {
+                    None => {}
+                    Some(damage) => {
+                        let target_pos = useitem.target.unwrap_or_else(|| {
+                            panic!("Unable to get target position for item requiring target!",)
+                        });
+                        let ix = map.pos_idx(target_pos);
+                        let used = map.tile_content[ix]
+                            .iter()
+                            .map(|victim| {
+                                EventIncomingDamage::new_damage(
+                                    &mut incoming_damage,
+                                    *victim,
+                                    damage.damage,
+                                )
+                            })
+                            .count()
+                            > 0;
+                        if player_name.name == PLAYER_NAME {
+                            log.entries.push(format!(
+                                "You use the {}, inflicting {} damage.",
+                                names.get(useitem.item).unwrap().name,
+                                damage.damage
+                            ));
+                            let consumable = consumables.get(useitem.item);
+                            match consumable {
+                                None => {}
+                                Some(_) => {
+                                    if used {
+                                        entities.delete(useitem.item).unwrap_or_else(|_| {
+                                            panic!(
+                                                "Delete item failed for player {}",
+                                                player_name.name
+                                            )
+                                        });
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             });
-        wants_drink.clear();
+        wants_use_item.clear();
     }
 }
 

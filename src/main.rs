@@ -48,6 +48,7 @@ pub enum RunState {
     MonsterTurn,
     ShowInventory,
     ShowDropItem,
+    ShowTargeting { range: u16, item: Entity },
 }
 
 pub struct State {
@@ -128,6 +129,7 @@ impl GameState for State {
                 self.ecs.maintain();
                 newrunstate = RunState::AwaitingInput;
             }
+            // TODO: abstract the next 3 into a single function
             RunState::ShowInventory => {
                 let result = show_inventory(self, ctx, "Inventory: Use Item");
                 match result.0 {
@@ -137,20 +139,38 @@ impl GameState for State {
                         let item_entity = result
                             .1
                             .unwrap_or_else(|| panic!("Item selected but not found!"));
-                        let mut intent = self.ecs.write_storage::<EventWantsToUseItem>();
-                        intent
-                            .insert(
-                                get_player_unwrap(&self.ecs, PLAYER_NAME),
-                                EventWantsToUseItem { item: item_entity },
-                            )
-                            .unwrap_or_else(|_| panic!("Tried to drink a potion but failed!"));
-                        let names = self.ecs.read_storage::<Name>();
-                        let mut gamelog = self.ecs.fetch_mut::<gamelog::GameLog>();
-                        gamelog.entries.push(format!(
-                            "You use the {}.",
-                            names.get(item_entity).unwrap().name,
-                        ));
-                        newrunstate = RunState::PlayerTurn;
+
+                        let is_ranged = self.ecs.read_storage::<Ranged>();
+                        let is_item_ranged = is_ranged.get(item_entity);
+                        if let Some(is_item_ranged) = is_item_ranged {
+                            newrunstate = RunState::ShowTargeting {
+                                range: is_item_ranged.range,
+                                item: item_entity,
+                            };
+                        } else {
+                            let mut intent = self.ecs.write_storage::<EventWantsToUseItem>();
+                            let item_name = self
+                                .ecs
+                                .read_storage::<Name>()
+                                .get(item_entity)
+                                .unwrap()
+                                .name
+                                .clone();
+                            intent
+                                .insert(
+                                    get_player_unwrap(&self.ecs, PLAYER_NAME),
+                                    EventWantsToUseItem {
+                                        item: item_entity,
+                                        target: None,
+                                    },
+                                )
+                                .unwrap_or_else(|_| {
+                                    panic!("Tried to use {} but failed!", item_name)
+                                });
+                            let mut gamelog = self.ecs.fetch_mut::<gamelog::GameLog>();
+                            gamelog.entries.push(format!("You use the {}.", item_name));
+                            newrunstate = RunState::PlayerTurn;
+                        }
                     }
                 }
             }
@@ -164,18 +184,51 @@ impl GameState for State {
                             .1
                             .unwrap_or_else(|| panic!("Item selected but not found!"));
                         let mut intent = self.ecs.write_storage::<EventWantsToDropItem>();
+                        let item_name = self
+                            .ecs
+                            .read_storage::<Name>()
+                            .get(item_entity)
+                            .unwrap()
+                            .name
+                            .clone();
                         intent
                             .insert(
                                 get_player_unwrap(&self.ecs, PLAYER_NAME),
                                 EventWantsToDropItem { item: item_entity },
                             )
-                            .unwrap_or_else(|_| panic!("Tried to drop item but failed!"));
-                        let names = self.ecs.read_storage::<Name>();
+                            .unwrap_or_else(|_| panic!("Tried to drop {} but failed!", item_name));
+
                         let mut gamelog = self.ecs.fetch_mut::<gamelog::GameLog>();
-                        gamelog.entries.push(format!(
-                            "You drop the {}.",
-                            names.get(item_entity).unwrap().name,
-                        ));
+                        gamelog.entries.push(format!("You drop the {}.", item_name));
+                        newrunstate = RunState::PlayerTurn;
+                    }
+                }
+            }
+            RunState::ShowTargeting { range, item } => {
+                let result = gui::ranged_target(self, ctx, range);
+                match result.0 {
+                    gui::ItemMenuResult::Cancel => newrunstate = RunState::AwaitingInput,
+                    gui::ItemMenuResult::NoResponse => {}
+                    gui::ItemMenuResult::Selected => {
+                        let mut intent = self.ecs.write_storage::<EventWantsToUseItem>();
+                        let item_name = self
+                            .ecs
+                            .read_storage::<Name>()
+                            .get(item)
+                            .unwrap()
+                            .name
+                            .clone();
+                        intent
+                            .insert(
+                                get_player_unwrap(&self.ecs, PLAYER_NAME),
+                                EventWantsToUseItem {
+                                    item,
+                                    target: result.1,
+                                },
+                            )
+                            .unwrap_or_else(|_| panic!("Tried to use {} but failed!", item_name));
+                        let mut gamelog = self.ecs.fetch_mut::<gamelog::GameLog>();
+                        gamelog.entries.push(format!("You use the {}.", item_name));
                         newrunstate = RunState::PlayerTurn;
                     }
                 }

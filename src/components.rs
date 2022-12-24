@@ -50,6 +50,7 @@ impl EventIncomingDamage {
 #[derive(Component, Debug)]
 pub struct EventWantsToUseItem {
     pub item: Entity,
+    pub target: Option<Position>,
 }
 
 #[derive(Component, Debug, Clone)]
@@ -111,7 +112,7 @@ impl IsPlayer for Player {
     }
 }
 
-#[derive(Component, Clone, Copy, PartialEq)]
+#[derive(Component, Clone, Copy, Debug, PartialEq)]
 pub struct Position {
     pub xx: PsnU,
     pub yy: PsnU,
