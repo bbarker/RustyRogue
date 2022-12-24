@@ -79,7 +79,7 @@ pub fn magic_missile_scroll(ecs: &mut World, position: Position) -> Entity {
         .with(Item {})
         .with(Consumable {})
         .with(Ranged { range: 6 })
-        .with(InflictsDamage { damage: 8 })
+        .with(InflictsDamage { damage: 16 }) // TODO: should be 8
         .build()
 }
 
@@ -89,7 +89,7 @@ pub fn random_item(ecs: &mut World, position: Position) -> Entity {
         rng.range(0, 100)
     };
     match roll {
-        x if x < 70 => health_potion(ecs, position),
+        x if x < 20 => health_potion(ecs, position),
         _ => magic_missile_scroll(ecs, position),
     }
 }
