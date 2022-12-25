@@ -1,9 +1,10 @@
+use bracket_lib::prelude::field_of_view;
 use specs::prelude::*;
 
 use crate::{
     components::{
-        CombatStats, Consumable, EventIncomingDamage, EventWantsToDropItem, EventWantsToUseItem,
-        InflictsDamage, ProvidesHealing,
+        AreaOfEffect, CombatStats, Consumable, EventIncomingDamage, EventWantsToDropItem,
+        EventWantsToUseItem, InflictsDamage, ProvidesHealing,
     },
     map::Map,
     player::PLAYER_NAME,
@@ -66,6 +67,7 @@ impl<'a> System<'a> for ItemUseSystem {
         ReadStorage<'a, Name>,
         ReadStorage<'a, ProvidesHealing>,
         ReadStorage<'a, InflictsDamage>,
+        ReadStorage<'a, AreaOfEffect>,
         WriteStorage<'a, CombatStats>,
         WriteStorage<'a, EventIncomingDamage>,
         ReadStorage<'a, Consumable>,
@@ -81,52 +83,80 @@ impl<'a> System<'a> for ItemUseSystem {
             names,
             healing,
             damaging,
+            aoe,
             mut combat_stats,
             mut incoming_damage,
             consumables,
         ) = data;
 
-        (
-            &entities,
-            &players,
-            &mut wants_use_item,
-            &mut combat_stats,
-            &names,
-        )
+        let delete_consumable = |item: Entity, used: bool, player_name: &Name| {
+            let consumable = consumables.get(item);
+            match consumable {
+                None => {}
+                Some(_) => {
+                    if used {
+                        entities.delete(item).unwrap_or_else(|_| {
+                            panic!("Delete item failed for player {}", player_name.name)
+                        });
+                    }
+                }
+            }
+        };
+
+        (&entities, &players, &mut wants_use_item, &names)
             .join()
-            .for_each(|(_player_entity, _player, useitem, stats, player_name)| {
+            .for_each(|(player_entity, _player, useitem, player_name)| {
+                let targets = match useitem.target {
+                    None => vec![player_entity],
+                    Some(target) => {
+                        let area_effect = aoe.get(useitem.item);
+                        match area_effect {
+                            None => {
+                                // Single-tile target
+                                map.tile_content[map.pos_idx(target)].to_vec()
+                            }
+                            Some(ae) => {
+                                let fov_tiles =
+                                    field_of_view(target.into(), ae.radius.into(), &*map);
+                                let blast_tiles = fov_tiles.into_iter().filter(|pos| {
+                                    pos.x >= 0
+                                        && pos.x < map.width_psnu as i32
+                                        && pos.y >= 0
+                                        && pos.y < map.height_psnu as i32
+                                });
+                                blast_tiles
+                                    .into_iter()
+                                    .flat_map(|pos| map.tile_content[map.pos_idx(pos)].clone())
+                                    .collect()
+                            }
+                        }
+                    }
+                };
                 let item_heals = healing.get(useitem.item);
                 match item_heals {
                     None => {}
                     Some(healer) => {
-                        stats.hp = u16::min(stats.max_hp, stats.hp + healer.heal_amount);
-                        if player_name.name == PLAYER_NAME {
-                            log.entries.push(format!(
-                                "You drink the {}, healing {} hp.",
-                                names.get(useitem.item).unwrap().name,
-                                healer.heal_amount
-                            ));
-                            let consumable = consumables.get(useitem.item);
-                            match consumable {
-                                None => {}
-                                Some(_) => {
-                                    entities.delete(useitem.item).unwrap_or_else(|_| {
-                                        panic!("Delete item failed for player {}", player_name.name)
-                                    });
-                                }
+                        targets.iter().for_each(|target| {
+                            let stats = combat_stats.get_mut(*target).unwrap_or_else(|| {
+                                panic!("Unable to get combat stats for target {}!", target.id())
+                            });
+                            stats.hp = u16::min(stats.max_hp, stats.hp + healer.heal_amount);
+                            delete_consumable(useitem.item, /* used = */ true, player_name);
+                            if player_name.name == PLAYER_NAME {
+                                log.entries.push(format!(
+                                    "You consume the {}, healing {} hp.",
+                                    names.get(useitem.item).unwrap().name,
+                                    healer.heal_amount
+                                ));
                             }
-                        }
+                        });
                     }
                 }
                 let item_damages = damaging.get(useitem.item);
                 match item_damages {
                     None => {}
                     Some(damage) => {
-                        let target_pos = useitem.target.unwrap_or_else(|| {
-                            panic!("Unable to get target position for item requiring target!",)
-                        });
-                        let ix = map.pos_idx(target_pos);
-                        let used = map.tile_content[ix]
+                        let used = targets
                             .iter()
                             .map(|victim| {
                                 EventIncomingDamage::new_damage(
@@ -137,26 +167,13 @@ impl<'a> System<'a> for ItemUseSystem {
                             })
                             .count()
                             > 0;
+                        delete_consumable(useitem.item, used, player_name);
                         if player_name.name == PLAYER_NAME {
                             log.entries.push(format!(
                                 "You use the {}, inflicting {} damage.",
                                 names.get(useitem.item).unwrap().name,
                                 damage.damage
                             ));
-                            let consumable = consumables.get(useitem.item);
-                            match consumable {
-                                None => {}
-                                Some(_) => {
-                                    if used {
-                                        entities.delete(useitem.item).unwrap_or_else(|_| {
-                                            panic!(
-                                                "Delete item failed for player {}",
-                                                player_name.name
-                                            )
-                                        });
-                                    }
-                                }
-                            }
                         }
                     }
                 }

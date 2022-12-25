@@ -129,7 +129,7 @@ impl GameState for State {
                 self.ecs.maintain();
                 newrunstate = RunState::AwaitingInput;
             }
-            // TODO: abstract the next 3 into a single function
+            // TODO: consider abstracting the next 3 into a single function ... but probably not worth it
             RunState::ShowInventory => {
                 let result = show_inventory(self, ctx, "Inventory: Use Item");
                 match result.0 {
@@ -256,6 +256,7 @@ fn main() {
         ecs: World::new(),
         display: calc_display_state(&context),
     };
+    gs.ecs.register::<AreaOfEffect>();
     gs.ecs.register::<BlocksTile>();
     gs.ecs.register::<CombatStats>();
     gs.ecs.register::<Consumable>();
