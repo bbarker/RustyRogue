@@ -1,21 +1,21 @@
 use bracket_lib::{
     random::RandomNumberGenerator,
-    terminal::{FontCharType, BLUE, GREEN, RED, RGB, YELLOW},
+    terminal::{FontCharType, BLACK, BLUE, CYAN, GREEN, ORANGE, RED, RGB, YELLOW},
 };
 use itertools::Itertools;
 use specs::prelude::*;
 
 use crate::{
     components::{
-        BlocksTile, CombatStats, Consumable, InflictsDamage, Item, Monster, Name, Player, Position,
-        ProvidesHealing, Ranged, Renderable, Viewshed,
+        AreaOfEffect, BlocksTile, CombatStats, Consumable, InflictsDamage, Item, Monster, Name,
+        Player, Position, ProvidesHealing, Ranged, Renderable, Viewshed,
     },
     map::Map,
     rect::Rect,
     State,
 };
 
-const MAX_ROOM_MONSTERS: u16 = 4;
+const MAX_ROOM_MONSTERS: u16 = 3; // TODO: Should be 4
 const MAX_ROOM_ITEMS: u16 = 2;
 
 pub fn player(gs: &mut State, position: Position) -> Entity {
@@ -64,13 +64,33 @@ pub fn health_potion(ecs: &mut World, position: Position) -> Entity {
         .build()
 }
 
+pub fn fireball_scroll(ecs: &mut World, position: Position) -> Entity {
+    ecs.create_entity()
+        .with(position)
+        .with(Renderable {
+            glyph: bracket_lib::prelude::to_cp437(')'),
+            fg: RGB::named(ORANGE),
+            bg: RGB::named(BLACK),
+            render_order: 2,
+        })
+        .with(Name {
+            name: "Fireball Scroll".to_string(),
+        })
+        .with(Item {})
+        .with(Consumable {})
+        .with(Ranged { range: 6 })
+        .with(InflictsDamage { damage: 20 })
+        .with(AreaOfEffect { radius: 3 })
+        .build()
+}
+
 pub fn magic_missile_scroll(ecs: &mut World, position: Position) -> Entity {
     ecs.create_entity()
         .with(position)
         .with(Renderable {
             glyph: bracket_lib::prelude::to_cp437(')'),
-            fg: RGB::named(bracket_lib::prelude::CYAN),
-            bg: RGB::named(bracket_lib::prelude::BLACK),
+            fg: RGB::named(CYAN),
+            bg: RGB::named(BLACK),
             render_order: 2,
         })
         .with(Name {
@@ -89,7 +109,8 @@ pub fn random_item(ecs: &mut World, position: Position) -> Entity {
         rng.range(0, 100)
     };
     match roll {
-        x if x < 20 => health_potion(ecs, position),
+        x if x < 30 => health_potion(ecs, position),
+        x if x < 70 => fireball_scroll(ecs, position),
         _ => magic_missile_scroll(ecs, position),
     }
 }

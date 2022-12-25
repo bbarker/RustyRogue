@@ -12,6 +12,11 @@ use specs_derive::Component;
 // pub type NoError = Infallible;
 
 #[derive(Component, Debug)]
+pub struct AreaOfEffect {
+    pub radius: u16,
+}
+
+#[derive(Component, Debug)]
 pub struct BlocksTile {}
 
 #[derive(Component, Debug)]
