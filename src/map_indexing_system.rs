@@ -29,3 +29,11 @@ impl<'a> System<'a> for MapIndexingSystem {
         });
     }
 }
+
+pub fn move_blocker(map: &mut Map, pos: &mut Position, new_pos: &Position) {
+    let old_ix = map.pos_idx(*pos);
+    let new_ix = map.pos_idx(*new_pos);
+    map.blocked[new_ix] = true;
+    *pos = *new_pos;
+    map.blocked[old_ix] = false;
+}
