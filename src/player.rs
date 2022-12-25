@@ -10,6 +10,7 @@ use crate::{
     gamelog,
     gui::PANEL_HEIGHT,
     map::Map,
+    map_indexing_system::move_blocker,
     PsnU, RunState, State,
 };
 
@@ -39,8 +40,12 @@ pub fn try_move_player(delta_x: i32, delta_y: i32, gs: &mut State) -> RunState {
             .clamp(0, gs.display.height_i32() - PANEL_HEIGHT as i32 - 1)
             .try_into()
             .unwrap();
+        let try_pos = Position {
+            xx: try_xx,
+            yy: try_yy,
+        };
         let combat_stats = gs.ecs.read_storage::<CombatStats>();
-        let map = gs.ecs.fetch::<Map>();
+        let mut map = gs.ecs.fetch_mut::<Map>();
         let destination_ix = map.xy_idx(try_xx, try_yy);
         let combat = map.tile_content[destination_ix]
             .iter()
@@ -63,8 +68,7 @@ pub fn try_move_player(delta_x: i32, delta_y: i32, gs: &mut State) -> RunState {
                 }
             });
         if !combat && !map.blocked[destination_ix] {
-            pos.xx = try_xx;
-            pos.yy = try_yy;
+            move_blocker(&mut map, pos, &try_pos);
             viewshed.dirty = true;
             RunState::PlayerTurn
         } else if combat {
