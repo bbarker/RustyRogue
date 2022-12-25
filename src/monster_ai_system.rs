@@ -1,5 +1,6 @@
 use crate::{
-    components::*, gamelog::GameLog, map::Map, player::get_player_entities_with_pos, RunState,
+    components::*, gamelog::GameLog, map::Map, map_indexing_system::move_blocker,
+    player::get_player_entities_with_pos, RunState,
 };
 
 use super::{Monster, Viewshed};
@@ -27,7 +28,7 @@ impl<'a> System<'a> for MonsterAI {
             entities,
             mut log,
             runstate,
-            map,
+            mut map,
             players,
             mut viewsheds,
             monsters,
@@ -71,7 +72,8 @@ impl<'a> System<'a> for MonsterAI {
                                         &*map,
                                     );
                                     if path.success && path.steps.len() > 1 {
-                                        *pos = map.idx_to_pos(path.steps[1]);
+                                        let new_pos = map.idx_to_pos(path.steps[1]);
+                                        move_blocker(&mut map, pos, &new_pos);
                                         viewshed.dirty = true;
                                     }
                                 }
