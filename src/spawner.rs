@@ -26,7 +26,7 @@ pub fn player(gs: &mut State, position: Position) -> Entity {
             glyph: bracket_lib::prelude::to_cp437('@'),
             fg: RGB::named(bracket_lib::prelude::YELLOW),
             bg: RGB::named(bracket_lib::prelude::BLACK),
-            render_order: 0,
+            render_order: 2,
         })
         .with(Player {})
         .with(Viewshed {
@@ -53,7 +53,7 @@ pub fn health_potion(ecs: &mut World, position: Position) -> Entity {
             glyph: bracket_lib::prelude::to_cp437('¡'),
             fg: RGB::named(bracket_lib::prelude::RED),
             bg: RGB::named(bracket_lib::prelude::BLACK),
-            render_order: 2,
+            render_order: 0,
         })
         .with(Name {
             name: "Health Potion".to_string(),
@@ -71,7 +71,7 @@ pub fn fireball_scroll(ecs: &mut World, position: Position) -> Entity {
             glyph: bracket_lib::prelude::to_cp437(')'),
             fg: RGB::named(ORANGE),
             bg: RGB::named(BLACK),
-            render_order: 2,
+            render_order: 0,
         })
         .with(Name {
             name: "Fireball Scroll".to_string(),
@@ -91,7 +91,7 @@ pub fn magic_missile_scroll(ecs: &mut World, position: Position) -> Entity {
             glyph: bracket_lib::prelude::to_cp437(')'),
             fg: RGB::named(CYAN),
             bg: RGB::named(BLACK),
-            render_order: 2,
+            render_order: 0,
         })
         .with(Name {
             name: "Magic Missile Scroll".to_string(),
@@ -99,7 +99,7 @@ pub fn magic_missile_scroll(ecs: &mut World, position: Position) -> Entity {
         .with(Item {})
         .with(Consumable {})
         .with(Ranged { range: 6 })
-        .with(InflictsDamage { damage: 16 }) // TODO: should be 8
+        .with(InflictsDamage { damage: 8 })
         .build()
 }
 
@@ -110,7 +110,7 @@ pub fn random_item(ecs: &mut World, position: Position) -> Entity {
     };
     match roll {
         x if x < 30 => health_potion(ecs, position),
-        x if x < 70 => fireball_scroll(ecs, position),
+        x if x < 60 => fireball_scroll(ecs, position),
         _ => magic_missile_scroll(ecs, position),
     }
 }
