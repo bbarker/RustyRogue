@@ -259,6 +259,7 @@ fn main() {
     gs.ecs.register::<AreaOfEffect>();
     gs.ecs.register::<BlocksTile>();
     gs.ecs.register::<CombatStats>();
+    gs.ecs.register::<Confusion>();
     gs.ecs.register::<Consumable>();
     gs.ecs.register::<EventIncomingDamage>();
     gs.ecs.register::<EventWantsToUseItem>();

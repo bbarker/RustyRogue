@@ -28,6 +28,12 @@ pub struct CombatStats {
 }
 
 #[derive(Component, Debug)]
+pub struct Confusion {
+    pub turns: u16,
+    pub step_sequence: Vec<(i8, i8)>,
+}
+
+#[derive(Component, Debug)]
 pub struct Consumable {}
 
 #[derive(Component, Debug)]
