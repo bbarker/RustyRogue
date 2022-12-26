@@ -27,9 +27,8 @@ pub struct CombatStats {
     pub power: u16,
 }
 
-#[derive(Component, Debug)]
+#[derive(Component, Debug, Clone)]
 pub struct Confusion {
-    pub turns: u16,
     pub step_sequence: Vec<(i8, i8)>,
 }
 
