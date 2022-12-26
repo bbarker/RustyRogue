@@ -1,14 +1,14 @@
 use bracket_lib::{
     random::RandomNumberGenerator,
-    terminal::{FontCharType, BLACK, BLUE, CYAN, GREEN, ORANGE, RED, RGB, YELLOW},
+    terminal::{FontCharType, BLACK, BLUE, CYAN, GREEN, ORANGE, PINK, RED, RGB, YELLOW},
 };
 use itertools::Itertools;
 use specs::prelude::*;
 
 use crate::{
     components::{
-        AreaOfEffect, BlocksTile, CombatStats, Consumable, InflictsDamage, Item, Monster, Name,
-        Player, Position, ProvidesHealing, Ranged, Renderable, Viewshed,
+        AreaOfEffect, BlocksTile, CombatStats, Confusion, Consumable, InflictsDamage, Item,
+        Monster, Name, Player, Position, ProvidesHealing, Ranged, Renderable, Viewshed,
     },
     map::Map,
     rect::Rect,
@@ -100,6 +100,38 @@ pub fn magic_missile_scroll(ecs: &mut World, position: Position) -> Entity {
         .with(Consumable {})
         .with(Ranged { range: 6 })
         .with(InflictsDamage { damage: 8 })
+        .build()
+}
+
+pub fn confusion_scroll(ecs: &mut World, position: Position) -> Entity {
+    let rand_turns = {
+        let mut rng = ecs.write_resource::<RandomNumberGenerator>();
+        rng.range(1, 7)
+    };
+    let steps: Vec<(i8, i8)> = {
+        let mut rng = ecs.write_resource::<RandomNumberGenerator>();
+        (0..rand_turns)
+            .map(|_| (rng.range(-1, 2), rng.range(-1, 2)))
+            .collect()
+    };
+    ecs.create_entity()
+        .with(position)
+        .with(Renderable {
+            glyph: bracket_lib::prelude::to_cp437(')'),
+            fg: RGB::named(PINK),
+            bg: RGB::named(BLACK),
+            render_order: 0,
+        })
+        .with(Name {
+            name: "Confusion Scroll".to_string(),
+        })
+        .with(Item {})
+        .with(Consumable {})
+        .with(Ranged { range: 6 })
+        .with(Confusion {
+            turns: rand_turns,
+            step_sequence: steps,
+        })
         .build()
 }
 
