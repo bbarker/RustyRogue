@@ -55,6 +55,6 @@ pub fn delete_the_dead(ecs: &mut World) {
     }
     dead.iter().for_each(|victim| {
         ecs.delete_entity(*victim)
-            .unwrap_or_else(|_| panic!("Unable to delete entity with id {}", victim.id()))
+            .unwrap_or_else(|er| panic!("Unable to delete entity with id {}: {}", victim.id(), er))
     });
 }

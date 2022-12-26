@@ -58,10 +58,10 @@ impl<'a> System<'a> for MonsterAI {
                                                 target: *player_entity,
                                             },
                                         )
-                                        .unwrap_or_else(|_| {
+                                        .unwrap_or_else(|er| {
                                             panic!(
-                                                "Unable to insert attack on player from {}",
-                                                name.name,
+                                                "Unable to insert attack on player from {}: {}",
+                                                name.name, er
                                             )
                                         });
                                     log.entries.push(format!("{} shouts insults", name.name));
