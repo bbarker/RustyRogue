@@ -185,6 +185,31 @@ impl Map {
     pub fn clear_content_index(&mut self) {
         self.tile_content.iter_mut().for_each(|vc| vc.clear());
     }
+
+    pub fn move_blocker(&mut self, pos: &mut Position, new_pos: &Position) {
+        let old_ix = self.pos_idx(*pos);
+        let new_ix = self.pos_idx(*new_pos);
+        self.blocked[new_ix] = true;
+        *pos = *new_pos;
+        self.blocked[old_ix] = false;
+    }
+
+    pub fn dest_from_delta(&self, pos: &Position, delta_x: i32, delta_y: i32) -> Position {
+        let xx_i32 = i32::try_from(pos.xx).unwrap();
+        let yy_i32 = i32::try_from(pos.yy).unwrap();
+        let try_xx: PsnU = (xx_i32 + delta_x)
+            .clamp(0, self.width_psnu as i32 - 1)
+            .try_into()
+            .unwrap();
+        let try_yy: PsnU = (yy_i32 + delta_y)
+            .clamp(0, self.height_psnu as i32 - 1)
+            .try_into()
+            .unwrap();
+        Position {
+            xx: try_xx,
+            yy: try_yy,
+        }
+    }
 }
 
 impl BaseMap for Map {

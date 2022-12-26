@@ -8,10 +8,8 @@ use crate::{
         Position, Positionable, Viewshed,
     },
     gamelog,
-    gui::PANEL_HEIGHT,
     map::Map,
-    map_indexing_system::move_blocker,
-    PsnU, RunState, State,
+    RunState, State,
 };
 
 // TODO: add this to a sub-state "Option<ClientState>" in State
@@ -30,23 +28,10 @@ pub fn try_move_player(delta_x: i32, delta_y: i32, gs: &mut State) -> RunState {
             .join()
             .next()
     {
-        let xx_i32 = i32::try_from(pos.xx).unwrap();
-        let yy_i32 = i32::try_from(pos.yy).unwrap();
-        let try_xx: PsnU = (xx_i32 + delta_x)
-            .clamp(0, gs.display.width_i32() - 1)
-            .try_into()
-            .unwrap();
-        let try_yy: PsnU = (yy_i32 + delta_y)
-            .clamp(0, gs.display.height_i32() - PANEL_HEIGHT as i32 - 1)
-            .try_into()
-            .unwrap();
-        let try_pos = Position {
-            xx: try_xx,
-            yy: try_yy,
-        };
+        let try_pos = &gs.ecs.fetch::<Map>().dest_from_delta(pos, delta_x, delta_y);
         let combat_stats = gs.ecs.read_storage::<CombatStats>();
         let mut map = gs.ecs.fetch_mut::<Map>();
-        let destination_ix = map.xy_idx(try_xx, try_yy);
+        let destination_ix = map.pos_idx(try_pos);
         let combat = map.tile_content[destination_ix]
             .iter()
             .filter(|potential_target| potential_target.id() != entity.id())
@@ -68,7 +53,7 @@ pub fn try_move_player(delta_x: i32, delta_y: i32, gs: &mut State) -> RunState {
                 }
             });
         if !combat && !map.blocked[destination_ix] {
-            move_blocker(&mut map, pos, &try_pos);
+            map.move_blocker(pos, try_pos);
             viewshed.dirty = true;
             RunState::PlayerTurn
         } else if combat {
