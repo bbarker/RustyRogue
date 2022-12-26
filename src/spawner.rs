@@ -129,7 +129,6 @@ pub fn confusion_scroll(ecs: &mut World, position: Position) -> Entity {
         .with(Consumable {})
         .with(Ranged { range: 6 })
         .with(Confusion {
-            turns: rand_turns,
             step_sequence: steps,
         })
         .build()

@@ -3,8 +3,8 @@ use specs::prelude::*;
 
 use crate::{
     components::{
-        AreaOfEffect, CombatStats, Consumable, EventIncomingDamage, EventWantsToDropItem,
-        EventWantsToUseItem, InflictsDamage, ProvidesHealing,
+        AreaOfEffect, CombatStats, Confusion, Consumable, EventIncomingDamage,
+        EventWantsToDropItem, EventWantsToUseItem, InflictsDamage, ProvidesHealing,
     },
     map::Map,
     player::PLAYER_NAME,
@@ -67,6 +67,7 @@ impl<'a> System<'a> for ItemUseSystem {
         ReadStorage<'a, Name>,
         ReadStorage<'a, ProvidesHealing>,
         ReadStorage<'a, InflictsDamage>,
+        WriteStorage<'a, Confusion>,
         ReadStorage<'a, AreaOfEffect>,
         WriteStorage<'a, CombatStats>,
         WriteStorage<'a, EventIncomingDamage>,
@@ -83,13 +84,14 @@ impl<'a> System<'a> for ItemUseSystem {
             names,
             healing,
             damaging,
+            mut confused,
             aoe,
             mut combat_stats,
             mut incoming_damage,
             consumables,
         ) = data;
 
-        let delete_consumable = |item: Entity, used: bool, player_name: &Name| {
+        let delete_if_consumed = |item: Entity, used: bool, player_name: &Name| {
             let consumable = consumables.get(item);
             match consumable {
                 None => {}
@@ -141,7 +143,7 @@ impl<'a> System<'a> for ItemUseSystem {
                                 panic!("Unable to get combat stats for target {}!", target.id())
                             });
                             stats.hp = u16::min(stats.max_hp, stats.hp + healer.heal_amount);
-                            delete_consumable(useitem.item, /* used = */ true, player_name);
+                            delete_if_consumed(useitem.item, /* used = */ true, player_name);
                             if player_name.name == PLAYER_NAME {
                                 log.entries.push(format!(
                                     "You consume the {}, healing {} hp.",
@@ -167,7 +169,7 @@ impl<'a> System<'a> for ItemUseSystem {
                             })
                             .count()
                             > 0;
-                        delete_consumable(useitem.item, used, player_name);
+                        delete_if_consumed(useitem.item, used, player_name);
                         if player_name.name == PLAYER_NAME {
                             log.entries.push(format!(
                                 "You use the {}, inflicting {} damage.",
@@ -175,6 +177,35 @@ impl<'a> System<'a> for ItemUseSystem {
                                 damage.damage
                             ));
                         }
+                    }
+                }
+                let confuser_item = confused.get(useitem.item).cloned();
+                match confuser_item {
+                    None => {}
+                    Some(confusion) => {
+                        let used = targets
+                            .iter()
+                            .map(|victim| {
+                                confused
+                                    .insert(*victim, confusion.clone())
+                                    .unwrap_or_else(|er| {
+                                        panic!(
+                                            "Unable to insert confusion component for target {}!: {}",
+                                            victim.id(),
+                                            er
+                                        )
+                                    });
+                                if player_name.name == PLAYER_NAME {
+                                    log.entries.push(format!(
+                                        "You use {} on {}, confusing them.",
+                                        names.get(useitem.item).unwrap().name,
+                                        names.get(*victim).unwrap().name
+                                    ));
+                                }
+                            })
+                            .count()
+                            > 0;
+                        delete_if_consumed(useitem.item, used, player_name);
                     }
                 }
             });
