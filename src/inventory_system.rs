@@ -41,7 +41,7 @@ impl<'a> System<'a> for ItemCollectionSystem {
                             owner: player_entity,
                         },
                     )
-                    .unwrap_or_else(|_| panic!("Unable to insert item into backpack!"));
+                    .unwrap_or_else(|er| panic!("Unable to insert item into backpack!: {}", er));
 
                 if pickup.collected_by == player_entity {
                     log.entries.push(format!(
@@ -97,8 +97,8 @@ impl<'a> System<'a> for ItemUseSystem {
                 None => {}
                 Some(_) => {
                     if used {
-                        entities.delete(item).unwrap_or_else(|_| {
-                            panic!("Delete item failed for player {}", player_name.name)
+                        entities.delete(item).unwrap_or_else(|er| {
+                            panic!("Delete item failed for player {}: {}", player_name.name, er)
                         });
                     }
                 }
@@ -233,7 +233,7 @@ impl<'a> System<'a> for ItemDropSystem {
                 let dropper_pos = positions.get(entity).unwrap();
                 positions
                     .insert(to_drop.item, *dropper_pos)
-                    .unwrap_or_else(|_| panic!("Unable to drop item!"));
+                    .unwrap_or_else(|er| panic!("Unable to drop item!: {}", er));
                 backpack.remove(to_drop.item);
                 let item_name = names
                     .get(to_drop.item)

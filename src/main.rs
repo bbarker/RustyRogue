@@ -164,8 +164,8 @@ impl GameState for State {
                                         target: None,
                                     },
                                 )
-                                .unwrap_or_else(|_| {
-                                    panic!("Tried to use {} but failed!", item_name)
+                                .unwrap_or_else(|er| {
+                                    panic!("Tried to use {} but failed!: {}", item_name, er)
                                 });
                             let mut gamelog = self.ecs.fetch_mut::<gamelog::GameLog>();
                             gamelog.entries.push(format!("You use the {}.", item_name));
@@ -196,7 +196,9 @@ impl GameState for State {
                                 get_player_unwrap(&self.ecs, PLAYER_NAME),
                                 EventWantsToDropItem { item: item_entity },
                             )
-                            .unwrap_or_else(|_| panic!("Tried to drop {} but failed!", item_name));
+                            .unwrap_or_else(|er| {
+                                panic!("Tried to drop {} but failed!: {}", item_name, er)
+                            });
 
                         let mut gamelog = self.ecs.fetch_mut::<gamelog::GameLog>();
                         gamelog.entries.push(format!("You drop the {}.", item_name));
@@ -226,7 +228,9 @@ impl GameState for State {
                                     target: result.1,
                                 },
                             )
-                            .unwrap_or_else(|_| panic!("Tried to use {} but failed!", item_name));
+                            .unwrap_or_else(|er| {
+                                panic!("Tried to use {} but failed!: {}", item_name, er)
+                            });
                         let mut gamelog = self.ecs.fetch_mut::<gamelog::GameLog>();
                         gamelog.entries.push(format!("You use the {}.", item_name));
                         newrunstate = RunState::PlayerTurn;

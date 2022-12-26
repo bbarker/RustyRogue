@@ -200,7 +200,7 @@ fn get_item(ecs: &mut World) -> RunState {
             let mut pickup = ecs.write_storage::<EventWantsToPickupItem>();
             pickup
                 .insert(wants_to_pickup.collected_by, wants_to_pickup)
-                .unwrap_or_else(|_| panic!("Unable to insert pickup event"));
+                .unwrap_or_else(|er| panic!("Unable to insert pickup event: {}", er));
         })
     }
     RunState::PlayerTurn
