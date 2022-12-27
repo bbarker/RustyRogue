@@ -1,5 +1,6 @@
 #![feature(const_cmp)]
 #![feature(const_trait_impl)]
+// #![feature(derive_const)] // need nightly for this
 
 #[macro_use]
 extern crate macro_attr;
