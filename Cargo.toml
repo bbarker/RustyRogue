@@ -7,7 +7,9 @@ edition = "2021"
 
 [dependencies]
 bracket-lib = { version = "0.8.7" }
+enum_derive = "0.1.7"
 itertools = "0.10.5"
+macro-attr = "0.2.0"
 serde = { version = "1.0.148", features = ["derive"]}
 specs = { version = "0.18.0", features = ["serde"]}
 specs-derive = "0.4.1"

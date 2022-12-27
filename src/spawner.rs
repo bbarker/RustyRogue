@@ -139,7 +139,7 @@ const WEIGHTED_ITEM_SPAWNERS: [(SimpleSpawner, u16); 4] = [
     (health_potion, 30),
     (fireball_scroll, 30),
     (magic_missile_scroll, 40),
-    (confusion_scroll, 300),
+    (confusion_scroll, 30),
 ];
 
 const ITEM_WEIGHT_CUMULATIVE: [(SimpleSpawner, u16);

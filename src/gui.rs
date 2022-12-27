@@ -18,7 +18,7 @@ use crate::{
     map::Map,
     player::{get_player_unwrap, PLAYER_NAME},
     util::*,
-    PsnU, State,
+    PsnU, RunState, State,
 };
 
 pub const PANEL_HEIGHT: usize = 7;
@@ -316,5 +316,89 @@ pub fn ranged_target(
         }
     } else {
         (ItemMenuResult::Cancel, None)
+    }
+}
+
+macro_attr! {
+    #[derive(PartialEq, Copy, Clone, PrevVariant!, NextVariant! /* , IterVariants!(MAIN_MENU_VARIANTS) */)]
+    pub enum MainMenuSelection {
+        NewGame,
+        LoadGame,
+        Quit,
+    }
+}
+//
+const MAIN_MENU_FIRST: MainMenuSelection = MainMenuSelection::NewGame;
+const MAIN_MENU_LAST: MainMenuSelection = MainMenuSelection::Quit;
+
+#[derive(PartialEq, Copy, Clone)]
+pub enum MainMenuResult {
+    // TODO: refactor payload pattern
+    NoSelection { selected: MainMenuSelection },
+    Selected { selected: MainMenuSelection },
+}
+
+pub fn menu_fg_color(selection: MainMenuSelection, current_selection: MainMenuSelection) -> RGB {
+    if selection == current_selection {
+        RGB::named(MAGENTA)
+    } else {
+        RGB::named(WHITE)
+    }
+}
+
+pub fn main_menu(gs: &mut State, ctx: &mut BTerm) -> MainMenuResult {
+    let runstate = gs.ecs.fetch::<RunState>();
+
+    ctx.print_color_centered(15, RGB::named(YELLOW), RGB::named(BLACK), "Rusty Rogue");
+
+    if let RunState::MainMenu {
+        menu_selection: selection,
+    } = *runstate
+    {
+        // TODO: use enum_variants to generate these:
+        ctx.print_color_centered(
+            24,
+            menu_fg_color(MainMenuSelection::NewGame, selection),
+            RGB::named(BLACK),
+            "Begin New Game",
+        );
+        ctx.print_color_centered(
+            25,
+            menu_fg_color(MainMenuSelection::LoadGame, selection),
+            RGB::named(BLACK),
+            "Load Game",
+        );
+        ctx.print_color_centered(
+            26,
+            menu_fg_color(MainMenuSelection::Quit, selection),
+            RGB::named(BLACK),
+            "Quit",
+        );
+        match ctx.key {
+            None => MainMenuResult::NoSelection {
+                selected: selection,
+            },
+            Some(key) => match key {
+                VirtualKeyCode::Escape => MainMenuResult::Selected {
+                    selected: MainMenuSelection::Quit,
+                },
+                VirtualKeyCode::Up => MainMenuResult::NoSelection {
+                    selected: selection.prev_variant().unwrap_or(MAIN_MENU_LAST),
+                },
+                VirtualKeyCode::Down => MainMenuResult::NoSelection {
+                    selected: selection.next_variant().unwrap_or(MAIN_MENU_FIRST),
+                },
+                VirtualKeyCode::Return => MainMenuResult::Selected {
+                    selected: selection,
+                },
+                _ => MainMenuResult::NoSelection {
+                    selected: selection,
+                },
+            },
+        }
+    } else {
+        MainMenuResult::NoSelection {
+            selected: MainMenuSelection::NewGame,
+        }
     }
 }

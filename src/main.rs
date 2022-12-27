@@ -1,6 +1,11 @@
 #![feature(const_cmp)]
 #![feature(const_trait_impl)]
 
+#[macro_use]
+extern crate macro_attr;
+#[macro_use]
+extern crate enum_derive;
+
 use bracket_lib::{
     prelude::{BTerm, GameState},
     random::RandomNumberGenerator,
@@ -48,7 +53,13 @@ pub enum RunState {
     MonsterTurn,
     ShowInventory,
     ShowDropItem,
-    ShowTargeting { range: u16, item: Entity },
+    ShowTargeting {
+        range: u16,
+        item: Entity,
+    },
+    MainMenu {
+        menu_selection: gui::MainMenuSelection,
+    },
 }
 
 pub struct State {
@@ -81,10 +92,6 @@ impl State {
 
 impl GameState for State {
     fn tick(&mut self, ctx: &mut BTerm) {
-        self.display = calc_display_state(ctx);
-
-        ctx.cls();
-
         // This might be a good candidate for mutual TCO, someday
         // Also, look into bracket/resource handling patterns
         let mut newrunstate = {
@@ -92,24 +99,31 @@ impl GameState for State {
             *runstate
         };
 
-        draw_map(&self.ecs, ctx);
-        draw_ui(&self.ecs, ctx, &self.display);
+        ctx.cls();
 
-        delete_the_dead(&mut self.ecs);
+        match newrunstate {
+            RunState::MainMenu { .. } => {}
+            _ => {
+                draw_map(&self.ecs, ctx);
+                draw_ui(&self.ecs, ctx, &self.display);
 
-        {
-            // draw renderables
-            let positions = self.ecs.read_storage::<Position>();
-            let renderables = self.ecs.read_storage::<Renderable>();
-            let map = self.ecs.fetch::<Map>();
+                delete_the_dead(&mut self.ecs);
 
-            (&positions, &renderables)
-                .join()
-                .filter(|(pos, _)| map.visible_tiles[pos.idx(self.display.width)])
-                .sorted_by(|aa, bb| (aa.1.render_order).cmp(&bb.1.render_order))
-                .for_each(|(pos, render)| {
-                    ctx.set(pos.xx, pos.yy, render.fg, render.bg, render.glyph);
-                });
+                {
+                    // draw renderables
+                    let positions = self.ecs.read_storage::<Position>();
+                    let renderables = self.ecs.read_storage::<Renderable>();
+                    let map = self.ecs.fetch::<Map>();
+
+                    (&positions, &renderables)
+                        .join()
+                        .filter(|(pos, _)| map.visible_tiles[pos.idx(self.display.width)])
+                        .sorted_by(|aa, bb| (aa.1.render_order).cmp(&bb.1.render_order))
+                        .for_each(|(pos, render)| {
+                            ctx.set(pos.xx, pos.yy, render.fg, render.bg, render.glyph);
+                        });
+                }
+            }
         }
 
         match newrunstate {
@@ -237,11 +251,24 @@ impl GameState for State {
                     }
                 }
             }
+            RunState::MainMenu { .. } => {
+                let result = gui::main_menu(self, ctx);
+                match result {
+                    gui::MainMenuResult::NoSelection { selected } => {
+                        newrunstate = RunState::MainMenu {
+                            menu_selection: selected,
+                        };
+                    }
+                    gui::MainMenuResult::Selected { selected } => match selected {
+                        gui::MainMenuSelection::NewGame => newrunstate = RunState::PreRun,
+                        gui::MainMenuSelection::LoadGame => newrunstate = RunState::PreRun,
+                        gui::MainMenuSelection::Quit => ctx.quit(),
+                    },
+                }
+            }
         }
-        {
-            let mut runstate = self.ecs.fetch_mut::<RunState>();
-            *runstate = newrunstate;
-        }
+        let mut runstate = self.ecs.fetch_mut::<RunState>();
+        *runstate = newrunstate;
     }
 }
 
@@ -282,7 +309,9 @@ fn main() {
     gs.ecs.register::<Renderable>();
     gs.ecs.register::<Viewshed>();
 
-    gs.ecs.insert(RunState::PreRun);
+    gs.ecs.insert(RunState::MainMenu {
+        menu_selection: MainMenuSelection::NewGame,
+    });
     gs.ecs.insert(gamelog::GameLog {
         entries: vec!["Welcome to Rusty Rogue!".to_string()],
     });
