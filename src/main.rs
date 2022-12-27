@@ -253,13 +253,13 @@ impl GameState for State {
             }
             RunState::MainMenu { .. } => {
                 let result = gui::main_menu(self, ctx);
-                match result {
-                    gui::MainMenuResult::NoSelection { selected } => {
+                match result.status {
+                    gui::MainMenuStatus::NoSelection => {
                         newrunstate = RunState::MainMenu {
-                            menu_selection: selected,
+                            menu_selection: result.highlighted,
                         };
                     }
-                    gui::MainMenuResult::Selected { selected } => match selected {
+                    gui::MainMenuStatus::Selected => match result.highlighted {
                         gui::MainMenuSelection::NewGame => newrunstate = RunState::PreRun,
                         gui::MainMenuSelection::LoadGame => newrunstate = RunState::PreRun,
                         gui::MainMenuSelection::Quit => ctx.quit(),

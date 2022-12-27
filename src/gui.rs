@@ -332,10 +332,14 @@ const MAIN_MENU_FIRST: MainMenuSelection = MainMenuSelection::NewGame;
 const MAIN_MENU_LAST: MainMenuSelection = MainMenuSelection::Quit;
 
 #[derive(PartialEq, Copy, Clone)]
-pub enum MainMenuResult {
-    // TODO: refactor payload pattern
-    NoSelection { selected: MainMenuSelection },
-    Selected { selected: MainMenuSelection },
+pub enum MainMenuStatus {
+    NoSelection,
+    Selected,
+}
+
+pub struct MainMenuResult {
+    pub highlighted: MainMenuSelection,
+    pub status: MainMenuStatus,
 }
 
 pub fn menu_fg_color(selection: MainMenuSelection, current_selection: MainMenuSelection) -> RGB {
@@ -375,30 +379,37 @@ pub fn main_menu(gs: &mut State, ctx: &mut BTerm) -> MainMenuResult {
             "Quit",
         );
         match ctx.key {
-            None => MainMenuResult::NoSelection {
-                selected: selection,
+            None => MainMenuResult {
+                highlighted: selection,
+                status: MainMenuStatus::NoSelection,
             },
             Some(key) => match key {
-                VirtualKeyCode::Escape => MainMenuResult::Selected {
-                    selected: MainMenuSelection::Quit,
+                VirtualKeyCode::Escape => MainMenuResult {
+                    highlighted: MainMenuSelection::Quit,
+                    status: MainMenuStatus::Selected,
                 },
-                VirtualKeyCode::Up => MainMenuResult::NoSelection {
-                    selected: selection.prev_variant().unwrap_or(MAIN_MENU_LAST),
+                VirtualKeyCode::Up => MainMenuResult {
+                    highlighted: selection.prev_variant().unwrap_or(MAIN_MENU_LAST),
+                    status: MainMenuStatus::NoSelection,
                 },
-                VirtualKeyCode::Down => MainMenuResult::NoSelection {
-                    selected: selection.next_variant().unwrap_or(MAIN_MENU_FIRST),
+                VirtualKeyCode::Down => MainMenuResult {
+                    highlighted: selection.next_variant().unwrap_or(MAIN_MENU_FIRST),
+                    status: MainMenuStatus::NoSelection,
                 },
-                VirtualKeyCode::Return => MainMenuResult::Selected {
-                    selected: selection,
+                VirtualKeyCode::Return => MainMenuResult {
+                    highlighted: selection,
+                    status: MainMenuStatus::Selected,
                 },
-                _ => MainMenuResult::NoSelection {
-                    selected: selection,
+                _ => MainMenuResult {
+                    highlighted: selection,
+                    status: MainMenuStatus::NoSelection,
                 },
             },
         }
     } else {
-        MainMenuResult::NoSelection {
-            selected: MainMenuSelection::NewGame,
+        MainMenuResult {
+            highlighted: MainMenuSelection::NewGame,
+            status: MainMenuStatus::NoSelection,
         }
     }
 }
