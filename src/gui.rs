@@ -320,7 +320,7 @@ pub fn ranged_target(
 }
 
 macro_attr! {
-    #[derive(PartialEq, Copy, Clone, PrevVariant!, NextVariant! /* , IterVariants!(MAIN_MENU_VARIANTS) */)]
+    #[derive(PartialEq, Copy, Clone, PrevVariant!, NextVariant!, IterVariants!(MainMenuVariants))]
     pub enum MainMenuSelection {
         NewGame,
         LoadGame,
@@ -330,6 +330,14 @@ macro_attr! {
 //
 const MAIN_MENU_FIRST: MainMenuSelection = MainMenuSelection::NewGame;
 const MAIN_MENU_LAST: MainMenuSelection = MainMenuSelection::Quit;
+//
+const fn main_menu_entry_string(selection: MainMenuSelection) -> &'static str {
+    match selection {
+        MainMenuSelection::NewGame => "New Game",
+        MainMenuSelection::LoadGame => "Load Game",
+        MainMenuSelection::Quit => "Quit",
+    }
+}
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum MainMenuStatus {
@@ -350,6 +358,14 @@ pub fn menu_fg_color(selection: MainMenuSelection, current_selection: MainMenuSe
     }
 }
 
+fn draw_main_menu_entry(ctx: &mut BTerm, entry: MainMenuSelection, selection: MainMenuSelection) {
+    ctx.print_color_centered(
+        24 + entry as i32,
+        menu_fg_color(entry, selection),
+        RGB::named(BLACK),
+        main_menu_entry_string(entry),
+    );
+}
 pub fn main_menu(gs: &mut State, ctx: &mut BTerm) -> MainMenuResult {
     let runstate = gs.ecs.fetch::<RunState>();
 
@@ -359,25 +375,10 @@ pub fn main_menu(gs: &mut State, ctx: &mut BTerm) -> MainMenuResult {
         menu_selection: selection,
     } = *runstate
     {
-        // TODO: use enum_variants to generate these:
-        ctx.print_color_centered(
-            24,
-            menu_fg_color(MainMenuSelection::NewGame, selection),
-            RGB::named(BLACK),
-            "Begin New Game",
-        );
-        ctx.print_color_centered(
-            25,
-            menu_fg_color(MainMenuSelection::LoadGame, selection),
-            RGB::named(BLACK),
-            "Load Game",
-        );
-        ctx.print_color_centered(
-            26,
-            menu_fg_color(MainMenuSelection::Quit, selection),
-            RGB::named(BLACK),
-            "Quit",
-        );
+        MainMenuSelection::iter_variants().for_each(|entry| {
+            draw_main_menu_entry(ctx, entry, selection);
+        });
+
         match ctx.key {
             None => MainMenuResult {
                 highlighted: selection,
