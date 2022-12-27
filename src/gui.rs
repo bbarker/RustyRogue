@@ -323,6 +323,7 @@ macro_attr! {
     #[derive(PartialEq, Copy, Clone, PrevVariant!, NextVariant!, IterVariants!(MainMenuVariants))]
     pub enum MainMenuSelection {
         NewGame,
+        SaveGame,
         LoadGame,
         Quit,
     }
@@ -334,6 +335,7 @@ const MAIN_MENU_LAST: MainMenuSelection = MainMenuSelection::Quit;
 const fn main_menu_entry_string(selection: MainMenuSelection) -> &'static str {
     match selection {
         MainMenuSelection::NewGame => "New Game",
+        MainMenuSelection::SaveGame => "Save Game",
         MainMenuSelection::LoadGame => "Load Game",
         MainMenuSelection::Quit => "Quit",
     }
