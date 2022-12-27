@@ -262,6 +262,7 @@ impl GameState for State {
                     }
                     gui::MainMenuStatus::Selected => match result.highlighted {
                         gui::MainMenuSelection::NewGame => newrunstate = RunState::PreRun,
+                        gui::MainMenuSelection::SaveGame => newrunstate = RunState::PreRun,
                         gui::MainMenuSelection::LoadGame => newrunstate = RunState::PreRun,
                         gui::MainMenuSelection::Quit => ctx.quit(),
                     },

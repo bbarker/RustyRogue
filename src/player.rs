@@ -8,6 +8,7 @@ use crate::{
         Position, Positionable, Viewshed,
     },
     gamelog,
+    gui::MainMenuSelection::*,
     map::Map,
     RunState, State,
 };
@@ -73,6 +74,9 @@ pub fn player_input(gs: &mut State, ctx: &mut BTerm) -> RunState {
             // Menus
             VirtualKeyCode::I => RunState::ShowInventory,
             VirtualKeyCode::D if ctx.shift => RunState::ShowDropItem,
+            VirtualKeyCode::Escape => RunState::MainMenu {
+                menu_selection: SaveGame,
+            },
 
             // Player Movement
             VirtualKeyCode::Left | VirtualKeyCode::Numpad4 | VirtualKeyCode::A => {
