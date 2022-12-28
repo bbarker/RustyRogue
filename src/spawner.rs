@@ -3,12 +3,16 @@ use bracket_lib::{
     terminal::{FontCharType, BLACK, BLUE, CYAN, GREEN, ORANGE, PINK, RED, RGB, YELLOW},
 };
 use itertools::Itertools;
-use specs::prelude::*;
+use specs::{
+    prelude::*,
+    saveload::{MarkedBuilder, SimpleMarker},
+};
 
 use crate::{
     components::{
-        AreaOfEffect, BlocksTile, CombatStats, Confusion, Consumable, InflictsDamage, Item,
-        Monster, Name, Player, Position, ProvidesHealing, Ranged, Renderable, Viewshed,
+        AbilityRange, AreaOfEffect, BlocksTile, CombatStats, Confusion, Consumable, InflictsDamage,
+        Item, Monster, Name, Player, Position, ProvidesHealing, Ranged, RenderOrder, Renderable,
+        SerializeMe, ViewRange, Viewshed,
     },
     map::Map,
     rect::Rect,
@@ -18,90 +22,160 @@ use crate::{
 const MAX_ROOM_MONSTERS: u16 = 3; // TODO: Should be 4
 const MAX_ROOM_ITEMS: u16 = 2;
 
-type SimpleSpawner = fn(&mut World, Position) -> Entity;
-pub fn player(gs: &mut State, position: Position) -> Entity {
-    gs.ecs
+struct WorldEntityData {
+    name: String,
+    renderable: Renderable,
+}
+
+fn base_renderable_entity(
+    ecs: &mut World,
+    pos_opt: Option<Position>,
+    base_data: WorldEntityData,
+) -> EntityBuilder {
+    let ethereal_entity = ecs
         .create_entity()
-        .with(position)
-        .with(Renderable {
-            glyph: bracket_lib::prelude::to_cp437('@'),
-            fg: RGB::named(bracket_lib::prelude::YELLOW),
-            bg: RGB::named(bracket_lib::prelude::BLACK),
-            render_order: 2,
-        })
-        .with(Player {})
-        .with(Viewshed {
-            visible_tiles: Vec::new(),
-            range: 8,
-            dirty: true,
-        })
+        .with(base_data.renderable)
         .with(Name {
-            name: "Player".to_string(),
+            name: base_data.name,
         })
-        .with(CombatStats {
+        .marked::<SimpleMarker<SerializeMe>>();
+    if let Some(pos) = pos_opt {
+        ethereal_entity.with(pos)
+    } else {
+        ethereal_entity
+    }
+}
+
+fn sentient_entity(
+    ecs: &mut World,
+    pos: Position,
+    base_data: WorldEntityData,
+    view_range_opt: Option<ViewRange>,
+) -> EntityBuilder {
+    base_renderable_entity(ecs, Some(pos), base_data).with(Viewshed {
+        visible_tiles: Vec::new(),
+        range: view_range_opt.unwrap_or(ViewRange(8)),
+        dirty: true,
+    })
+}
+
+fn combat_entity(
+    ecs: &mut World,
+    pos: Position,
+    base_data: WorldEntityData,
+    view_range_opt: Option<ViewRange>,
+    combat_stats: CombatStats,
+) -> EntityBuilder {
+    sentient_entity(ecs, pos, base_data, view_range_opt).with(combat_stats)
+}
+
+fn non_blocking_entity(
+    ecs: &mut World,
+    pos: Position,
+    base_data: WorldEntityData,
+) -> EntityBuilder {
+    base_renderable_entity(ecs, Some(pos), base_data)
+}
+
+fn consumable_entity(ecs: &mut World, pos: Position, base_data: WorldEntityData) -> EntityBuilder {
+    non_blocking_entity(ecs, pos, base_data)
+        .with(Item {})
+        .with(Consumable {})
+}
+
+fn ranged_consumable_entity(
+    ecs: &mut World,
+    pos: Position,
+    base_data: WorldEntityData,
+    range: AbilityRange,
+) -> EntityBuilder {
+    consumable_entity(ecs, pos, base_data).with(Ranged { range })
+}
+
+type SimpleSpawner = fn(&mut World, Position) -> Entity;
+
+pub fn player(gs: &mut State, position: Position) -> Entity {
+    combat_entity(
+        &mut gs.ecs,
+        position,
+        WorldEntityData {
+            name: "Player".into(),
+            renderable: Renderable {
+                glyph: bracket_lib::prelude::to_cp437('@'),
+                fg: RGB::named(YELLOW),
+                bg: RGB::named(BLACK),
+                render_order: RenderOrder::Last,
+            },
+        },
+        Some(ViewRange(8)),
+        CombatStats {
             max_hp: 100, // TODO: Should be 30
             hp: 100,     // Should be 30
             defense: 2,
             power: 5,
-        })
-        .build()
+        },
+    )
+    .with(Player {})
+    // Note that player should not have BlocksTile; this appears to interfere with
+    // the pathing algorithm used by mobs.
+    .build()
 }
 
 pub fn health_potion(ecs: &mut World, position: Position) -> Entity {
-    ecs.create_entity()
-        .with(position)
-        .with(Renderable {
-            glyph: bracket_lib::prelude::to_cp437('¡'),
-            fg: RGB::named(bracket_lib::prelude::RED),
-            bg: RGB::named(bracket_lib::prelude::BLACK),
-            render_order: 0,
-        })
-        .with(Name {
-            name: "Health Potion".to_string(),
-        })
-        .with(Item {})
-        .with(Consumable {})
-        .with(ProvidesHealing { heal_amount: 8 })
-        .build()
+    consumable_entity(
+        ecs,
+        position,
+        WorldEntityData {
+            name: "Health Potion".into(),
+            renderable: Renderable {
+                glyph: bracket_lib::prelude::to_cp437('¡'),
+                fg: RGB::named(RED),
+                bg: RGB::named(BLACK),
+                render_order: RenderOrder::First,
+            },
+        },
+    )
+    .with(ProvidesHealing { heal_amount: 8 })
+    .build()
 }
 
 pub fn fireball_scroll(ecs: &mut World, position: Position) -> Entity {
-    ecs.create_entity()
-        .with(position)
-        .with(Renderable {
-            glyph: bracket_lib::prelude::to_cp437(')'),
-            fg: RGB::named(ORANGE),
-            bg: RGB::named(BLACK),
-            render_order: 0,
-        })
-        .with(Name {
-            name: "Fireball Scroll".to_string(),
-        })
-        .with(Item {})
-        .with(Consumable {})
-        .with(Ranged { range: 6 })
-        .with(InflictsDamage { damage: 20 })
-        .with(AreaOfEffect { radius: 3 })
-        .build()
+    ranged_consumable_entity(
+        ecs,
+        position,
+        WorldEntityData {
+            name: "Fireball Scroll".into(),
+            renderable: Renderable {
+                glyph: bracket_lib::prelude::to_cp437(')'),
+                fg: RGB::named(ORANGE),
+                bg: RGB::named(BLACK),
+                render_order: RenderOrder::First,
+            },
+        },
+        AbilityRange(6),
+    )
+    .with(InflictsDamage { damage: 20 })
+    .with(AreaOfEffect { radius: 3 })
+    .build()
 }
 
 pub fn magic_missile_scroll(ecs: &mut World, position: Position) -> Entity {
-    ecs.create_entity()
-        .with(position)
-        .with(Renderable {
-            glyph: bracket_lib::prelude::to_cp437(')'),
-            fg: RGB::named(CYAN),
-            bg: RGB::named(BLACK),
-            render_order: 0,
-        })
-        .with(Name {
-            name: "Magic Missile Scroll".to_string(),
-        })
-        .with(Item {})
-        .with(Consumable {})
-        .with(Ranged { range: 6 })
-        .with(InflictsDamage { damage: 8 })
-        .build()
+    ranged_consumable_entity(
+        ecs,
+        position,
+        WorldEntityData {
+            name: "Magic Missile Scroll".into(),
+            renderable: Renderable {
+                glyph: bracket_lib::prelude::to_cp437(')'),
+                fg: RGB::named(CYAN),
+                bg: RGB::named(BLACK),
+                render_order: RenderOrder::First,
+            },
+        },
+        AbilityRange(6),
+    )
+    .with(InflictsDamage { damage: 8 })
+    .build()
 }
 
 pub fn confusion_scroll(ecs: &mut World, position: Position) -> Entity {
@@ -115,24 +189,25 @@ pub fn confusion_scroll(ecs: &mut World, position: Position) -> Entity {
             .map(|_| (rng.range(-1, 2), rng.range(-1, 2)))
             .collect()
     };
-    ecs.create_entity()
-        .with(position)
-        .with(Renderable {
-            glyph: bracket_lib::prelude::to_cp437(')'),
-            fg: RGB::named(PINK),
-            bg: RGB::named(BLACK),
-            render_order: 0,
-        })
-        .with(Name {
-            name: "Confusion Scroll".to_string(),
-        })
-        .with(Item {})
-        .with(Consumable {})
-        .with(Ranged { range: 6 })
-        .with(Confusion {
-            step_sequence: steps,
-        })
-        .build()
+
+    ranged_consumable_entity(
+        ecs,
+        position,
+        WorldEntityData {
+            name: "Confusion Scroll".into(),
+            renderable: Renderable {
+                glyph: bracket_lib::prelude::to_cp437(')'),
+                fg: RGB::named(PINK),
+                bg: RGB::named(BLACK),
+                render_order: RenderOrder::First,
+            },
+        },
+        AbilityRange(6),
+    )
+    .with(Confusion {
+        step_sequence: steps,
+    })
+    .build()
 }
 
 const WEIGHTED_ITEM_SPAWNERS: [(SimpleSpawner, u16); 4] = [
@@ -142,8 +217,7 @@ const WEIGHTED_ITEM_SPAWNERS: [(SimpleSpawner, u16); 4] = [
     (confusion_scroll, 30),
 ];
 
-const ITEM_WEIGHT_CUMULATIVE: [(SimpleSpawner, u16);
-    WEIGHTED_ITEM_SPAWNERS.len()] = {
+const ITEM_WEIGHT_CUMULATIVE: [(SimpleSpawner, u16); WEIGHTED_ITEM_SPAWNERS.len()] = {
     // Note: const iterators don't exist at the moment, so we have to do this
     let mut ii = 0;
     let mut sum = 0;
@@ -243,34 +317,29 @@ fn monster<S: ToString>(
     name: S,
     fg: RGB,
 ) -> Entity {
-    ecs.create_entity()
-        .with(Position {
-            xx: posn.xx,
-            yy: posn.yy,
-        })
-        .with(Renderable {
-            glyph,
-            fg,
-            bg: RGB::named(bracket_lib::prelude::BLACK),
-            render_order: 1,
-        })
-        .with(Viewshed {
-            visible_tiles: Vec::new(),
-            range: 8,
-            dirty: true,
-        })
-        .with(Monster {})
-        .with(Name {
+    combat_entity(
+        ecs,
+        posn,
+        WorldEntityData {
             name: name.to_string(),
-        })
-        .with(CombatStats {
+            renderable: Renderable {
+                glyph,
+                fg,
+                bg: RGB::named(BLACK),
+                render_order: RenderOrder::Second,
+            },
+        },
+        Some(ViewRange(8)),
+        CombatStats {
             max_hp: 16,
             hp: 16,
             defense: 1,
             power: 4,
-        })
-        .with(BlocksTile {})
-        .build()
+        },
+    )
+    .with(Monster {})
+    .with(BlocksTile {})
+    .build()
 }
 
 pub fn spawn_room(ecs: &mut World, room: &Rect) -> Vec<Entity> {

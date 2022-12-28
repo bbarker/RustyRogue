@@ -15,7 +15,8 @@ use inventory_system::{ItemCollectionSystem, ItemDropSystem, ItemUseSystem};
 use itertools::Itertools;
 use map_indexing_system::MapIndexingSystem;
 use spawner::spawn_room;
-use specs::prelude::*;
+use specs::saveload::SimpleMarker;
+use specs::{prelude::*, saveload::SimpleMarkerAllocator};
 
 mod components;
 mod damage_system;
@@ -160,7 +161,7 @@ impl GameState for State {
                         let is_item_ranged = is_ranged.get(item_entity);
                         if let Some(is_item_ranged) = is_item_ranged {
                             newrunstate = RunState::ShowTargeting {
-                                range: is_item_ranged.range,
+                                range: is_item_ranged.range.0,
                                 item: item_entity,
                             };
                         } else {
@@ -264,6 +265,7 @@ impl GameState for State {
                     gui::MainMenuStatus::Selected => match result.highlighted {
                         gui::MainMenuSelection::NewGame => newrunstate = RunState::PreRun,
                         gui::MainMenuSelection::SaveGame => newrunstate = RunState::SaveGame,
+                        gui::MainMenuSelection::ResumeGame => newrunstate = RunState::PreRun,
                         gui::MainMenuSelection::LoadGame => newrunstate = RunState::PreRun,
                         gui::MainMenuSelection::Quit => ctx.quit(),
                     },
@@ -297,6 +299,7 @@ fn main() {
         ecs: World::new(),
         display: calc_display_state(&context),
     };
+    // register components
     gs.ecs.register::<AreaOfEffect>();
     gs.ecs.register::<BlocksTile>();
     gs.ecs.register::<CombatStats>();
@@ -318,7 +321,10 @@ fn main() {
     gs.ecs.register::<Ranged>();
     gs.ecs.register::<Renderable>();
     gs.ecs.register::<Viewshed>();
+    // register makers
+    gs.ecs.register::<SimpleMarker<SerializeMe>>();
 
+    gs.ecs.insert(SimpleMarkerAllocator::<SerializeMe>::new());
     gs.ecs.insert(RunState::MainMenu {
         menu_selection: MainMenuSelection::NewGame,
     });
