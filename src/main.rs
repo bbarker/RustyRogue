@@ -61,6 +61,7 @@ pub enum RunState {
     MainMenu {
         menu_selection: gui::MainMenuSelection,
     },
+    SaveGame,
 }
 
 pub struct State {
@@ -262,10 +263,17 @@ impl GameState for State {
                     }
                     gui::MainMenuStatus::Selected => match result.highlighted {
                         gui::MainMenuSelection::NewGame => newrunstate = RunState::PreRun,
-                        gui::MainMenuSelection::SaveGame => newrunstate = RunState::PreRun,
+                        gui::MainMenuSelection::SaveGame => newrunstate = RunState::SaveGame,
                         gui::MainMenuSelection::LoadGame => newrunstate = RunState::PreRun,
                         gui::MainMenuSelection::Quit => ctx.quit(),
                     },
+                }
+            }
+            RunState::SaveGame => {
+                let map_data = serde_json::to_string(&*self.ecs.fetch::<Map>()).unwrap();
+                println!("map data:\n{}", map_data);
+                newrunstate = RunState::MainMenu {
+                    menu_selection: gui::MainMenuSelection::SaveGame,
                 }
             }
         }

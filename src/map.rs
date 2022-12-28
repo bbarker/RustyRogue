@@ -2,6 +2,7 @@ use bracket_lib::prelude::{Algorithm2D, BaseMap};
 use bracket_lib::random::RandomNumberGenerator;
 use bracket_lib::terminal::{BTerm, DistanceAlg, Point, RGB};
 use itertools::Itertools;
+use serde::{Deserialize, Serialize};
 use specs::*;
 use std::cmp::{max, min};
 
@@ -12,7 +13,7 @@ use crate::rect::*;
 
 const MOVE_THROUGH_WALLS: bool = false;
 
-#[derive(PartialEq, Clone)]
+#[derive(PartialEq, Clone, Serialize, Deserialize)]
 pub enum TileType {
     Wall,
     Floor,
@@ -91,6 +92,8 @@ pub fn draw_map(ecs: &World, ctx: &mut BTerm) {
     //})
 }
 
+#[derive(Default, Serialize, Deserialize, Clone)]
+
 pub struct Map {
     pub tiles: Vec<TileType>,
     pub rooms: Vec<Rect>,
@@ -102,6 +105,9 @@ pub struct Map {
     pub revealed_tiles: Vec<bool>,
     pub visible_tiles: Vec<bool>,
     pub blocked: Vec<bool>,
+
+    #[serde(skip_serializing)]
+    #[serde(skip_deserializing)]
     pub tile_content: Vec<Vec<Entity>>,
 }
 

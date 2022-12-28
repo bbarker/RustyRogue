@@ -1,6 +1,8 @@
+use serde::{Deserialize, Serialize};
+
 use crate::{Position, PsnU};
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Rect {
     pub x1: PsnU,
     pub x2: PsnU,
