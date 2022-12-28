@@ -29,8 +29,8 @@ struct WorldEntityData {
 
 fn base_renderable_entity(
     ecs: &mut World,
-    base_data: WorldEntityData,
     pos_opt: Option<Position>,
+    base_data: WorldEntityData,
 ) -> EntityBuilder {
     let ethereal_entity = ecs
         .create_entity()
@@ -47,7 +47,7 @@ fn base_renderable_entity(
 }
 
 fn blocking_entity(ecs: &mut World, pos: Position, base_data: WorldEntityData) -> EntityBuilder {
-    base_renderable_entity(ecs, base_data, Some(pos)).with(BlocksTile {})
+    base_renderable_entity(ecs, Some(pos), base_data).with(BlocksTile {})
 }
 
 fn sentient_entity(
@@ -56,7 +56,7 @@ fn sentient_entity(
     base_data: WorldEntityData,
     view_range_opt: Option<ViewRange>,
 ) -> EntityBuilder {
-    blocking_entity(ecs, pos, base_data).with(Viewshed {
+    base_renderable_entity(ecs, Some(pos), base_data).with(Viewshed {
         visible_tiles: Vec::new(),
         range: view_range_opt.unwrap_or(ViewRange(8)),
         dirty: true,
@@ -78,7 +78,7 @@ fn non_blocking_entity(
     pos: Position,
     base_data: WorldEntityData,
 ) -> EntityBuilder {
-    base_renderable_entity(ecs, base_data, Some(pos))
+    base_renderable_entity(ecs, Some(pos), base_data)
 }
 
 fn consumable_entity(ecs: &mut World, pos: Position, base_data: WorldEntityData) -> EntityBuilder {
@@ -120,6 +120,8 @@ pub fn player(gs: &mut State, position: Position) -> Entity {
         },
     )
     .with(Player {})
+    // Note that player should not have BlocksTile; this appears to interfere with
+    // the pathing algorithm used by mobs.
     .build()
 }
 
