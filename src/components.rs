@@ -188,9 +188,19 @@ pub struct ProvidesHealing {
     pub heal_amount: u16,
 }
 
+#[derive(Copy, Clone, Debug)]
+pub struct AbilityRange(pub u16);
+
 #[derive(Component, Debug)]
 pub struct Ranged {
-    pub range: u16,
+    pub range: AbilityRange,
+}
+
+#[derive(PartialEq, Eq, PartialOrd, Ord, Copy, Clone, Debug)]
+pub enum RenderOrder {
+    First,
+    Second,
+    Last,
 }
 
 #[derive(Component)]
@@ -198,12 +208,16 @@ pub struct Renderable {
     pub glyph: FontCharType,
     pub fg: RGB,
     pub bg: RGB,
-    pub render_order: u16,
+    pub render_order: RenderOrder,
 }
 
+pub struct SerializeMe;
+
+#[derive(Copy, Clone, Debug)]
+pub struct ViewRange(pub i32);
 #[derive(Component)]
 pub struct Viewshed {
     pub visible_tiles: Vec<Point>,
-    pub range: i32,
+    pub range: ViewRange,
     pub dirty: bool,
 }
