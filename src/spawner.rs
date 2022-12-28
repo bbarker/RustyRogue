@@ -46,10 +46,6 @@ fn base_renderable_entity(
     }
 }
 
-fn blocking_entity(ecs: &mut World, pos: Position, base_data: WorldEntityData) -> EntityBuilder {
-    base_renderable_entity(ecs, Some(pos), base_data).with(BlocksTile {})
-}
-
 fn sentient_entity(
     ecs: &mut World,
     pos: Position,
@@ -321,34 +317,29 @@ fn monster<S: ToString>(
     name: S,
     fg: RGB,
 ) -> Entity {
-    ecs.create_entity()
-        .with(Position {
-            xx: posn.xx,
-            yy: posn.yy,
-        })
-        .with(Renderable {
-            glyph,
-            fg,
-            bg: RGB::named(bracket_lib::prelude::BLACK),
-            render_order: RenderOrder::Second,
-        })
-        .with(Viewshed {
-            visible_tiles: Vec::new(),
-            range: ViewRange(8),
-            dirty: true,
-        })
-        .with(Monster {})
-        .with(Name {
+    combat_entity(
+        ecs,
+        posn,
+        WorldEntityData {
             name: name.to_string(),
-        })
-        .with(CombatStats {
+            renderable: Renderable {
+                glyph,
+                fg,
+                bg: RGB::named(BLACK),
+                render_order: RenderOrder::Second,
+            },
+        },
+        Some(ViewRange(8)),
+        CombatStats {
             max_hp: 16,
             hp: 16,
             defense: 1,
             power: 4,
-        })
-        .with(BlocksTile {})
-        .build()
+        },
+    )
+    .with(Monster {})
+    .with(BlocksTile {})
+    .build()
 }
 
 pub fn spawn_room(ecs: &mut World, room: &Rect) -> Vec<Entity> {
