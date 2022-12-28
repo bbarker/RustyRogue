@@ -324,6 +324,7 @@ macro_attr! {
     pub enum MainMenuSelection {
         NewGame,
         SaveGame,
+        ResumeGame,
         LoadGame,
         Quit,
     }
@@ -336,6 +337,7 @@ const fn main_menu_entry_string(selection: MainMenuSelection) -> &'static str {
     match selection {
         MainMenuSelection::NewGame => "New Game",
         MainMenuSelection::SaveGame => "Save Game",
+        MainMenuSelection::ResumeGame => "Resume Playing",
         MainMenuSelection::LoadGame => "Load Game",
         MainMenuSelection::Quit => "Quit",
     }
