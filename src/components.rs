@@ -2,24 +2,29 @@ use bracket_lib::{
     prelude::{FontCharType, RGB},
     terminal::Point,
 };
-use specs::{prelude::*, Entity};
+use specs::{
+    prelude::*,
+    saveload::{ConvertSaveload, Marker},
+    Entity,
+};
 
 use crate::PsnU;
-use specs_derive::Component;
+use serde::{Deserialize, Serialize};
+use specs_derive::*;
 
-// use std::convert::Infallible;
+use std::convert::Infallible;
 // `NoError` alias is deprecated in specs ... but specs_derive needs it
-// pub type NoError = Infallible;
+pub type NoError = Infallible;
 
-#[derive(Component, Debug)]
+#[derive(Component, ConvertSaveload, Clone, Debug)]
 pub struct AreaOfEffect {
     pub radius: u16,
 }
 
-#[derive(Component, Debug)]
+#[derive(Component, Deserialize, Serialize, Clone, Debug)]
 pub struct BlocksTile {}
 
-#[derive(Component, Debug)]
+#[derive(Component, ConvertSaveload, Clone, Debug)]
 pub struct CombatStats {
     pub max_hp: u16,
     pub hp: u16,
@@ -27,15 +32,15 @@ pub struct CombatStats {
     pub power: u16,
 }
 
-#[derive(Component, Debug, Clone)]
+#[derive(Component, ConvertSaveload, Debug, Clone)]
 pub struct Confusion {
     pub step_sequence: Vec<(i8, i8)>,
 }
 
-#[derive(Component, Debug)]
+#[derive(Component, Deserialize, Serialize, Clone, Debug)]
 pub struct Consumable {}
 
-#[derive(Component, Debug)]
+#[derive(Component, ConvertSaveload, Clone, Debug)]
 pub struct EventIncomingDamage {
     pub amount: Vec<u16>,
 }
@@ -57,50 +62,50 @@ impl EventIncomingDamage {
     }
 }
 
-#[derive(Component, Debug)]
+#[derive(Component, ConvertSaveload, Clone, Debug)]
 pub struct EventWantsToUseItem {
     pub item: Entity,
     pub target: Option<Position>,
 }
 
-#[derive(Component, Debug, Clone)]
+#[derive(Component, ConvertSaveload, Debug, Clone)]
 pub struct EventWantsToDropItem {
     pub item: Entity,
 }
 
-#[derive(Component, Debug, Clone)]
+#[derive(Component, ConvertSaveload, Debug, Clone)]
 pub struct EventWantsToMelee {
     pub target: Entity,
 }
 
-#[derive(Component, Debug)]
+#[derive(Component, ConvertSaveload, Clone, Debug)]
 pub struct EventWantsToPickupItem {
     pub collected_by: Entity,
     pub item: Entity,
 }
 
-#[derive(Component, Debug)]
+#[derive(Component, ConvertSaveload, Debug)]
 pub struct InBackpack {
     pub owner: Entity,
 }
 
-#[derive(Component, Debug)]
+#[derive(Component, ConvertSaveload, Debug)]
 pub struct InflictsDamage {
     pub damage: u16,
 }
 
-#[derive(Component, Debug)]
+#[derive(Component, Deserialize, Serialize, Clone, Debug)]
 pub struct Item {}
 
-#[derive(Component, Debug)]
+#[derive(Component, Deserialize, Serialize, Clone, Debug)]
 pub struct Monster {}
 
-#[derive(Component, Debug)]
+#[derive(Component, ConvertSaveload, Clone, Debug)]
 pub struct Name {
     pub name: String,
 }
 
-#[derive(Component, Debug, Clone)]
+#[derive(Component, Deserialize, Serialize, Clone, Debug)]
 pub struct Player {}
 
 pub trait IsPlayer {
@@ -122,7 +127,8 @@ impl IsPlayer for Player {
     }
 }
 
-#[derive(Component, Clone, Copy, Debug, PartialEq)]
+// FIXME: ConvertSaveload is not working here; maybe check newer releases of the tutorial
+#[derive(Component, Clone, Copy, Deserialize, Serialize, Debug, PartialEq)]
 pub struct Position {
     pub xx: PsnU,
     pub yy: PsnU,
@@ -183,27 +189,27 @@ impl Positionable for (i32, i32) {
     }
 }
 
-#[derive(Component, Debug)]
+#[derive(Component, Clone, ConvertSaveload, Debug)]
 pub struct ProvidesHealing {
     pub heal_amount: u16,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, ConvertSaveload, Debug)]
 pub struct AbilityRange(pub u16);
 
-#[derive(Component, Debug)]
+#[derive(Component, Clone, ConvertSaveload, Debug)]
 pub struct Ranged {
     pub range: AbilityRange,
 }
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Copy, Clone, Debug)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Copy, Clone, Deserialize, Serialize, Debug)]
 pub enum RenderOrder {
     First,
     Second,
     Last,
 }
 
-#[derive(Component)]
+#[derive(Component, ConvertSaveload, Clone)]
 pub struct Renderable {
     pub glyph: FontCharType,
     pub fg: RGB,
@@ -213,9 +219,9 @@ pub struct Renderable {
 
 pub struct SerializeMe;
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, ConvertSaveload, Debug)]
 pub struct ViewRange(pub i32);
-#[derive(Component)]
+#[derive(Component, Clone, ConvertSaveload)]
 pub struct Viewshed {
     pub visible_tiles: Vec<Point>,
     pub range: ViewRange,
