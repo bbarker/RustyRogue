@@ -29,6 +29,7 @@ mod map_indexing_system;
 mod melee_combat_system;
 mod monster_ai_system;
 mod rect;
+mod saveload_system;
 mod spawner;
 mod util;
 mod visibility_system;
@@ -272,8 +273,7 @@ impl GameState for State {
                 }
             }
             RunState::SaveGame => {
-                let map_data = serde_json::to_string(&*self.ecs.fetch::<Map>()).unwrap();
-                println!("map data:\n{}", map_data);
+                saveload_system::save_game(&mut self.ecs);
                 newrunstate = RunState::MainMenu {
                     menu_selection: gui::MainMenuSelection::SaveGame,
                 }
