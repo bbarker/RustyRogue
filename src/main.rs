@@ -242,7 +242,7 @@ impl GameState for State {
                                 get_player_unwrap(&self.ecs, PLAYER_NAME),
                                 EventWantsToUseItem {
                                     item,
-                                    target: result.1,
+                                    target: result.1.map(|p| p.into()),
                                 },
                             )
                             .unwrap_or_else(|er| {
