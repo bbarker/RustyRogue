@@ -65,7 +65,7 @@ impl EventIncomingDamage {
 #[derive(Component, ConvertSaveload, Clone, Debug)]
 pub struct EventWantsToUseItem {
     pub item: Entity,
-    pub target: Option<Position>,
+    pub target: Option<Point>,
 }
 
 #[derive(Component, ConvertSaveload, Debug, Clone)]
@@ -128,7 +128,7 @@ impl IsPlayer for Player {
 }
 
 // FIXME: ConvertSaveload is not working here; maybe check newer releases of the tutorial
-#[derive(Component, Clone, Copy, Deserialize, Serialize, Debug, PartialEq)]
+#[derive(Component, Clone, Copy, ConvertSaveload, Debug, PartialEq)]
 pub struct Position {
     pub xx: PsnU,
     pub yy: PsnU,

@@ -119,7 +119,7 @@ impl<'a> System<'a> for ItemUseSystem {
                             }
                             Some(ae) => {
                                 let fov_tiles =
-                                    field_of_view(target.into(), ae.radius.into(), &*map);
+                                    field_of_view(target, ae.radius.into(), &*map);
                                 let blast_tiles = fov_tiles.into_iter().filter(|pos| {
                                     pos.x >= 0
                                         && pos.x < map.width_psnu as i32
