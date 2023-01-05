@@ -8,7 +8,7 @@ use specs::{
     Entity,
 };
 
-use crate::PsnU;
+use crate::{map::Map, PsnU};
 use serde::{Deserialize, Serialize};
 use specs_derive::*;
 
@@ -215,6 +215,11 @@ pub struct Renderable {
     pub fg: RGB,
     pub bg: RGB,
     pub render_order: RenderOrder,
+}
+
+#[derive(Component, ConvertSaveload, Clone)]
+pub struct SerializationHelper {
+    pub map: Map,
 }
 
 pub struct SerializeMe;
