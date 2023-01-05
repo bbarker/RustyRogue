@@ -320,6 +320,7 @@ fn main() {
     gs.ecs.register::<ProvidesHealing>();
     gs.ecs.register::<Ranged>();
     gs.ecs.register::<Renderable>();
+    gs.ecs.register::<SerializationHelper>();
     gs.ecs.register::<Viewshed>();
     // register makers
     gs.ecs.register::<SimpleMarker<SerializeMe>>();
