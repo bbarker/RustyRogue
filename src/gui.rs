@@ -390,7 +390,7 @@ pub fn main_menu(gs: &mut State, ctx: &mut BTerm) -> MainMenuResult {
             },
             Some(key) => match key {
                 VirtualKeyCode::Escape => MainMenuResult {
-                    highlighted: MainMenuSelection::Quit,
+                    highlighted: MainMenuSelection::ResumeGame,
                     status: MainMenuStatus::Selected,
                 },
                 VirtualKeyCode::Up => MainMenuResult {
