@@ -267,7 +267,17 @@ impl GameState for State {
                         gui::MainMenuSelection::NewGame => newrunstate = RunState::PreRun,
                         gui::MainMenuSelection::SaveGame => newrunstate = RunState::SaveGame,
                         gui::MainMenuSelection::ResumeGame => newrunstate = RunState::PreRun,
-                        gui::MainMenuSelection::LoadGame => newrunstate = RunState::PreRun,
+                        gui::MainMenuSelection::LoadGame => {
+                            if saveload_system::does_save_exist() {
+                                newrunstate = RunState::PreRun
+                            } else {
+                                let mut gamelog = self.ecs.fetch_mut::<gamelog::GameLog>();
+                                gamelog
+                                    .entries
+                                    .push("No save game to load. Starting new game!".to_string());
+                                newrunstate = RunState::PreRun
+                            }
+                        }
                         gui::MainMenuSelection::Quit => ctx.quit(),
                     },
                 }

@@ -1,8 +1,10 @@
-use std::fs::File;
+use std::{fs::File, path::Path};
 
 use specs::{prelude::*, saveload::*, World, WorldExt};
 
 use crate::components::*;
+
+const SAVE_FILE: &str = "savegame.json";
 
 macro_rules! serialize_individually {
   ($ecs:expr, $ser:expr, $data:expr, $( $type:ty),*) => {
@@ -34,7 +36,7 @@ pub fn save_game(ecs: &mut World) {
             ecs.read_storage::<SimpleMarker<SerializeMe>>(),
         );
 
-        let writer = File::create("./savegame.json").unwrap();
+        let writer = File::create(SAVE_FILE).unwrap();
         let mut serializer = serde_json::Serializer::new(writer);
         serialize_individually!(
             ecs,
@@ -67,4 +69,8 @@ pub fn save_game(ecs: &mut World) {
 
     ecs.delete_entity(save_helper)
         .unwrap_or_else(|_| panic!("Unable to delete serialization helper entity"));
+}
+
+pub fn does_save_exist() -> bool {
+    Path::new(SAVE_FILE).exists()
 }
