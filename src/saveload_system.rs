@@ -1,13 +1,48 @@
-use std::{fs::File, path::Path};
+use std::{
+    fs::{self, File},
+    path::Path,
+};
 
-use specs::{prelude::*, saveload::*, World, WorldExt};
+use specs::{prelude::*, saveload::*, shred::Fetch, storage::MaskedStorage, World, WorldExt};
 
 use crate::components::*;
 
 const SAVE_FILE: &str = "savegame.json";
 
+// see https://users.rust-lang.org/t/how-to-store-a-list-tuple-of-types-that-can-be-uses-as-arguments-in-another-macro/87891
+// credit to Michael F. Bryan for this approach
+macro_rules! execute_with_type_list {
+  ($name:ident!($($arg:tt)*)) => {
+      $name!(
+        $($arg)*,
+        AreaOfEffect,
+        BlocksTile,
+        CombatStats,
+        Confusion,
+        Consumable,
+        EventIncomingDamage,
+        EventWantsToDropItem,
+        EventWantsToMelee,
+        EventWantsToPickupItem,
+        EventWantsToUseItem,
+        InBackpack,
+        InflictsDamage,
+        Item,
+        Monster,
+        Name,
+        Player,
+        Position,
+        ProvidesHealing,
+        Ranged,
+        Renderable,
+        SerializationHelper,
+        Viewshed,
+      )
+  }
+}
+
 macro_rules! serialize_individually {
-  ($ecs:expr, $ser:expr, $data:expr, $( $type:ty),*) => {
+  ($ecs:expr, $ser:expr, $data:expr, $( $type:ty),*, $(,)?) => {
       $(
       SerializeComponents::<NoError, SimpleMarker<SerializeMe>>::serialize(
           &( $ecs.read_storage::<$type>(), ),
@@ -38,33 +73,7 @@ pub fn save_game(ecs: &mut World) {
 
         let writer = File::create(SAVE_FILE).unwrap();
         let mut serializer = serde_json::Serializer::new(writer);
-        serialize_individually!(
-            ecs,
-            serializer,
-            data,
-            AreaOfEffect,
-            BlocksTile,
-            CombatStats,
-            Confusion,
-            Consumable,
-            EventIncomingDamage,
-            EventWantsToDropItem,
-            EventWantsToMelee,
-            EventWantsToPickupItem,
-            EventWantsToUseItem,
-            InBackpack,
-            InflictsDamage,
-            Item,
-            Monster,
-            Name,
-            Player,
-            Position,
-            ProvidesHealing,
-            Ranged,
-            Renderable,
-            SerializationHelper,
-            Viewshed
-        );
+        execute_with_type_list!(serialize_individually!(ecs, serializer, data));
     }
 
     ecs.delete_entity(save_helper)
@@ -73,4 +82,39 @@ pub fn save_game(ecs: &mut World) {
 
 pub fn does_save_exist() -> bool {
     Path::new(SAVE_FILE).exists()
+}
+
+// loading
+
+macro_rules! deserialize_individually {
+  ($ecs:expr, $de_ser:expr, $data:expr, $( $type:ty),* $(,)?) => {
+      $(
+      DeserializeComponents::<NoError, _>::deserialize(
+          &mut ( &mut $ecs.write_storage::<$type>(), ),
+          &mut $data.0, // entities
+          &mut $data.1, // marker
+          &mut $data.2, // allocater
+          &mut $de_ser,
+      )
+      .unwrap();
+      )*
+  };
+}
+
+pub fn load_game(ecs: &mut World) {
+    // Delete everything
+    let to_delete: Vec<Entity> = ecs.entities().join().collect();
+    to_delete.iter().for_each(|entity| {
+        ecs.delete_entity(*entity)
+            .unwrap_or_else(|er| panic!("Unable to delete entity with id {}: {}", entity.id(), er))
+    });
+    let save_file_contents = fs::read_to_string(SAVE_FILE)
+        .unwrap_or_else(|_| panic!("Unable to read file {}", SAVE_FILE));
+    let mut de_ser = serde_json::Deserializer::from_str(&save_file_contents);
+    let mut data = (
+        ecs.entities(),
+        ecs.write_storage::<SimpleMarker<SerializeMe>>(),
+        ecs.write_resource::<SimpleMarkerAllocator<SerializeMe>>(),
+    );
+    execute_with_type_list!(deserialize_individually!(ecs, de_ser, data));
 }
