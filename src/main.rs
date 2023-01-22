@@ -269,7 +269,8 @@ impl GameState for State {
                         gui::MainMenuSelection::ResumeGame => newrunstate = RunState::PreRun,
                         gui::MainMenuSelection::LoadGame => {
                             if saveload_system::does_save_exist() {
-                                newrunstate = RunState::PreRun
+                                saveload_system::load_game(&mut self.ecs);
+                                newrunstate = RunState::AwaitingInput;
                             } else {
                                 let mut gamelog = self.ecs.fetch_mut::<gamelog::GameLog>();
                                 gamelog
