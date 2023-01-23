@@ -105,6 +105,7 @@ pub struct Map {
     pub revealed_tiles: Vec<bool>,
     pub visible_tiles: Vec<bool>,
     pub blocked: Vec<bool>,
+    pub depth: i32,
 
     #[serde(skip_serializing)]
     #[serde(skip_deserializing)]
@@ -280,7 +281,7 @@ impl Algorithm2D for Map {
         Point::new(self.width_psnu, self.height_psnu)
     }
 }
-pub fn new_map_rooms_and_corridors(gs: &State) -> Map {
+pub fn new_map_rooms_and_corridors(gs: &State, new_depth: i32) -> Map {
     let map_width = gs.display.width.try_into().unwrap();
     let display_height: usize = gs.display.height.try_into().unwrap();
     let map_height = display_height - crate::gui::PANEL_HEIGHT;
@@ -296,6 +297,7 @@ pub fn new_map_rooms_and_corridors(gs: &State) -> Map {
         revealed_tiles: vec![false; map_tile_count],
         visible_tiles: vec![false; map_tile_count],
         blocked: vec![false; map_tile_count],
+        depth: new_depth,
 
         /// The map_indexing system already visits each tile in the map to looking for blocking tiles
         /// so we can instead alter that scan to populate
