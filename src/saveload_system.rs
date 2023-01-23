@@ -55,6 +55,12 @@ macro_rules! serialize_individually {
   };
 }
 
+#[cfg(target_arch = "wasm32")]
+pub fn save_game(_ecs: &mut World) {
+    console.log("Saving is not supported on the web");
+}
+
+#[cfg(not(target_arch = "wasm32"))]
 pub fn save_game(ecs: &mut World) {
     //let map_data = serde_json::to_string(&*ecs.fetch::<Map>()).unwrap();
     //println!("map data:\n{}", map_data);
