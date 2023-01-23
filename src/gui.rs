@@ -39,6 +39,15 @@ pub fn draw_ui(ecs: &World, ctx: &mut BTerm, display_state: &DisplayState) {
             RGB::named(WHITE),
             RGB::named(BLACK),
         );
+        let map = ecs.fetch::<Map>();
+        let depth = format!("Depth: {}", map.depth);
+        ctx.print_color(
+            2,
+            panel_top(display_state),
+            RGB::named(YELLOW),
+            RGB::named(BLACK),
+            &depth,
+        );
         draw_health_bar(ecs, ctx, display_state);
         draw_log(ecs, ctx, display_state);
     }

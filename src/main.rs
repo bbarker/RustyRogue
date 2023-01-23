@@ -345,7 +345,7 @@ fn main() {
     });
     gs.ecs.insert(RandomNumberGenerator::new());
 
-    let map = new_map_rooms_and_corridors(&gs);
+    let map = new_map_rooms_and_corridors(&gs, 1);
 
     let player_posn = map.rooms.first().unwrap().center();
     gs.ecs.insert(map);
