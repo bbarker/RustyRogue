@@ -17,6 +17,7 @@ const MOVE_THROUGH_WALLS: bool = false;
 pub enum TileType {
     Wall,
     Floor,
+    DownStairs,
 }
 
 /// Makes a map with solid boundaries and randomly placed walls
@@ -73,6 +74,10 @@ pub fn draw_map(ecs: &World, ctx: &mut BTerm) {
                 TileType::Wall => (
                     RGB::from_f32(0., 1.0, 0.),
                     bracket_lib::prelude::to_cp437('#'),
+                ),
+                TileType::DownStairs => (
+                    RGB::from_f32(0., 1.0, 0.),
+                    bracket_lib::prelude::to_cp437('>'),
                 ),
             };
             let fg = if !map.visible_tiles[ix] {
@@ -340,6 +345,10 @@ pub fn new_map_rooms_and_corridors(gs: &State, new_depth: i32) -> Map {
             map.rooms.push(new_room)
         }
     });
+
+    let stairs_pos = map.rooms[map.rooms.len() - 1].center();
+    let stairs_ix = map.pos_idx(stairs_pos);
+    map.tiles[stairs_ix] = TileType::DownStairs;
 
     map
 }
