@@ -9,7 +9,7 @@ use crate::{
     },
     gamelog,
     gui::MainMenuSelection::*,
-    map::Map,
+    map::{Map, TileType},
     RunState, State,
 };
 
@@ -98,8 +98,8 @@ pub fn player_input(gs: &mut State, ctx: &mut BTerm) -> RunState {
             VirtualKeyCode::Numpad3 | VirtualKeyCode::X => try_move_player(1, 1, gs),
 
             // Misc Map Actions
-            VirtualKeyCode::G => get_item(&mut gs.ecs),
-
+            // G was originally for "grab", but we'll turn this into a general interaction
+            VirtualKeyCode::G => interact(&mut gs.ecs),
             _ => RunState::AwaitingInput,
         },
     }
@@ -155,6 +155,34 @@ pub fn get_player(ecs: &World, player_name: impl Into<String>) -> Option<Entity>
 pub fn get_player_unwrap(ecs: &World, player_name: impl Into<String>) -> Entity {
     let name = player_name.into();
     get_player(ecs, &name).unwrap_or_else(|| panic!("Player {} not found", name))
+}
+
+pub fn get_player_pos_unwrap(ecs: &World, player_name: impl Into<String>) -> Position {
+    let player_entity = get_player_unwrap(ecs, player_name);
+    let positions = ecs.read_storage::<Position>();
+    // TODO: extract this to a function, using it in a few places already:
+    *positions.get(player_entity).unwrap_or_else(|| {
+        panic!(
+            "Player entity {} does not have a position component",
+            player_entity.id()
+        )
+    })
+}
+
+pub fn interact(ecs: &mut World) -> RunState {
+    let player_map_ix = {
+        let player_pos = get_player_pos_unwrap(ecs, PLAYER_NAME);
+        let map = ecs.fetch::<Map>();
+        map.pos_idx(player_pos)
+    };
+    let map_tiles = {
+        let map = ecs.fetch::<Map>();
+        map.tiles.clone()
+    };
+    match map_tiles[player_map_ix] {
+        TileType::Floor => get_item(ecs),
+        _ => RunState::AwaitingInput,
+    }
 }
 
 fn get_item(ecs: &mut World) -> RunState {
