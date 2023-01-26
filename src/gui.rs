@@ -16,7 +16,7 @@ use crate::{
     display_state::DisplayState,
     gamelog::GameLog,
     map::Map,
-    player::{get_player_unwrap, PLAYER_NAME},
+    player::{get_player_pos_unwrap, get_player_unwrap, PLAYER_NAME},
     util::*,
     PsnU, RunState, State,
 };
@@ -260,15 +260,8 @@ pub fn ranged_target(
     ctx: &mut BTerm,
     range: u16,
 ) -> (ItemMenuResult, Option<Position>) {
-    let positions = gs.ecs.read_storage::<Position>();
-
     let player_entity = get_player_unwrap(&gs.ecs, PLAYER_NAME);
-    let player_pos = positions.get(player_entity).unwrap_or_else(|| {
-        panic!(
-            "Player entity {} does not have a position component",
-            player_entity.id()
-        )
-    });
+    let player_pos = get_player_pos_unwrap(&gs.ecs, PLAYER_NAME);
     let viewsheds = gs.ecs.read_storage::<Viewshed>();
 
     ctx.print_color(
@@ -286,7 +279,7 @@ pub fn ranged_target(
             .visible_tiles
             .iter()
             .filter_map(|pos| {
-                let distance = DistanceAlg::Pythagoras.distance2d(*pos, (*player_pos).into());
+                let distance = DistanceAlg::Pythagoras.distance2d(*pos, player_pos.into());
                 if distance <= range as f32 {
                     ctx.set_bg(pos.x, pos.y, RGB::named(BLUE));
                     Some(*pos)

@@ -64,6 +64,7 @@ pub enum RunState {
         menu_selection: gui::MainMenuSelection,
     },
     SaveGame,
+    NextLevel,
 }
 
 pub struct State {
@@ -288,6 +289,10 @@ impl GameState for State {
                 newrunstate = RunState::MainMenu {
                     menu_selection: gui::MainMenuSelection::SaveGame,
                 }
+            }
+            RunState::NextLevel => {
+                // self.goto_next_level(); // TODO
+                newrunstate = RunState::PreRun;
             }
         }
         let mut runstate = self.ecs.fetch_mut::<RunState>();

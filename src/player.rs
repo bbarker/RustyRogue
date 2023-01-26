@@ -160,7 +160,6 @@ pub fn get_player_unwrap(ecs: &World, player_name: impl Into<String>) -> Entity 
 pub fn get_player_pos_unwrap(ecs: &World, player_name: impl Into<String>) -> Position {
     let player_entity = get_player_unwrap(ecs, player_name);
     let positions = ecs.read_storage::<Position>();
-    // TODO: extract this to a function, using it in a few places already:
     *positions.get(player_entity).unwrap_or_else(|| {
         panic!(
             "Player entity {} does not have a position component",
@@ -169,7 +168,7 @@ pub fn get_player_pos_unwrap(ecs: &World, player_name: impl Into<String>) -> Pos
     })
 }
 
-pub fn interact(ecs: &mut World) -> RunState {
+fn interact(ecs: &mut World) -> RunState {
     let player_map_ix = {
         let player_pos = get_player_pos_unwrap(ecs, PLAYER_NAME);
         let map = ecs.fetch::<Map>();
@@ -181,7 +180,8 @@ pub fn interact(ecs: &mut World) -> RunState {
     };
     match map_tiles[player_map_ix] {
         TileType::Floor => get_item(ecs),
-        _ => RunState::AwaitingInput,
+        TileType::DownStairs => try_next_level(ecs),
+        _ => get_item(ecs),
     }
 }
 
@@ -221,4 +221,20 @@ fn get_item(ecs: &mut World) -> RunState {
         })
     }
     RunState::PlayerTurn
+}
+
+fn try_next_level(ecs: &mut World) -> RunState {
+    let player_pos = get_player_pos_unwrap(ecs, PLAYER_NAME);
+    let map = ecs.fetch::<Map>();
+    let player_ix = map.pos_idx(player_pos);
+    let mut gamelog = ecs.write_resource::<gamelog::GameLog>();
+    if map.tiles[player_ix] == TileType::DownStairs {
+        gamelog.entries.push("You descend the stairs.".to_string());
+        RunState::NextLevel
+    } else {
+        gamelog
+            .entries
+            .push("There is no way down from here.".to_string());
+        RunState::AwaitingInput
+    }
 }
