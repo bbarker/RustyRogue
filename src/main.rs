@@ -93,6 +93,19 @@ impl State {
 
         self.ecs.maintain();
     }
+
+    fn entities_to_remove_on_level_change(&mut self) -> Vec<Entity> {
+        let entities = self.ecs.entities();
+        let player_entity = get_player_unwrap(&self.ecs, PLAYER_NAME);
+        let player_items = owned_items(&self.ecs, player_entity)
+            .iter()
+            .map(|i| i.0)
+            .collect_vec();
+        entities
+            .join()
+            .filter(|e| *e != player_entity && !player_items.contains(e))
+            .collect()
+    }
 }
 
 impl GameState for State {
