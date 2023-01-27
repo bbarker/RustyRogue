@@ -148,6 +148,18 @@ pub enum ItemMenuResult {
     Selected,
 }
 
+pub fn owned_items(ecs: &World, owner: Entity) -> Vec<(Entity, String)> {
+    let entities = ecs.entities();
+    let backpack = ecs.read_storage::<InBackpack>();
+    let names = ecs.read_storage::<Name>();
+
+    (&entities, &backpack, &names)
+        .join()
+        .filter(|(_e, bpack, _n)| bpack.owner == owner)
+        .map(|(ent, _b, name)| (ent, name.name.to_string()))
+        .collect()
+}
+
 pub fn show_inventory(
     gs: &mut State,
     ctx: &mut BTerm,
@@ -161,13 +173,12 @@ pub fn show_inventory(
 
     let player_entity = get_player_unwrap(&gs.ecs, PLAYER_NAME);
 
-    let inventory = (&backpack, &names)
-        .join()
-        .filter(|item| item.0.owner == player_entity);
+    let inventory = owned_items(&gs.ecs, player_entity);
 
     let (inventory_size, max_item_name_length) = inventory
+        .iter()
         .fold((0, 0), |(size, max_length), (_item, name)| {
-            (size + 1, max_length.max(name.name.len()))
+            (size + 1, max_length.max(name.len()))
         });
     let box_width = max(max(max_item_name_length, ESCAPE_MSG.len()), title_str.len()) + 4;
 
