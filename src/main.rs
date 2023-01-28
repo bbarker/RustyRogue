@@ -99,12 +99,39 @@ impl State {
         let player_entity = get_player_unwrap(&self.ecs, PLAYER_NAME);
         let player_items = owned_items(&self.ecs, player_entity)
             .iter()
-            .map(|i| i.0)
+            .map(|it| it.0)
             .collect_vec();
         entities
             .join()
-            .filter(|e| *e != player_entity && !player_items.contains(e))
+            .filter(|en| *en != player_entity && !player_items.contains(en))
             .collect()
+    }
+
+    fn goto_next_level(&mut self) {
+        // remove all entities except player and player items
+        self.entities_to_remove_on_level_change()
+            .iter()
+            .for_each(|en| {
+                self.ecs.delete_entity(*en).unwrap_or_else(|er| {
+                    panic!("Failed to delete entity {:?}: {:?}", en, er);
+                });
+            });
+
+        // Build a new map and place the player
+        let worldmap = {
+            let mut worldmap_resource = self.ecs.write_resource::<Map>();
+            let current_depth = worldmap_resource.depth;
+            *worldmap_resource = new_map_rooms_and_corridors(self, current_depth + 1);
+            worldmap_resource.clone() // TODO: do we have to clone?
+        };
+
+        // Spawn monsters
+        worldmap.rooms.iter().skip(1).for_each(|room| {
+            spawn_room(&mut self.ecs, room);
+        });
+
+        // Place the player and update resources
+        //TODO:
     }
 }
 
