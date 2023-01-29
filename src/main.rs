@@ -130,8 +130,30 @@ impl State {
             spawn_room(&mut self.ecs, room);
         });
 
-        // Place the player and update resources
-        //TODO:
+        // Place the player and update related resources; set viewshed to dirty
+        let player_pos_new = worldmap.rooms[0].center();
+        let mut positions = self.ecs.write_storage::<Position>();
+        let player_entity = get_player_unwrap(&self.ecs, PLAYER_NAME);
+        if let Some(player_pos) = positions.get_mut(player_entity) {
+            *player_pos = player_pos_new;
+        }
+        let mut viewsheds = self.ecs.write_storage::<Viewshed>();
+        if let Some(player_vs) = viewsheds.get_mut(player_entity) {
+            player_vs.dirty = true;
+        }
+
+        // Notify the player and give them some health
+        let mut gamelog = self.ecs.fetch_mut::<gamelog::GameLog>();
+        gamelog
+            .entries
+            .push("You descend to the next level, and take a moment to heal.".to_string());
+        let mut combat_stats = self.ecs.write_storage::<CombatStats>();
+        if let Some(player_stats) = combat_stats.get_mut(player_entity) {
+            player_stats.hp = u16::min(
+                player_stats.max_hp,
+                player_stats.hp + (2 * player_stats.max_hp) / 5,
+            );
+        }
     }
 }
 
@@ -331,7 +353,7 @@ impl GameState for State {
                 }
             }
             RunState::NextLevel => {
-                // self.goto_next_level(); // TODO
+                self.goto_next_level();
                 newrunstate = RunState::PreRun;
             }
         }
