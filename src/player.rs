@@ -4,8 +4,8 @@ use specs::{world::EntitiesRes, *};
 
 use crate::{
     components::{
-        CombatStats, EventWantsToMelee, EventWantsToPickupItem, IsPlayer, Item, Name, Player,
-        Position, Positionable, Viewshed,
+        CombatStats, EventWantsToMelee, EventWantsToPickupItem, IsPlayer, Item, Monster, Name,
+        Player, Position, Positionable, Viewshed,
     },
     gamelog,
     gui::MainMenuSelection::*,
@@ -91,6 +91,8 @@ pub fn player_input(gs: &mut State, ctx: &mut BTerm) -> RunState {
             VirtualKeyCode::Down | VirtualKeyCode::Numpad2 | VirtualKeyCode::S => {
                 try_move_player(0, 1, gs)
             }
+            VirtualKeyCode::Numpad5 | VirtualKeyCode::Space => skip_turn(&mut gs.ecs),
+
             // Diagonals
             VirtualKeyCode::Numpad7 | VirtualKeyCode::Q => try_move_player(-1, -1, gs),
             VirtualKeyCode::Numpad9 | VirtualKeyCode::E => try_move_player(1, -1, gs),
@@ -103,6 +105,29 @@ pub fn player_input(gs: &mut State, ctx: &mut BTerm) -> RunState {
             _ => RunState::AwaitingInput,
         },
     }
+}
+
+fn skip_turn(ecs: &mut World) -> RunState {
+    let player_entity = get_player_unwrap(ecs, PLAYER_NAME);
+    let viewsheds = ecs.read_storage::<Viewshed>();
+    let monsters = ecs.read_storage::<Monster>();
+
+    let worldmap_res = ecs.fetch::<Map>();
+
+    let viewshed = viewsheds.get(player_entity).unwrap();
+    let can_heal = viewshed.visible_tiles.iter().any(|ix| {
+        let some_monster = worldmap_res.tile_content[worldmap_res.pos_idx(ix)]
+            .iter()
+            .filter_map(|en| monsters.get(*en))
+            .next();
+        some_monster.is_none()
+    });
+    if can_heal {
+        let mut combat_stats = ecs.write_storage::<CombatStats>();
+        let player_stats = combat_stats.get_mut(player_entity).unwrap();
+        player_stats.hp = u16::min(player_stats.max_hp, player_stats.hp + 1);
+    }
+    RunState::PlayerTurn
 }
 
 pub fn get_player_entities_with_pos<P: Join, R: Join>(
