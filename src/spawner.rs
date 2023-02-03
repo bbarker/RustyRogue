@@ -15,6 +15,7 @@ use crate::{
         SerializeMe, ViewRange, Viewshed,
     },
     map::Map,
+    random_table::*,
     rect::Rect,
     State,
 };
@@ -91,8 +92,6 @@ fn ranged_consumable_entity(
 ) -> EntityBuilder {
     consumable_entity(ecs, pos, base_data).with(Ranged { range })
 }
-
-type SimpleSpawner = fn(&mut World, Position) -> Entity;
 
 pub fn player(gs: &mut State, position: Position) -> Entity {
     combat_entity(
@@ -210,41 +209,30 @@ pub fn confusion_scroll(ecs: &mut World, position: Position) -> Entity {
     .build()
 }
 
-const WEIGHTED_ITEM_SPAWNERS: [(SimpleSpawner, u16); 4] = [
-    (health_potion, 30),
-    (fireball_scroll, 30),
-    (magic_missile_scroll, 40),
-    (confusion_scroll, 30),
-];
-
-const ITEM_WEIGHT_CUMULATIVE: [(SimpleSpawner, u16); WEIGHTED_ITEM_SPAWNERS.len()] = {
-    // Note: const iterators don't exist at the moment, so we have to do this
-    let mut ii = 0;
-    let mut sum = 0;
-    let mut cumulative = WEIGHTED_ITEM_SPAWNERS;
-
-    while ii < WEIGHTED_ITEM_SPAWNERS.len() {
-        sum += WEIGHTED_ITEM_SPAWNERS[ii].1;
-        cumulative[ii].1 = sum;
-        ii += 1;
-    }
-    cumulative
-};
-
-const ITEM_WEIGHT_SUM: u16 = ITEM_WEIGHT_CUMULATIVE[ITEM_WEIGHT_CUMULATIVE.len() - 1].1;
+pub fn room_table() -> RandomTable {
+    RandomTable::new()
+        .add(health_potion, 30)
+        .add(fireball_scroll, 30)
+        .add(magic_missile_scroll, 40)
+        .add(confusion_scroll, 30)
+}
 
 pub fn random_item(ecs: &mut World, position: Position) -> Entity {
+    let spawn_table = room_table();
+
     let roll = {
         let mut rng = ecs.write_resource::<RandomNumberGenerator>();
-        rng.range(0, ITEM_WEIGHT_SUM)
+        rng.range(0, spawn_table.total_weight)
     };
 
     // TODO: if we get a lot of items, may want to consider a search
-    ITEM_WEIGHT_CUMULATIVE
+    (spawn_table
+        .entries
         .iter()
         .find(|(_, weight)| roll < *weight)
         .unwrap()
-        .0(ecs, position)
+        .0
+        .spawner)(ecs, position)
 }
 
 pub fn random_monster(ecs: &mut World, position: Position) -> Entity {
