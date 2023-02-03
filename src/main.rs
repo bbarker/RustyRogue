@@ -28,13 +28,13 @@ mod map;
 mod map_indexing_system;
 mod melee_combat_system;
 mod monster_ai_system;
+mod player;
+mod random_table;
 mod rect;
 mod saveload_system;
 mod spawner;
 mod util;
 mod visibility_system;
-
-mod player;
 
 use components::*;
 use damage_system::*;
