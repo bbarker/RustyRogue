@@ -20,9 +20,6 @@ use crate::{
     State,
 };
 
-const MAX_ROOM_MONSTERS: u16 = 3; // TODO: Should be 4
-const MAX_ROOM_ITEMS: u16 = 2;
-
 struct WorldEntityData {
     name: String,
     renderable: Renderable,
@@ -215,6 +212,7 @@ pub fn room_table() -> RandomTable {
         .add(fireball_scroll, 30)
         .add(magic_missile_scroll, 40)
         .add(confusion_scroll, 30)
+        .add(random_monster, 50) // TODO: split out separate monster spawners
 }
 
 pub fn random_item(ecs: &mut World, position: Position) -> Entity {
@@ -331,17 +329,11 @@ fn monster<S: ToString>(
 }
 
 pub fn spawn_room(ecs: &mut World, room: &Rect) -> Vec<Entity> {
-    let (num_monsters, num_items) = {
+    let num_entities = {
         let mut rng = ecs.write_resource::<RandomNumberGenerator>();
-        let monsters = rng.range(0, MAX_ROOM_MONSTERS + 1);
-        let items = rng.range(0, MAX_ROOM_ITEMS + 1);
-        (monsters, items)
+        rng.range(0, 6)
     };
-    vec![
-        spawn_in_room(ecs, room, num_monsters, random_monster),
-        spawn_in_room(ecs, room, num_items, random_item),
-    ]
-    .concat()
+    vec![spawn_in_room(ecs, room, num_entities, random_item)].concat()
 }
 
 /// Fills a room with monsters and items

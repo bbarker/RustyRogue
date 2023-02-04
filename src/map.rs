@@ -76,7 +76,7 @@ pub fn draw_map(ecs: &World, ctx: &mut BTerm) {
                     bracket_lib::prelude::to_cp437('#'),
                 ),
                 TileType::DownStairs => (
-                    RGB::from_f32(0., 1.0, 0.),
+                    RGB::from_f32(0.13, 0.40, 0.15),
                     bracket_lib::prelude::to_cp437('>'),
                 ),
             };
