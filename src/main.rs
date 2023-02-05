@@ -118,16 +118,16 @@ impl State {
             });
 
         // Build a new map and place the player
-        let worldmap = {
+        let (worldmap, current_depth) = {
             let mut worldmap_resource = self.ecs.write_resource::<Map>();
             let current_depth = worldmap_resource.depth;
             *worldmap_resource = new_map_rooms_and_corridors(self, current_depth + 1);
-            worldmap_resource.clone() // TODO: do we have to clone?
+            (worldmap_resource.clone(), current_depth) // TODO: do we have to clone?
         };
 
-        // Spawn monsters
+        // Spawn monsters and items
         worldmap.rooms.iter().skip(1).for_each(|room| {
-            spawn_room(&mut self.ecs, room);
+            spawn_room(&mut self.ecs, room, current_depth + 1);
         });
 
         // Place the player and update related resources; set viewshed to dirty
@@ -433,6 +433,6 @@ fn populate_rooms(ecs: &mut World) -> Vec<Entity> {
     rooms
         .iter()
         .skip(1)
-        .flat_map(|room| spawn_room(ecs, room))
+        .flat_map(|room| spawn_room(ecs, room, 1))
         .collect()
 }
