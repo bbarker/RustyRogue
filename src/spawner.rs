@@ -20,6 +20,8 @@ use crate::{
     State,
 };
 
+const INIT_MAX_SPAWN: u16 = 5;
+
 struct WorldEntityData {
     name: String,
     renderable: Renderable,
@@ -328,11 +330,13 @@ fn monster<S: ToString>(
     .build()
 }
 
-pub fn spawn_room(ecs: &mut World, room: &Rect) -> Vec<Entity> {
+pub fn spawn_room(ecs: &mut World, room: &Rect, map_depth: i32) -> Vec<Entity> {
     let num_entities = {
         let mut rng = ecs.write_resource::<RandomNumberGenerator>();
-        rng.range(0, 6)
-    };
+        rng.roll_dice(1, INIT_MAX_SPAWN as i32) + (map_depth.abs() - 1)
+    }
+    .try_into()
+    .unwrap();
     vec![spawn_in_room(ecs, room, num_entities, random_item)].concat()
 }
 
