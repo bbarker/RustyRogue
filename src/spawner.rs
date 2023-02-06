@@ -208,17 +208,18 @@ pub fn confusion_scroll(ecs: &mut World, position: Position) -> Entity {
     .build()
 }
 
-pub fn room_table() -> RandomTable {
+pub fn room_table(map_depth: i32) -> RandomTable {
     RandomTable::new()
         .add(health_potion, 30)
         .add(fireball_scroll, 30)
         .add(magic_missile_scroll, 40)
         .add(confusion_scroll, 30)
-        .add(random_monster, 50) // TODO: split out separate monster spawners
+        .add(random_monster, 50 + 2 * map_depth.unsigned_abs() as u16) // TODO: split out separate monster spawners
 }
 
 pub fn random_item(ecs: &mut World, position: Position) -> Entity {
-    let spawn_table = room_table();
+    let map_depth = ecs.fetch::<Map>().depth;
+    let spawn_table = room_table(map_depth);
 
     let roll = {
         let mut rng = ecs.write_resource::<RandomNumberGenerator>();
