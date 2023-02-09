@@ -8,7 +8,7 @@ use specs::{
     Entity,
 };
 
-use crate::{map::Map, PsnU};
+use crate::{equipment::Equipment, map::Map, PsnU};
 use serde::{Deserialize, Serialize};
 use specs_derive::*;
 
@@ -95,7 +95,11 @@ pub struct InflictsDamage {
 }
 
 #[derive(Component, Deserialize, Serialize, Clone, Debug)]
-pub struct Item {}
+pub enum Item {
+    Consumable,
+    Equippable(Equipment),
+}
+//pub struct Item {}
 
 #[derive(Component, Deserialize, Serialize, Clone, Debug)]
 pub struct Monster {}

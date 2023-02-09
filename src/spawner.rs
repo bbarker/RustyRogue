@@ -79,7 +79,7 @@ fn non_blocking_entity(
 
 fn consumable_entity(ecs: &mut World, pos: Position, base_data: WorldEntityData) -> EntityBuilder {
     non_blocking_entity(ecs, pos, base_data)
-        .with(Item {})
+        .with(Item::Consumable)
         .with(Consumable {})
 }
 

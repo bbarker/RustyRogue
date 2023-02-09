@@ -21,6 +21,7 @@ use specs::{prelude::*, saveload::SimpleMarkerAllocator};
 mod components;
 mod damage_system;
 mod display_state;
+mod equipment;
 mod gamelog;
 mod gui;
 mod inventory_system;
