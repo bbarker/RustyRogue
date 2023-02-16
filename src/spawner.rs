@@ -14,6 +14,7 @@ use crate::{
         Item, Monster, Name, Player, Position, ProvidesHealing, Ranged, RenderOrder, Renderable,
         SerializeMe, ViewRange, Viewshed,
     },
+    equipment::Equipment,
     map::Map,
     random_table::*,
     rect::Rect,
@@ -81,6 +82,15 @@ fn consumable_entity(ecs: &mut World, pos: Position, base_data: WorldEntityData)
     non_blocking_entity(ecs, pos, base_data)
         .with(Item::Consumable)
         .with(Consumable {})
+}
+
+fn equippable_entity(
+    ecs: &mut World,
+    pos: Position,
+    base_data: WorldEntityData,
+    item: Equipment,
+) -> EntityBuilder {
+    non_blocking_entity(ecs, pos, base_data).with(Item::Equippable(item))
 }
 
 fn ranged_consumable_entity(

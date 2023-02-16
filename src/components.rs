@@ -40,6 +40,30 @@ pub struct Confusion {
 #[derive(Component, Deserialize, Serialize, Clone, Debug)]
 pub struct Consumable {}
 
+#[derive(Component, Clone, Debug, Deserialize, Serialize)]
+pub enum EquipSlot {
+    Head,
+    Neck,
+    Torso,
+    Ring,
+    Hand,
+    Feet,
+    MainHand,
+    OffHand,
+}
+
+#[derive(Component, Clone, Debug, Deserialize, Serialize)]
+pub enum EquipSlotAllowed {
+    SingleSlot(EquipSlot),
+    Either(EquipSlot, EquipSlot),
+    Both(EquipSlot, EquipSlot),
+}
+
+const TWO_HANDED: EquipSlotAllowed =
+    EquipSlotAllowed::Both(EquipSlot::MainHand, EquipSlot::OffHand);
+const ONE_HANDED: EquipSlotAllowed =
+    EquipSlotAllowed::Both(EquipSlot::MainHand, EquipSlot::OffHand);
+
 #[derive(Component, ConvertSaveload, Clone, Debug)]
 pub struct EventIncomingDamage {
     pub amount: Vec<u16>,
@@ -94,12 +118,11 @@ pub struct InflictsDamage {
     pub damage: u16,
 }
 
-#[derive(Component, Deserialize, Serialize, Clone, Debug)]
+#[derive(Component, ConvertSaveload, Clone, Debug)]
 pub enum Item {
     Consumable,
     Equippable(Equipment),
 }
-//pub struct Item {}
 
 #[derive(Component, Deserialize, Serialize, Clone, Debug)]
 pub struct Monster {}
