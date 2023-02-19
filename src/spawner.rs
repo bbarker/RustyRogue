@@ -1,27 +1,18 @@
-use bracket_lib::{
-    random::RandomNumberGenerator,
-    terminal::{FontCharType, BLACK, BLUE, CYAN, GREEN, ORANGE, PINK, RED, RGB, YELLOW},
-};
+use bracket_lib::{random::RandomNumberGenerator, terminal::*};
 use itertools::Itertools;
 use specs::{
     prelude::*,
     saveload::{MarkedBuilder, SimpleMarker},
 };
 
-use crate::{
-    components::{
-        AbilityRange, AreaOfEffect, BlocksTile, CombatStats, Confusion, Consumable, InflictsDamage,
-        Item, Monster, Name, Player, Position, ProvidesHealing, Ranged, RenderOrder, Renderable,
-        SerializeMe, ViewRange, Viewshed,
-    },
-    equipment::Equipment,
-    map::Map,
-    random_table::*,
-    rect::Rect,
-    State,
-};
+use crate::{components::*, equipment::*, map::Map, random_table::*, rect::Rect, State};
+use EquipmentType::*;
+use MeleeWeaponType::*;
+use WeaponType::*;
 
 const INIT_MAX_SPAWN: u16 = 5;
+
+pub const IRON_COLOR: (u8, u8, u8) = GREY10;
 
 struct WorldEntityData {
     name: String,
@@ -93,13 +84,47 @@ fn equippable_entity(
     non_blocking_entity(ecs, pos, base_data).with(Item::Equippable(item))
 }
 
+fn iron_dagger(ecs: &mut World, pos: Position) -> EntityBuilder {
+    equippable_entity(
+        ecs,
+        pos,
+        WorldEntityData {
+            name: "Iron Dagger".into(),
+            renderable: Renderable {
+                glyph: bracket_lib::prelude::to_cp437('/'),
+                fg: RGB::named(IRON_COLOR),
+                bg: RGB::named(BLACK),
+                render_order: RenderOrder::First,
+            },
+        },
+        Equipment::new(ONE_HANDED, Weapon(Melee(Dagger))),
+    )
+}
+
+fn iron_shield(ecs: &mut World, pos: Position) -> EntityBuilder {
+    equippable_entity(
+        ecs,
+        pos,
+        WorldEntityData {
+            name: "Iron Shield".into(),
+            renderable: Renderable {
+                glyph: bracket_lib::prelude::to_cp437('('),
+                fg: RGB::named(IRON_COLOR),
+                bg: RGB::named(BLACK),
+                render_order: RenderOrder::First,
+            },
+        },
+        Equipment::new(OFF_HAND, Shield),
+    )
+}
+
 fn ranged_consumable_entity(
     ecs: &mut World,
     pos: Position,
     base_data: WorldEntityData,
     range: AbilityRange,
 ) -> EntityBuilder {
-    consumable_entity(ecs, pos, base_data).with(Ranged { range })
+    consumable_entity(ecs, pos, base_data).with(Range { range })
 }
 
 pub fn player(gs: &mut State, position: Position) -> Entity {

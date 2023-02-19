@@ -33,7 +33,7 @@ macro_rules! execute_with_type_list {
         Player,
         Position,
         ProvidesHealing,
-        Ranged,
+        Range,
         Renderable,
         SerializationHelper,
         Viewshed,
