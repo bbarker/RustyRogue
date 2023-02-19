@@ -35,11 +35,11 @@ use specs_derive::*;
 
 use std::convert::Infallible;
 
-use crate::components::EquipSlotAllowed;
+use crate::components::*;
 // `NoError` alias is deprecated in specs ... but specs_derive needs it
 pub type NoError = Infallible;
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(ConvertSaveload, Clone, Debug)]
 pub enum EquipmentType {
     Weapon(WeaponType),
     Shield,
@@ -49,10 +49,10 @@ pub enum EquipmentType {
 
 // TODO: each weapon type could have certain modifiers, applied to its base
 // stats
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(ConvertSaveload, Clone, Debug)]
 pub enum WeaponType {
     Melee(MeleeWeaponType),
-    Ranged(RangedWeaponType),
+    Ranged(RangedWeaponType, Range),
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

@@ -222,7 +222,7 @@ impl GameState for State {
                             .1
                             .unwrap_or_else(|| panic!("Item selected but not found!"));
 
-                        let is_ranged = self.ecs.read_storage::<Ranged>();
+                        let is_ranged = self.ecs.read_storage::<Range>();
                         let is_item_ranged = is_ranged.get(item_entity);
                         if let Some(is_item_ranged) = is_item_ranged {
                             newrunstate = RunState::ShowTargeting {
@@ -399,7 +399,7 @@ fn main() {
     gs.ecs.register::<Player>();
     gs.ecs.register::<Position>();
     gs.ecs.register::<ProvidesHealing>();
-    gs.ecs.register::<Ranged>();
+    gs.ecs.register::<Range>();
     gs.ecs.register::<Renderable>();
     gs.ecs.register::<SerializationHelper>();
     gs.ecs.register::<Viewshed>();

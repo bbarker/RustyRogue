@@ -59,10 +59,11 @@ pub enum EquipSlotAllowed {
     Both(EquipSlot, EquipSlot),
 }
 
-const TWO_HANDED: EquipSlotAllowed =
+pub const TWO_HANDED: EquipSlotAllowed =
     EquipSlotAllowed::Both(EquipSlot::MainHand, EquipSlot::OffHand);
-const ONE_HANDED: EquipSlotAllowed =
+pub const ONE_HANDED: EquipSlotAllowed =
     EquipSlotAllowed::Both(EquipSlot::MainHand, EquipSlot::OffHand);
+pub const OFF_HAND: EquipSlotAllowed = EquipSlotAllowed::SingleSlot(EquipSlot::OffHand);
 
 #[derive(Component, ConvertSaveload, Clone, Debug)]
 pub struct EventIncomingDamage {
@@ -225,7 +226,7 @@ pub struct ProvidesHealing {
 pub struct AbilityRange(pub u16);
 
 #[derive(Component, Clone, ConvertSaveload, Debug)]
-pub struct Ranged {
+pub struct Range {
     pub range: AbilityRange,
 }
 
