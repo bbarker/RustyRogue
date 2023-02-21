@@ -73,18 +73,45 @@ pub enum RangedWeaponType {
     Thrown,
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum EquipSlot {
+    Head,
+    Neck,
+    Torso,
+    Ring,
+    Hand,
+    Feet,
+    MainHand,
+    OffHand,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum EquipSlotAllowed {
+    SingleSlot(EquipSlot),
+    Either(EquipSlot, EquipSlot),
+    Both(EquipSlot, EquipSlot),
+}
+
+pub const TWO_HANDED: EquipSlotAllowed =
+    EquipSlotAllowed::Both(EquipSlot::MainHand, EquipSlot::OffHand);
+pub const ONE_HANDED: EquipSlotAllowed =
+    EquipSlotAllowed::Both(EquipSlot::MainHand, EquipSlot::OffHand);
+pub const OFF_HAND: EquipSlotAllowed = EquipSlotAllowed::SingleSlot(EquipSlot::OffHand);
+
 // TODO: add combat stats to equipment
 #[derive(Component, ConvertSaveload, Clone, Debug)]
 pub struct Equipment {
     pub equipment_type: EquipmentType,
-    pub slot: EquipSlotAllowed,
+    pub allowed_slots: EquipSlotAllowed,
+    pub slot: Option<EquipSlot>,
 }
 
 impl Equipment {
     pub fn new(slot: EquipSlotAllowed, equipment_type: EquipmentType) -> Self {
         Equipment {
-            slot,
+            allowed_slots: slot,
             equipment_type,
+            slot: None,
         }
     }
 }
