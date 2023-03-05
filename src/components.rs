@@ -8,7 +8,11 @@ use specs::{
     Entity,
 };
 
-use crate::{equipment::Equipment, map::Map, PsnU};
+use crate::{
+    equipment::{EquipSlot, Equipment},
+    map::Map,
+    PsnU,
+};
 use serde::{Deserialize, Serialize};
 use specs_derive::*;
 
@@ -39,6 +43,32 @@ pub struct Confusion {
 
 #[derive(Component, Deserialize, Serialize, Clone, Debug)]
 pub struct Consumable {}
+
+#[derive(Clone, Component, ConvertSaveload, Debug)]
+pub struct Equipped {
+    pub owner: Entity,
+    pub slot: EquipSlot,
+    pub slot_extra: Option<EquipSlot>, // 2H weapons, etc.
+}
+
+pub trait IsEquipped {
+    fn from(self) -> Equipped;
+}
+
+impl<T> IsEquipped for &T
+where
+    T: IsEquipped + Clone,
+{
+    fn from(self) -> Equipped {
+        self.clone().from()
+    }
+}
+
+impl IsEquipped for Equipped {
+    fn from(self) -> Equipped {
+        self
+    }
+}
 
 #[derive(Component, ConvertSaveload, Clone, Debug)]
 pub struct EventIncomingDamage {
@@ -98,6 +128,25 @@ pub struct InflictsDamage {
 pub enum Item {
     Consumable,
     Equippable(Equipment), // Note: In book this is a component
+}
+
+pub trait IsItem {
+    fn from(self) -> Item;
+}
+
+impl<T> IsItem for &T
+where
+    T: IsItem + Clone,
+{
+    fn from(self) -> Item {
+        self.clone().from()
+    }
+}
+
+impl IsItem for Item {
+    fn from(self) -> Item {
+        self
+    }
 }
 
 #[derive(Component, Deserialize, Serialize, Clone, Debug)]

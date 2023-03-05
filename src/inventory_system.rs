@@ -1,11 +1,13 @@
 use bracket_lib::prelude::field_of_view;
-use specs::prelude::*;
+use itertools::Itertools;
+use specs::{prelude::*, world::EntitiesRes};
 
 use crate::{
     components::{
-        AreaOfEffect, CombatStats, Confusion, Consumable, EventIncomingDamage,
-        EventWantsToDropItem, EventWantsToUseItem, InflictsDamage, ProvidesHealing,
+        AreaOfEffect, CombatStats, Confusion, Consumable, Equipped, EventIncomingDamage,
+        EventWantsToDropItem, EventWantsToUseItem, InflictsDamage, Item, ProvidesHealing,
     },
+    equipment::{get_equipped_items, EquipSlot, EquipSlotAllowed},
     map::Map,
     player::PLAYER_NAME,
 };
@@ -72,6 +74,8 @@ impl<'a> System<'a> for ItemUseSystem {
         WriteStorage<'a, CombatStats>,
         WriteStorage<'a, EventIncomingDamage>,
         ReadStorage<'a, Consumable>,
+        WriteStorage<'a, Item>,
+        WriteStorage<'a, Equipped>,
     );
 
     fn run(&mut self, data: Self::SystemData) {
@@ -88,7 +92,9 @@ impl<'a> System<'a> for ItemUseSystem {
             aoe,
             mut combat_stats,
             mut incoming_damage,
-            consumables,
+            consumables, // TODO: consider removing in a separate commit; should just need Item
+            mut items,
+            mut equipped,
         ) = data;
 
         let delete_if_consumed = |item: Entity, used: bool, player_name: &Name| {
@@ -134,6 +140,34 @@ impl<'a> System<'a> for ItemUseSystem {
                         }
                     }
                 };
+                let item_equippable = match items.get(useitem.item) {
+                     Some(Item::Equippable(equip)) => {
+                        match equip.allowed_slots {
+                            // TODO: here we need to get the current equipment map
+                            // to see which slot, if any, is available - alternatively
+                            // we pick the first one and do the check later - see how
+                            // the book does it.
+                            // OK: strategy should be:
+                            // If 1H: unequip if needed and equip
+                            // If 2H (Both): unequip if needed and equip
+                            // If Either: equip in first open slot, otherwise:
+                            //    Do a shift: unequip/equip item in first slot, then
+                            //    take the item in first slot, and do the same for the second slot
+                            //
+                            // Unlike book, we probably don't assign a target_slot here since our logic
+                            // is more complex - each branch needs its own logic:
+                            EquipSlotAllowed::SingleSlot(slot) => None, // ???
+                            EquipSlotAllowed::Both(slot1, slot2) => None, // ???
+                            EquipSlotAllowed::Either(slot1, slot2) => {
+                                let player_equip = get_equipped_items(&items, &equipped, player_entity);
+
+                                None //TODO : rm, fix return value
+                            }
+                        };
+                    }
+                    _ => None,
+                };
+
                 let item_heals = healing.get(useitem.item);
                 match item_heals {
                     None => {}
@@ -211,6 +245,56 @@ impl<'a> System<'a> for ItemUseSystem {
             });
         wants_use_item.clear();
     }
+}
+
+/// Utility method to help with equipping - should not be relied on to fully equip an item, but only
+/// equips in the given slot
+fn equip_slot(
+    entities: &Read<EntitiesRes>,
+    items: &ReadStorage<Item>,
+    equipped: &mut WriteStorage<Equipped>,
+    owner: Entity,
+    item_entity: Entity,
+    slot: EquipSlot,
+    slot_opt: Option<EquipSlot>,
+) -> Vec<(Entity, Item)> {
+    // TODO: make this a set, in case they are the same (i.e. a 2 hander)
+    let to_unequip = calculate_unequip(entities, items, equipped, owner, item_entity, slot)
+        .into_iter()
+        .chain(slot_opt.iter().flat_map(|slot2| {
+            calculate_unequip(entities, items, equipped, owner, item_entity, *slot2)
+        }))
+        .collect_vec();
+
+    // TODO: pass this into function instead of creating it here
+    let new_equip = Equipped {
+        owner,
+        slot,
+        slot_extra: slot_opt,
+    };
+    to_unequip
+        .into_iter()
+        .map(|(ent, eqp, itm)| {
+            equipped.remove(ent);
+            equipped.insert(item_entity, new_equip.clone());
+            (ent, itm)
+        })
+        .collect_vec()
+}
+
+fn calculate_unequip(
+    entities: &Read<EntitiesRes>,
+    items: &ReadStorage<Item>,
+    equipped: &mut WriteStorage<Equipped>,
+    owner: Entity,
+    item_entity: Entity,
+    slot: EquipSlot,
+) -> Vec<(Entity, Equipped, Item)> {
+    (entities, equipped, items)
+        .join()
+        .filter(|(_, eq, _)| eq.owner == owner && eq.slot == slot)
+        .map(|(ent, eq, item)| (ent, eq.clone(), item.clone()))
+        .collect()
 }
 
 pub struct ItemDropSystem {}

@@ -33,7 +33,7 @@ use specs::{
 
 use specs_derive::*;
 
-use std::convert::Infallible;
+use std::{collections::HashMap, convert::Infallible};
 
 use crate::components::*;
 // `NoError` alias is deprecated in specs ... but specs_derive needs it
@@ -73,7 +73,7 @@ pub enum RangedWeaponType {
     Thrown,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(PartialEq, Eq, Clone, Debug, Hash, Deserialize, Serialize)]
 pub enum EquipSlot {
     Head,
     Neck,
@@ -103,7 +103,6 @@ pub const OFF_HAND: EquipSlotAllowed = EquipSlotAllowed::SingleSlot(EquipSlot::O
 pub struct Equipment {
     pub equipment_type: EquipmentType,
     pub allowed_slots: EquipSlotAllowed,
-    pub slot: Option<EquipSlot>,
 }
 
 impl Equipment {
@@ -111,7 +110,50 @@ impl Equipment {
         Equipment {
             allowed_slots: slot,
             equipment_type,
-            slot: None,
         }
     }
+}
+
+// TODO: we would ideally have shared references to a Map that is associated with
+// the entity; this Map should probably be a component, since it could be
+// associated with various entity types
+//
+// Then when we attempt to equip an item, we can check which slots are available
+// for that entity.
+//
+// The alternative would be to query all equipment on the entity, and compute the map on the fly
+// This would be more flexible, but also more expensive; however it relies on a single source of
+// truth, which I like. It also avoids the need for any shared reference.
+// We still need an Equipped component in order to associate the item with the entity
+// equipping it.
+
+type EntityEquipmentMap = HashMap<EquipSlot, Equipment>;
+
+pub fn get_equipped_items<I: Join, E: Join>(
+    items: I,
+    equipped: E,
+    entity: Entity,
+) -> EntityEquipmentMap
+where
+    I::Type: IsItem,
+    E::Type: IsEquipped,
+{
+    let mut equipped_items = HashMap::new();
+    // Get all Equipped items and join with Items and filter those by the owner
+    (items, equipped)
+        .join()
+        .map(|(item, eqpd)| (item.from(), eqpd.from()))
+        .filter(|(_, eqpd)| eqpd.owner == entity)
+        .filter_map(|(item, eqpd)| match item {
+            Item::Equippable(equipment) => Some((equipment, eqpd)),
+            _ => None,
+        })
+        .for_each(|(item, eqpd)| {
+            equipped_items.insert(eqpd.slot, item);
+            if let Some(extra_slot) = eqpd.slot_extra {
+                equipped_items.insert(extra_slot, item);
+            }
+        });
+
+    equipped_items
 }
