@@ -44,7 +44,7 @@ pub struct Confusion {
 #[derive(Component, Deserialize, Serialize, Clone, Debug)]
 pub struct Consumable {}
 
-#[derive(Clone, Component, ConvertSaveload, Debug)]
+#[derive(Eq, Hash, Clone, Component, ConvertSaveload, Debug)]
 pub struct Equipped {
     pub owner: Entity,
     pub slot: EquipSlot,

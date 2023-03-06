@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use bracket_lib::prelude::field_of_view;
 use itertools::Itertools;
 use specs::{prelude::*, world::EntitiesRes};
@@ -142,6 +144,7 @@ impl<'a> System<'a> for ItemUseSystem {
                 };
                 let item_equippable = match items.get(useitem.item) {
                      Some(Item::Equippable(equip)) => {
+                        targets.first().iter().for_each(|target| {
                         match equip.allowed_slots {
                             // TODO: here we need to get the current equipment map
                             // to see which slot, if any, is available - alternatively
@@ -154,9 +157,8 @@ impl<'a> System<'a> for ItemUseSystem {
                             //    Do a shift: unequip/equip item in first slot, then
                             //    take the item in first slot, and do the same for the second slot
                             //
-                            // Unlike book, we probably don't assign a target_slot here since our logic
-                            // is more complex - each branch needs its own logic:
-                            EquipSlotAllowed::SingleSlot(slot) => None, // ???
+                            // TODO: define function to calculate new_equip
+                            EquipSlotAllowed::SingleSlot(slot) => equip_slot(&entities, items, equipped, target, new_equip),
                             EquipSlotAllowed::Both(slot1, slot2) => None, // ???
                             EquipSlotAllowed::Either(slot1, slot2) => {
                                 let player_equip = get_equipped_items(&items, &equipped, player_entity);
@@ -164,6 +166,7 @@ impl<'a> System<'a> for ItemUseSystem {
                                 None //TODO : rm, fix return value
                             }
                         };
+                    });
                     }
                     _ => None,
                 };
@@ -252,34 +255,42 @@ impl<'a> System<'a> for ItemUseSystem {
 fn equip_slot(
     entities: &Read<EntitiesRes>,
     items: &ReadStorage<Item>,
-    equipped: &mut WriteStorage<Equipped>,
-    owner: Entity,
-    item_entity: Entity,
-    slot: EquipSlot,
-    slot_opt: Option<EquipSlot>,
-) -> Vec<(Entity, Item)> {
+    equippeds: &mut WriteStorage<Equipped>,
+    item_entity: Entity, // Should be first in 'targets'
+    new_equip: Equipped,
+) -> HashSet<(Entity, Item)> {
     // TODO: make this a set, in case they are the same (i.e. a 2 hander)
-    let to_unequip = calculate_unequip(entities, items, equipped, owner, item_entity, slot)
-        .into_iter()
-        .chain(slot_opt.iter().flat_map(|slot2| {
-            calculate_unequip(entities, items, equipped, owner, item_entity, *slot2)
-        }))
-        .collect_vec();
+    let to_unequip = calculate_unequip(
+        entities,
+        items,
+        equippeds,
+        new_equip.owner,
+        item_entity,
+        new_equip.slot,
+    )
+    .into_iter()
+    .chain(new_equip.slot_extra.iter().flat_map(|slot2| {
+        calculate_unequip(
+            entities,
+            items,
+            equippeds,
+            new_equip.owner,
+            item_entity,
+            *slot2,
+        )
+    }))
+    .collect_vec();
 
-    // TODO: pass this into function instead of creating it here
-    let new_equip = Equipped {
-        owner,
-        slot,
-        slot_extra: slot_opt,
-    };
-    to_unequip
-        .into_iter()
-        .map(|(ent, eqp, itm)| {
-            equipped.remove(ent);
-            equipped.insert(item_entity, new_equip.clone());
-            (ent, itm)
-        })
-        .collect_vec()
+    HashSet::from_iter(
+        to_unequip
+            .into_iter()
+            .map(|(ent, eqp, itm)| {
+                equippeds.remove(ent);
+                equippeds.insert(item_entity, new_equip.clone());
+                (ent, itm)
+            })
+            .collect_vec(),
+    )
 }
 
 fn calculate_unequip(
