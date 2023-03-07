@@ -9,7 +9,7 @@ use specs::{
 };
 
 use crate::{
-    equipment::{EquipSlot, Equipment},
+    equipment::{EntityEquipmentMap, EquipSlot, EquipSlotAllowed, Equipment},
     map::Map,
     PsnU,
 };
@@ -44,11 +44,51 @@ pub struct Confusion {
 #[derive(Component, Deserialize, Serialize, Clone, Debug)]
 pub struct Consumable {}
 
-#[derive(Eq, Hash, Clone, Component, ConvertSaveload, Debug)]
+#[derive(Eq, PartialEq, Hash, Clone, Component, ConvertSaveload, Debug)]
 pub struct Equipped {
     pub owner: Entity,
     pub slot: EquipSlot,
     pub slot_extra: Option<EquipSlot>, // 2H weapons, etc.
+}
+
+impl Equipped {
+    pub fn new(
+        owner: Entity,
+        equip_map: EntityEquipmentMap,
+        slot_allowed: EquipSlotAllowed,
+    ) -> Self {
+        match slot_allowed {
+            EquipSlotAllowed::SingleSlot(slot) => Equipped {
+                owner: owner,
+                slot,
+                slot_extra: None,
+            },
+            EquipSlotAllowed::Both(slot1, slot2) => Equipped {
+                owner: owner,
+                slot: slot1,
+                slot_extra: Some(slot2),
+            },
+            EquipSlotAllowed::Either(slot1, slot2) => {
+                // We assume new items are generally better, so preferentally equip it in
+                // the primary slot (slot1) to create a convention
+                let slot = if equip_map.get(&slot1).is_some() {
+                    if equip_map.get(&slot2).is_some() {
+                        slot1
+                    } else {
+                        slot2
+                    }
+                } else {
+                    slot1
+                };
+
+                Equipped {
+                    owner: owner,
+                    slot: slot,
+                    slot_extra: None,
+                }
+            }
+        }
+    }
 }
 
 pub trait IsEquipped {
@@ -124,7 +164,7 @@ pub struct InflictsDamage {
     pub damage: u16,
 }
 
-#[derive(Component, ConvertSaveload, Clone, Debug)]
+#[derive(Eq, PartialEq, Hash, Component, ConvertSaveload, Clone, Debug)]
 pub enum Item {
     Consumable,
     Equippable(Equipment), // Note: In book this is a component
@@ -246,10 +286,10 @@ pub struct ProvidesHealing {
     pub heal_amount: u16,
 }
 
-#[derive(Copy, Clone, ConvertSaveload, Debug)]
+#[derive(Eq, PartialEq, Hash, Copy, Clone, ConvertSaveload, Debug)]
 pub struct AbilityRange(pub u16);
 
-#[derive(Component, Clone, ConvertSaveload, Debug)]
+#[derive(Eq, PartialEq, Hash, Component, Clone, ConvertSaveload, Debug)]
 pub struct Range {
     pub range: AbilityRange,
 }

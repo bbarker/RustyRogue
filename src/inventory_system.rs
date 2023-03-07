@@ -144,6 +144,7 @@ impl<'a> System<'a> for ItemUseSystem {
                 };
                 let item_equippable = match items.get(useitem.item) {
                      Some(Item::Equippable(equip)) => {
+                        let player_equip = get_equipped_items(&items, &equipped, player_entity);
                         targets.first().iter().for_each(|target| {
                         match equip.allowed_slots {
                             // TODO: here we need to get the current equipment map
@@ -158,10 +159,12 @@ impl<'a> System<'a> for ItemUseSystem {
                             //    take the item in first slot, and do the same for the second slot
                             //
                             // TODO: define function to calculate new_equip
-                            EquipSlotAllowed::SingleSlot(slot) => equip_slot(&entities, items, equipped, target, new_equip),
+                            EquipSlotAllowed::SingleSlot(slot) => {
+                                let new_equip = Equipped::new(player_entity, player_equip, equip.allowed_slots);
+                                equip_slot(&entities, items, equipped, target, new_equip)
+                            },
                             EquipSlotAllowed::Both(slot1, slot2) => None, // ???
                             EquipSlotAllowed::Either(slot1, slot2) => {
-                                let player_equip = get_equipped_items(&items, &equipped, player_entity);
 
                                 None //TODO : rm, fix return value
                             }

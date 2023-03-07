@@ -39,7 +39,7 @@ use crate::components::*;
 // `NoError` alias is deprecated in specs ... but specs_derive needs it
 pub type NoError = Infallible;
 
-#[derive(ConvertSaveload, Clone, Debug)]
+#[derive(Eq, PartialEq, Hash, ConvertSaveload, Clone, Debug)]
 pub enum EquipmentType {
     Weapon(WeaponType),
     Shield,
@@ -49,13 +49,13 @@ pub enum EquipmentType {
 
 // TODO: each weapon type could have certain modifiers, applied to its base
 // stats
-#[derive(ConvertSaveload, Clone, Debug)]
+#[derive(Eq, PartialEq, Hash, ConvertSaveload, Clone, Debug)]
 pub enum WeaponType {
     Melee(MeleeWeaponType),
     Ranged(RangedWeaponType, Range),
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Eq, PartialEq, Hash, Serialize, Deserialize, Clone, Debug)]
 pub enum MeleeWeaponType {
     Axe,
     Mace,
@@ -66,7 +66,7 @@ pub enum MeleeWeaponType {
     Whip,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Eq, PartialEq, Hash, Serialize, Deserialize, Clone, Debug)]
 pub enum RangedWeaponType {
     Bow,
     Crossbow,
@@ -85,7 +85,7 @@ pub enum EquipSlot {
     OffHand,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Eq, PartialEq, Hash, Clone, Debug, Deserialize, Serialize)]
 pub enum EquipSlotAllowed {
     SingleSlot(EquipSlot),
     Either(EquipSlot, EquipSlot),
@@ -99,7 +99,7 @@ pub const ONE_HANDED: EquipSlotAllowed =
 pub const OFF_HAND: EquipSlotAllowed = EquipSlotAllowed::SingleSlot(EquipSlot::OffHand);
 
 // TODO: add combat stats to equipment
-#[derive(Component, ConvertSaveload, Clone, Debug)]
+#[derive(Eq, PartialEq, Hash, Component, ConvertSaveload, Clone, Debug)]
 pub struct Equipment {
     pub equipment_type: EquipmentType,
     pub allowed_slots: EquipSlotAllowed,
@@ -127,7 +127,7 @@ impl Equipment {
 // We still need an Equipped component in order to associate the item with the entity
 // equipping it.
 
-type EntityEquipmentMap = HashMap<EquipSlot, Equipment>;
+pub type EntityEquipmentMap = HashMap<EquipSlot, Equipment>;
 
 pub fn get_equipped_items<I: Join, E: Join>(
     items: I,
