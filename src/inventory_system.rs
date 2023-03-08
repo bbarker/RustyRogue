@@ -7,7 +7,7 @@ use specs::{prelude::*, world::EntitiesRes};
 use crate::{
     components::{
         AreaOfEffect, CombatStats, Confusion, Consumable, Equipped, EventIncomingDamage,
-        EventWantsToDropItem, EventWantsToUseItem, InflictsDamage, Item, ProvidesHealing,
+        EventWantsToDropItem, EventWantsToUseItem, InflictsDamage, IsItem, Item, ProvidesHealing,
     },
     equipment::{get_equipped_items, EquipSlot, EquipSlotAllowed},
     map::Map,
@@ -158,10 +158,10 @@ impl<'a> System<'a> for ItemUseSystem {
                             //    Do a shift: unequip/equip item in first slot, then
                             //    take the item in first slot, and do the same for the second slot
                             //
-                            // TODO: define function to calculate new_equip
                             EquipSlotAllowed::SingleSlot(slot) => {
                                 let new_equip = Equipped::new(player_entity, player_equip, equip.allowed_slots);
-                                equip_slot(&entities, items, equipped, target, new_equip)
+                                // TODO: warn on discard?:
+                                equip_slot(&entities, &items, &mut equipped, **target, new_equip)
                             },
                             EquipSlotAllowed::Both(slot1, slot2) => None, // ???
                             EquipSlotAllowed::Either(slot1, slot2) => {
@@ -255,13 +255,16 @@ impl<'a> System<'a> for ItemUseSystem {
 
 /// Utility method to help with equipping - should not be relied on to fully equip an item, but only
 /// equips in the given slot
-fn equip_slot(
+fn equip_slot<I: Join>(
     entities: &Read<EntitiesRes>,
-    items: &ReadStorage<Item>,
+    items: I,
     equippeds: &mut WriteStorage<Equipped>,
     item_entity: Entity, // Should be first in 'targets'
     new_equip: Equipped,
-) -> HashSet<(Entity, Item)> {
+) -> HashSet<(Entity, Item)>
+where
+    I::Type: IsItem,
+{
     // TODO: make this a set, in case they are the same (i.e. a 2 hander)
     let to_unequip = calculate_unequip(
         entities,
@@ -296,18 +299,21 @@ fn equip_slot(
     )
 }
 
-fn calculate_unequip(
+fn calculate_unequip<I: Join>(
     entities: &Read<EntitiesRes>,
-    items: &ReadStorage<Item>,
+    items: I,
     equipped: &mut WriteStorage<Equipped>,
     owner: Entity,
     item_entity: Entity,
     slot: EquipSlot,
-) -> Vec<(Entity, Equipped, Item)> {
+) -> Vec<(Entity, Equipped, Item)>
+where
+    I::Type: IsItem,
+{
     (entities, equipped, items)
         .join()
         .filter(|(_, eq, _)| eq.owner == owner && eq.slot == slot)
-        .map(|(ent, eq, item)| (ent, eq.clone(), item.clone()))
+        .map(|(ent, eq, item)| (ent, eq.clone(), item.from()))
         .collect()
 }
 
