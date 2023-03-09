@@ -146,29 +146,10 @@ impl<'a> System<'a> for ItemUseSystem {
                      Some(Item::Equippable(equip)) => {
                         let player_equip = get_equipped_items(&items, &equipped, player_entity);
                         targets.first().iter().for_each(|target| {
-                        match equip.allowed_slots {
-                            // TODO: here we need to get the current equipment map
-                            // to see which slot, if any, is available - alternatively
-                            // we pick the first one and do the check later - see how
-                            // the book does it.
-                            // OK: strategy should be:
-                            // If 1H: unequip if needed and equip
-                            // If 2H (Both): unequip if needed and equip
-                            // If Either: equip in first open slot, otherwise:
-                            //    Do a shift: unequip/equip item in first slot, then
-                            //    take the item in first slot, and do the same for the second slot
-                            //
-                            EquipSlotAllowed::SingleSlot(slot) => {
-                                let new_equip = Equipped::new(player_entity, player_equip, equip.allowed_slots);
-                                // TODO: warn on discard?:
-                                equip_slot(&entities, &items, &mut equipped, **target, new_equip)
-                            },
-                            EquipSlotAllowed::Both(slot1, slot2) => None, // ???
-                            EquipSlotAllowed::Either(slot1, slot2) => {
+                            let new_equip = Equipped::new(player_entity, player_equip, equip.allowed_slots);
+                            // TODO: warn on discard?:
+                            equip_slot(&entities, &items, &mut equipped, **target, new_equip);
 
-                                None //TODO : rm, fix return value
-                            }
-                        };
                     });
                     }
                     _ => None,
@@ -239,7 +220,8 @@ impl<'a> System<'a> for ItemUseSystem {
                                     log.entries.push(format!(
                                         "You use {} on {}, confusing them.",
                                         names.get(useitem.item).unwrap().name,
-                                        names.get(*victim).unwrap().name
+                                        names.get(*victim).unwrap().name/// Utility method to help with equipping - should not be relied on to fully equip an item, but only
+                                        /// equips in the given slot
                                     ));
                                 }
                             })
