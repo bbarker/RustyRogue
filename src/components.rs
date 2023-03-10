@@ -54,19 +54,19 @@ pub struct Equipped {
 impl Equipped {
     pub fn new(
         owner: Entity,
-        equip_map: EntityEquipmentMap,
-        slot_allowed: EquipSlotAllowed,
+        equip_map: &EntityEquipmentMap,
+        slot_allowed: &EquipSlotAllowed,
     ) -> Self {
         match slot_allowed {
             EquipSlotAllowed::SingleSlot(slot) => Equipped {
                 owner: owner,
-                slot,
+                slot: slot.clone(),
                 slot_extra: None,
             },
             EquipSlotAllowed::Both(slot1, slot2) => Equipped {
                 owner: owner,
-                slot: slot1,
-                slot_extra: Some(slot2),
+                slot: slot1.clone(),
+                slot_extra: Some(slot2.clone()),
             },
             EquipSlotAllowed::Either(slot1, slot2) => {
                 // We assume new items are generally better, so preferentally equip it in
@@ -83,7 +83,7 @@ impl Equipped {
 
                 Equipped {
                     owner: owner,
-                    slot: slot,
+                    slot: slot.clone(),
                     slot_extra: None,
                 }
             }

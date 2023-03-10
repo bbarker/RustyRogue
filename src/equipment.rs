@@ -149,7 +149,7 @@ where
             _ => None,
         })
         .for_each(|(item, eqpd)| {
-            equipped_items.insert(eqpd.slot, item);
+            equipped_items.insert(eqpd.slot, item.clone());
             if let Some(extra_slot) = eqpd.slot_extra {
                 equipped_items.insert(extra_slot, item);
             }

@@ -146,13 +146,13 @@ impl<'a> System<'a> for ItemUseSystem {
                      Some(Item::Equippable(equip)) => {
                         let player_equip = get_equipped_items(&items, &equipped, player_entity);
                         targets.first().iter().for_each(|target| {
-                            let new_equip = Equipped::new(player_entity, player_equip, equip.allowed_slots);
+                            let new_equip = Equipped::new(player_entity, &player_equip, &equip.allowed_slots);
                             // TODO: warn on discard?:
                             equip_slot(&entities, &items, &mut equipped, **target, new_equip);
 
                     });
                     }
-                    _ => None,
+                    _ => {},
                 };
 
                 let item_heals = healing.get(useitem.item);
@@ -220,8 +220,7 @@ impl<'a> System<'a> for ItemUseSystem {
                                     log.entries.push(format!(
                                         "You use {} on {}, confusing them.",
                                         names.get(useitem.item).unwrap().name,
-                                        names.get(*victim).unwrap().name/// Utility method to help with equipping - should not be relied on to fully equip an item, but only
-                                        /// equips in the given slot
+                                        names.get(*victim).unwrap().name
                                     ));
                                 }
                             })
@@ -283,7 +282,7 @@ where
 
 fn calculate_unequip<I: Join>(
     entities: &Read<EntitiesRes>,
-    items: I,
+    items: I, // FIXME: need this to be a reference, somehow
     equipped: &mut WriteStorage<Equipped>,
     owner: Entity,
     item_entity: Entity,
