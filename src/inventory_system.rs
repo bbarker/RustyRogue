@@ -244,6 +244,7 @@ fn equip_slot<I: Join>(
     new_equip: Equipped,
 ) -> HashSet<(Entity, Item)>
 where
+    I: Copy,
     I::Type: IsItem,
 {
     // TODO: make this a set, in case they are the same (i.e. a 2 hander)
@@ -253,7 +254,7 @@ where
         equippeds,
         new_equip.owner,
         item_entity,
-        new_equip.slot,
+        new_equip.slot.clone(),
     )
     .into_iter()
     .chain(new_equip.slot_extra.iter().flat_map(|slot2| {
@@ -263,7 +264,7 @@ where
             equippeds,
             new_equip.owner,
             item_entity,
-            *slot2,
+            slot2.clone(),
         )
     }))
     .collect_vec();
@@ -271,9 +272,9 @@ where
     HashSet::from_iter(
         to_unequip
             .into_iter()
-            .map(|(ent, eqp, itm)| {
+            .map(|(ent, _, itm)| {
                 equippeds.remove(ent);
-                equippeds.insert(item_entity, new_equip.clone());
+                let _ = equippeds.insert(item_entity, new_equip.clone());
                 (ent, itm)
             })
             .collect_vec(),
@@ -289,6 +290,7 @@ fn calculate_unequip<I: Join>(
     slot: EquipSlot,
 ) -> Vec<(Entity, Equipped, Item)>
 where
+    I: Copy,
     I::Type: IsItem,
 {
     (entities, equipped, items)
