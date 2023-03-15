@@ -384,6 +384,7 @@ fn main() {
     gs.ecs.register::<CombatStats>();
     gs.ecs.register::<Confusion>();
     gs.ecs.register::<Consumable>();
+    gs.ecs.register::<Equipped>();
     gs.ecs.register::<EventIncomingDamage>();
     gs.ecs.register::<EventWantsToUseItem>();
     gs.ecs.register::<EventWantsToDropItem>();
