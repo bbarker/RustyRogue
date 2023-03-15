@@ -9,7 +9,7 @@ use crate::{
         AreaOfEffect, CombatStats, Confusion, Consumable, Equipped, EventIncomingDamage,
         EventWantsToDropItem, EventWantsToUseItem, InflictsDamage, IsItem, Item, ProvidesHealing,
     },
-    equipment::{get_equipped_items, EquipSlot, EquipSlotAllowed},
+    equipment::{get_equipped_items, EquipSlot},
     map::Map,
     player::PLAYER_NAME,
 };
@@ -76,8 +76,9 @@ impl<'a> System<'a> for ItemUseSystem {
         WriteStorage<'a, CombatStats>,
         WriteStorage<'a, EventIncomingDamage>,
         ReadStorage<'a, Consumable>,
-        WriteStorage<'a, Item>,
+        ReadStorage<'a, Item>,
         WriteStorage<'a, Equipped>,
+        WriteStorage<'a, InBackpack>,
     );
 
     fn run(&mut self, data: Self::SystemData) {
@@ -95,8 +96,9 @@ impl<'a> System<'a> for ItemUseSystem {
             mut combat_stats,
             mut incoming_damage,
             consumables, // TODO: consider removing in a separate commit; should just need Item
-            mut items,
+            items,
             mut equipped,
+            mut backpack,
         ) = data;
 
         let delete_if_consumed = |item: Entity, used: bool, player_name: &Name| {
@@ -142,14 +144,13 @@ impl<'a> System<'a> for ItemUseSystem {
                         }
                     }
                 };
-                let item_equippable = match items.get(useitem.item) {
+                match items.get(useitem.item) {
                      Some(Item::Equippable(equip)) => {
                         let player_equip = get_equipped_items(&items, &equipped, player_entity);
                         targets.first().iter().for_each(|target| {
                             let new_equip = Equipped::new(player_entity, &player_equip, &equip.allowed_slots);
-                            // TODO: warn on discard?:
-                            equip_slot(&entities, &items, &mut equipped, **target, new_equip);
-
+                            // TODO: warn on non-unit discard?:
+                            equip_slot(&entities, &mut backpack, &items, &mut equipped, **target, new_equip);
                     });
                     }
                     _ => {},
@@ -238,22 +239,21 @@ impl<'a> System<'a> for ItemUseSystem {
 /// equips in the given slot
 fn equip_slot<I: Join>(
     entities: &Read<EntitiesRes>,
+    backpack: &mut WriteStorage<InBackpack>,
     items: I,
-    equippeds: &mut WriteStorage<Equipped>,
-    item_entity: Entity, // Should be first in 'targets'
+    equipped_items: &mut WriteStorage<Equipped>,
+    target_item_entity: Entity, // Should be first in 'targets'
     new_equip: Equipped,
 ) -> HashSet<(Entity, Item)>
 where
     I: Copy,
     I::Type: IsItem,
 {
-    // TODO: make this a set, in case they are the same (i.e. a 2 hander)
     let to_unequip = calculate_unequip(
         entities,
         items,
-        equippeds,
+        equipped_items,
         new_equip.owner,
-        item_entity,
         new_equip.slot.clone(),
     )
     .into_iter()
@@ -261,9 +261,8 @@ where
         calculate_unequip(
             entities,
             items,
-            equippeds,
+            equipped_items,
             new_equip.owner,
-            item_entity,
             slot2.clone(),
         )
     }))
@@ -272,10 +271,21 @@ where
     HashSet::from_iter(
         to_unequip
             .into_iter()
-            .map(|(ent, _, itm)| {
-                equippeds.remove(ent);
-                let _ = equippeds.insert(item_entity, new_equip.clone());
-                (ent, itm)
+            .map(|(item_ent, _, itm)| {
+                equipped_items.remove(item_ent);
+                backpack
+                    .insert(
+                        item_ent,
+                        InBackpack {
+                            owner: new_equip.owner,
+                        },
+                    )
+                    .unwrap();
+                backpack.remove(target_item_entity);
+                equipped_items
+                    .insert(target_item_entity, new_equip.clone())
+                    .unwrap();
+                (item_ent, itm)
             })
             .collect_vec(),
     )
@@ -286,7 +296,6 @@ fn calculate_unequip<I: Join>(
     items: I, // FIXME: need this to be a reference, somehow
     equipped: &mut WriteStorage<Equipped>,
     owner: Entity,
-    item_entity: Entity,
     slot: EquipSlot,
 ) -> Vec<(Entity, Equipped, Item)>
 where

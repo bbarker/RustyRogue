@@ -59,20 +59,20 @@ impl Equipped {
     ) -> Self {
         match slot_allowed {
             EquipSlotAllowed::SingleSlot(slot) => Equipped {
-                owner: owner,
+                owner,
                 slot: slot.clone(),
                 slot_extra: None,
             },
             EquipSlotAllowed::Both(slot1, slot2) => Equipped {
-                owner: owner,
+                owner,
                 slot: slot1.clone(),
                 slot_extra: Some(slot2.clone()),
             },
             EquipSlotAllowed::Either(slot1, slot2) => {
                 // We assume new items are generally better, so preferentally equip it in
                 // the primary slot (slot1) to create a convention
-                let slot = if equip_map.get(&slot1).is_some() {
-                    if equip_map.get(&slot2).is_some() {
+                let slot = if equip_map.get(slot1).is_some() {
+                    if equip_map.get(slot2).is_some() {
                         slot1
                     } else {
                         slot2
@@ -82,7 +82,7 @@ impl Equipped {
                 };
 
                 Equipped {
-                    owner: owner,
+                    owner,
                     slot: slot.clone(),
                     slot_extra: None,
                 }
@@ -154,9 +154,28 @@ pub struct EventWantsToPickupItem {
     pub item: Entity,
 }
 
-#[derive(Component, ConvertSaveload, Debug)]
+#[derive(Clone, Component, ConvertSaveload, Debug)]
 pub struct InBackpack {
     pub owner: Entity,
+}
+
+pub trait IsInBackpack {
+    fn from(self) -> InBackpack;
+}
+
+impl<T> IsInBackpack for &T
+where
+    T: IsInBackpack + Clone,
+{
+    fn from(self) -> InBackpack {
+        self.clone().from()
+    }
+}
+
+impl IsInBackpack for InBackpack {
+    fn from(self) -> InBackpack {
+        self
+    }
 }
 
 #[derive(Component, ConvertSaveload, Debug)]
