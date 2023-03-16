@@ -144,18 +144,14 @@ impl<'a> System<'a> for ItemUseSystem {
                         }
                     }
                 };
-                match items.get(useitem.item) {
-                     Some(Item::Equippable(equip)) => {
-                        let player_equip = get_equipped_items(&items, &equipped, player_entity);
-                        targets.first().iter().for_each(|target| {
-                            let new_equip = Equipped::new(player_entity, &player_equip, &equip.allowed_slots);
-                            // TODO: warn on non-unit discard?:
-                            equip_slot(&entities, &mut backpack, &items, &mut equipped, **target, new_equip);
-                    });
-                    }
-                    _ => {},
+                if let Some(Item::Equippable(equip)) = items.get(useitem.item) {
+                    let player_equip = get_equipped_items(&items, &equipped, player_entity);
+                    targets.first().iter().for_each(|target| {
+                        let new_equip = Equipped::new(player_entity, &player_equip, &equip.allowed_slots);
+                        // TODO: warn on non-unit discard?:
+                        equip_slot(&mut log, &entities, &mut backpack, &items, &mut equipped, &names, **target, new_equip);
+                     });
                 };
-
                 let item_heals = healing.get(useitem.item);
                 match item_heals {
                     None => {}
@@ -238,10 +234,12 @@ impl<'a> System<'a> for ItemUseSystem {
 /// Utility method to help with equipping - should not be relied on to fully equip an item, but only
 /// equips in the given slot
 fn equip_slot<I: Join>(
+    log: &mut WriteExpect<GameLog>,
     entities: &Read<EntitiesRes>,
     backpack: &mut WriteStorage<InBackpack>,
     items: I,
     equipped_items: &mut WriteStorage<Equipped>,
+    names: &ReadStorage<Name>,
     target_item_entity: Entity, // Should be first in 'targets'
     new_equip: Equipped,
 ) -> HashSet<(Entity, Item)>
@@ -273,6 +271,9 @@ where
             .into_iter()
             .map(|(item_ent, _, itm)| {
                 equipped_items.remove(item_ent);
+                let unequip_name = names.get(item_ent).unwrap();
+                log.entries
+                    .push(format!("You unequip {}.", unequip_name.name));
                 backpack
                     .insert(
                         item_ent,
@@ -285,6 +286,8 @@ where
                 equipped_items
                     .insert(target_item_entity, new_equip.clone())
                     .unwrap();
+                let equip_name = names.get(target_item_entity).unwrap();
+                log.entries.push(format!("You equip {}.", equip_name.name));
                 (item_ent, itm)
             })
             .collect_vec(),
