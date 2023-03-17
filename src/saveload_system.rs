@@ -20,6 +20,7 @@ macro_rules! execute_with_type_list {
         CombatStats,
         Confusion,
         Consumable,
+        Equipped,
         EventIncomingDamage,
         EventWantsToDropItem,
         EventWantsToMelee,

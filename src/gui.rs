@@ -12,7 +12,9 @@ use itertools::Itertools;
 use specs::prelude::*;
 
 use crate::{
-    components::{CombatStats, InBackpack, Name, Player, Position, Positionable, Viewshed},
+    components::{
+        CombatStats, Equipped, InBackpack, Name, Player, Position, Positionable, Viewshed,
+    },
     display_state::DisplayState,
     gamelog::GameLog,
     map::Map,
@@ -151,13 +153,20 @@ pub enum ItemMenuResult {
 pub fn owned_items(ecs: &World, owner: Entity) -> Vec<(Entity, String)> {
     let entities = ecs.entities();
     let backpack = ecs.read_storage::<InBackpack>();
+    let equipped = ecs.read_storage::<Equipped>();
     let names = ecs.read_storage::<Name>();
 
     (&entities, &backpack, &names)
         .join()
         .filter(|(_e, bpack, _n)| bpack.owner == owner)
         .map(|(ent, _b, name)| (ent, name.name.to_string()))
-        .collect()
+        .chain(
+            (&entities, &equipped, &names)
+                .join()
+                .filter(|(_e, equip, _n)| equip.owner == owner)
+                .map(|(ent, _b, name)| (ent, name.name.to_string())),
+        )
+        .collect::<Vec<(Entity, String)>>()
 }
 
 pub fn show_inventory(

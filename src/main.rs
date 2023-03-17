@@ -250,6 +250,8 @@ impl GameState for State {
                                     panic!("Tried to use {} but failed!: {}", item_name, er)
                                 });
                             let mut gamelog = self.ecs.fetch_mut::<gamelog::GameLog>();
+                            // FIXME: remove this "use" as I believe it is redundant,
+                            // FIXME: but for now it shows we are not equipping an item.
                             gamelog.entries.push(format!("You use the {}.", item_name));
                             newrunstate = RunState::PlayerTurn;
                         }
