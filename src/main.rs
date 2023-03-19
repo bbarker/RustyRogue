@@ -330,6 +330,7 @@ impl GameState for State {
                         };
                     }
                     gui::MainMenuStatus::Selected => match result.highlighted {
+                        //FIXME: NewGame doesn't create a new game if a game is already running
                         gui::MainMenuSelection::NewGame => newrunstate = RunState::PreRun,
                         gui::MainMenuSelection::SaveGame => newrunstate = RunState::SaveGame,
                         gui::MainMenuSelection::ResumeGame => newrunstate = RunState::PreRun,
