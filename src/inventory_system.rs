@@ -284,7 +284,15 @@ where
             })
             .collect_vec(),
     );
-    backpack.remove(new_equip.owner);
+    console::log(&format!(
+        "DEBUG: backpack before remove: {:?}",
+        backpack.join().collect_vec()
+    ));
+    backpack.remove(new_equip_ent);
+    console::log(&format!(
+        "DEBUG: backpack after remove: {:?}",
+        backpack.join().collect_vec()
+    ));
     equipped_items
         .insert(new_equip.owner, new_equip.clone())
         .unwrap();
