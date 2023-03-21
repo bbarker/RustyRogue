@@ -95,7 +95,7 @@ pub enum EquipSlotAllowed {
 pub const TWO_HANDED: EquipSlotAllowed =
     EquipSlotAllowed::Both(EquipSlot::MainHand, EquipSlot::OffHand);
 pub const ONE_HANDED: EquipSlotAllowed =
-    EquipSlotAllowed::Both(EquipSlot::MainHand, EquipSlot::OffHand);
+    EquipSlotAllowed::Either(EquipSlot::MainHand, EquipSlot::OffHand);
 pub const OFF_HAND: EquipSlotAllowed = EquipSlotAllowed::SingleSlot(EquipSlot::OffHand);
 
 // TODO: add combat stats to equipment

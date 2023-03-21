@@ -264,6 +264,12 @@ where
     }))
     .collect_vec();
 
+    // TODO: I think I still need to add the logic so that if we equip something in
+    // the MH slot, whatever is in the MH slot is bumped to the OH slot.
+    // This can be tested using 2 daggers and a shield - once we have a dagger and
+    // a shield equipped, we can never equip two daggers with the current state.
+    // See if we can reproduce this as a unit test.
+
     let unequipped = HashSet::from_iter(
         to_unequip
             .into_iter()
@@ -284,18 +290,15 @@ where
             })
             .collect_vec(),
     );
-    console::log(&format!(
-        "DEBUG: backpack before remove: {:?}",
-        backpack.join().collect_vec()
-    ));
     backpack.remove(new_equip_ent);
-    console::log(&format!(
-        "DEBUG: backpack after remove: {:?}",
-        backpack.join().collect_vec()
-    ));
+
     equipped_items
-        .insert(new_equip.owner, new_equip.clone())
+        .insert(new_equip_ent, new_equip.clone())
         .unwrap();
+    console::log(&format!(
+        "DEBUG: equipped: {:?}",
+        equipped_items.join().collect_vec()
+    ));
     let equip_name = names.get(new_equip_ent).unwrap();
     log.entries.push(format!("You equip {}.", equip_name.name));
     unequipped
