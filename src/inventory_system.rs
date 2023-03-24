@@ -358,3 +358,27 @@ impl<'a> System<'a> for ItemDropSystem {
         wants_drop.clear();
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::init_state;
+
+    use super::*;
+
+    #[test]
+    fn equip_item_removes_from_item_from_bag() {
+        let (mut gs, _) = init_state(true);
+        assert_eq!(2 + 2, 4);
+    }
+
+    #[test]
+    fn another() {
+        panic!("Make this test fail");
+    }
+
+    #[test]
+    fn it_works() {
+        let result = 2 + 2;
+        assert_eq!(result, 4);
+    }
+}

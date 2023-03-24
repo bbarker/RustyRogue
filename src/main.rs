@@ -10,6 +10,7 @@ extern crate enum_derive;
 use bracket_lib::{
     prelude::{BTerm, GameState},
     random::RandomNumberGenerator,
+    terminal::console,
 };
 use inventory_system::{ItemCollectionSystem, ItemDropSystem, ItemUseSystem};
 use itertools::Itertools;
@@ -366,21 +367,38 @@ impl GameState for State {
     }
 }
 
-fn main() {
-    use bracket_lib::prelude::BTermBuilder;
-    let context = {
-        let mut ctxt = BTermBuilder::simple80x50()
-            .with_title("Rusty Rogue")
-            .build()
-            .unwrap(); // TODO: better error handling from software tools
-        ctxt.with_post_scanlines(true);
-        // ^ gives a retro "scanlines and screen burn" effect
-        ctxt
+pub fn init_state(test_ecs: bool) -> (State, Option<BTerm>) {
+    let (mut gs, opt_ctxt) = if test_ecs {
+        (
+            State {
+                ecs: World::new(),
+                display: DisplayState {
+                    width: 80,
+                    height: 50,
+                },
+            },
+            None,
+        )
+    } else {
+        use bracket_lib::prelude::BTermBuilder;
+        let context = {
+            let mut ctxt = BTermBuilder::simple80x50()
+                .with_title("Rusty Rogue")
+                .build()
+                .unwrap(); // TODO: better error handling from software tools
+            ctxt.with_post_scanlines(true);
+            // ^ gives a retro "scanlines and screen burn" effect
+            ctxt
+        };
+        (
+            State {
+                ecs: World::new(),
+                display: calc_display_state(&context),
+            },
+            Some(context),
+        )
     };
-    let mut gs = State {
-        ecs: World::new(),
-        display: calc_display_state(&context),
-    };
+
     // register components
     gs.ecs.register::<AreaOfEffect>();
     gs.ecs.register::<BlocksTile>();
@@ -427,7 +445,15 @@ fn main() {
     spawner::player(&mut gs, player_posn);
     gs.ecs.insert(player_posn);
 
-    bracket_lib::prelude::main_loop(context, gs).unwrap()
+    (gs, opt_ctxt)
+}
+
+fn main() {
+    if let (gs, Some(context)) = init_state(false) {
+        bracket_lib::prelude::main_loop(context, gs).unwrap()
+    } else {
+        console::log("init_state called as if in test mode, exiting");
+    }
 }
 
 fn populate_rooms(ecs: &mut World) -> Vec<Entity> {
