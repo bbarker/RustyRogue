@@ -361,24 +361,31 @@ impl<'a> System<'a> for ItemDropSystem {
 
 #[cfg(test)]
 mod tests {
-    use crate::init_state;
+    use crate::{
+        gui::backpack_items,
+        init_state,
+        player::{get_item, get_player_pos_unwrap, get_player_unwrap},
+        spawner,
+    };
 
     use super::*;
 
     #[test]
     fn equip_item_removes_from_item_from_bag() {
         let (mut gs, _) = init_state(true);
-        assert_eq!(2 + 2, 4);
-    }
+        let player_entity = get_player_unwrap(&gs.ecs, PLAYER_NAME);
+        let player_posn = get_player_pos_unwrap(&gs.ecs, PLAYER_NAME);
 
-    #[test]
-    fn another() {
-        panic!("Make this test fail");
-    }
+        spawner::iron_dagger(&mut gs.ecs, player_posn);
+        get_item(&mut gs.ecs); // pickup an item
+        gs.run_systems();
 
-    #[test]
-    fn it_works() {
-        let result = 2 + 2;
-        assert_eq!(result, 4);
+        spawner::iron_shield(&mut gs.ecs, player_posn);
+        get_item(&mut gs.ecs); // pickup an item
+        gs.run_systems();
+
+        let bpack_items = backpack_items(&gs.ecs, player_entity);
+
+        assert_eq!(bpack_items.len(), 2);
     }
 }

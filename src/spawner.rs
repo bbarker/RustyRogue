@@ -84,7 +84,7 @@ fn equippable_entity(
     non_blocking_entity(ecs, pos, base_data).with(Item::Equippable(item))
 }
 
-fn iron_dagger(ecs: &mut World, pos: Position) -> Entity {
+pub fn iron_dagger(ecs: &mut World, pos: Position) -> Entity {
     equippable_entity(
         ecs,
         pos,
@@ -102,7 +102,7 @@ fn iron_dagger(ecs: &mut World, pos: Position) -> Entity {
     .build()
 }
 
-fn iron_shield(ecs: &mut World, pos: Position) -> Entity {
+pub fn iron_shield(ecs: &mut World, pos: Position) -> Entity {
     equippable_entity(
         ecs,
         pos,

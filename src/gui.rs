@@ -9,7 +9,7 @@ use bracket_lib::{
 };
 use itertools::FoldWhile::{Continue, Done};
 use itertools::Itertools;
-use specs::prelude::*;
+use specs::{join::JoinIter, prelude::*};
 
 use crate::{
     components::{
@@ -150,23 +150,31 @@ pub enum ItemMenuResult {
     Selected,
 }
 
-pub fn owned_items(ecs: &World, owner: Entity) -> Vec<(Entity, String)> {
+pub fn backpack_items(ecs: &World, owner: Entity) -> Vec<(Entity, String)> {
     let entities = ecs.entities();
     let backpack = ecs.read_storage::<InBackpack>();
-    let equipped = ecs.read_storage::<Equipped>();
     let names = ecs.read_storage::<Name>();
 
     (&entities, &backpack, &names)
         .join()
         .filter(|(_e, bpack, _n)| bpack.owner == owner)
         .map(|(ent, _b, name)| (ent, name.name.to_string()))
-        .chain(
-            (&entities, &equipped, &names)
-                .join()
-                .filter(|(_e, equip, _n)| equip.owner == owner)
-                .map(|(ent, _b, name)| (ent, name.name.to_string())),
-        )
         .collect::<Vec<(Entity, String)>>()
+}
+//
+pub fn owned_items(ecs: &World, owner: Entity) -> Vec<(Entity, String)> {
+    let entities = ecs.entities();
+    let equipped = ecs.read_storage::<Equipped>();
+    let names = ecs.read_storage::<Name>();
+
+    let mut equipped_items = (&entities, &equipped, &names)
+        .join()
+        .filter(|(_e, equip, _n)| equip.owner == owner)
+        .map(|(ent, _b, name)| (ent, name.name.to_string()))
+        .collect::<Vec<(Entity, String)>>();
+    // Seems difficult to avoid mutation here given the APIs on hand
+    equipped_items.append(&mut backpack_items(ecs, owner));
+    equipped_items
 }
 
 pub fn show_inventory(
@@ -182,7 +190,7 @@ pub fn show_inventory(
 
     let player_entity = get_player_unwrap(&gs.ecs, PLAYER_NAME);
 
-    let inventory = owned_items(&gs.ecs, player_entity);
+    let inventory = backpack_items(&gs.ecs, player_entity);
 
     let (inventory_size, max_item_name_length) = inventory
         .iter()
