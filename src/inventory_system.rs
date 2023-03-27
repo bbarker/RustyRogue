@@ -387,5 +387,51 @@ mod tests {
         let bpack_items = backpack_items(&gs.ecs, player_entity);
 
         assert_eq!(bpack_items.len(), 2);
+
+        {
+            let mut intent = gs.ecs.write_storage::<EventWantsToUseItem>();
+            intent
+                .insert(
+                    player_entity,
+                    EventWantsToUseItem {
+                        item: bpack_items[0].0,
+                        target: None,
+                    },
+                )
+                .unwrap();
+        }
+        gs.run_systems();
+        let bpack_items = backpack_items(&gs.ecs, player_entity);
+        assert_eq!(bpack_items.len(), 1);
+    }
+
+    // TODO (copied from above)
+    // I think I still need to add the logic so that if we equip something in
+    // the MH slot, whatever is in the MH slot is bumped to the OH slot.
+    // This can be tested using 2 daggers and a shield - once we have a dagger and
+    // a shield equipped, we can never equip two daggers with the current state.
+    // See if we can reproduce this as a unit test.
+
+    #[test]
+    fn main_hand_shifts_to_offhand() {
+        let (mut gs, _) = init_state(true);
+        let player_entity = get_player_unwrap(&gs.ecs, PLAYER_NAME);
+        let player_posn = get_player_pos_unwrap(&gs.ecs, PLAYER_NAME);
+
+        spawner::iron_dagger(&mut gs.ecs, player_posn);
+        get_item(&mut gs.ecs); // pickup an item
+        gs.run_systems();
+
+        spawner::iron_dagger(&mut gs.ecs, player_posn);
+        get_item(&mut gs.ecs); // pickup an item
+        gs.run_systems();
+
+        spawner::iron_shield(&mut gs.ecs, player_posn);
+        get_item(&mut gs.ecs); // pickup an item
+        gs.run_systems();
+
+        let bpack_items = backpack_items(&gs.ecs, player_entity);
+
+        assert_eq!(bpack_items.len(), 3);
     }
 }
