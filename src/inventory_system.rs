@@ -365,10 +365,27 @@ mod tests {
         gui::backpack_items,
         init_state,
         player::{get_item, get_player_pos_unwrap, get_player_unwrap},
-        spawner,
+        spawner, State,
     };
 
     use super::*;
+
+    fn use_first_backpack_item(gs: &mut State, player_entity: Entity) {
+        let bpack_items = backpack_items(&gs.ecs, player_entity);
+        {
+            let mut intent = gs.ecs.write_storage::<EventWantsToUseItem>();
+            intent
+                .insert(
+                    player_entity,
+                    EventWantsToUseItem {
+                        item: bpack_items[0].0,
+                        target: None,
+                    },
+                )
+                .unwrap();
+        }
+        gs.run_systems();
+    }
 
     #[test]
     fn equip_item_removes_from_item_from_bag() {
@@ -388,18 +405,8 @@ mod tests {
 
         assert_eq!(bpack_items.len(), 2);
 
-        {
-            let mut intent = gs.ecs.write_storage::<EventWantsToUseItem>();
-            intent
-                .insert(
-                    player_entity,
-                    EventWantsToUseItem {
-                        item: bpack_items[0].0,
-                        target: None,
-                    },
-                )
-                .unwrap();
-        }
+        use_first_backpack_item(&mut gs, player_entity);
+
         gs.run_systems();
         let bpack_items = backpack_items(&gs.ecs, player_entity);
         assert_eq!(bpack_items.len(), 1);
@@ -418,20 +425,27 @@ mod tests {
         let player_entity = get_player_unwrap(&gs.ecs, PLAYER_NAME);
         let player_posn = get_player_pos_unwrap(&gs.ecs, PLAYER_NAME);
 
-        spawner::iron_dagger(&mut gs.ecs, player_posn);
+        let dagger1 = spawner::iron_dagger(&mut gs.ecs, player_posn);
         get_item(&mut gs.ecs); // pickup an item
         gs.run_systems();
+        use_first_backpack_item(&mut gs, player_entity);
 
-        spawner::iron_dagger(&mut gs.ecs, player_posn);
+        let shield = spawner::iron_shield(&mut gs.ecs, player_posn);
         get_item(&mut gs.ecs); // pickup an item
         gs.run_systems();
+        use_first_backpack_item(&mut gs, player_entity);
 
-        spawner::iron_shield(&mut gs.ecs, player_posn);
+        let dagger2 = spawner::iron_dagger(&mut gs.ecs, player_posn);
         get_item(&mut gs.ecs); // pickup an item
         gs.run_systems();
 
         let bpack_items = backpack_items(&gs.ecs, player_entity);
+        assert_eq!(bpack_items.len(), 1);
+        assert_eq!(bpack_items[0].0, dagger2);
 
-        assert_eq!(bpack_items.len(), 3);
+        use_first_backpack_item(&mut gs, player_entity);
+        let bpack_items = backpack_items(&gs.ecs, player_entity);
+        assert_eq!(bpack_items.len(), 1);
+        assert_eq!(bpack_items[0].0, shield);
     }
 }
