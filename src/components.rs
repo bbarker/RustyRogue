@@ -189,6 +189,22 @@ pub enum Item {
     Equippable(Equipment), // Note: In book this is a component
 }
 
+impl Item {
+    pub fn is_2H(&self) -> bool {
+        match self {
+            Item::Equippable(eqp) => eqp.is_2H(),
+            _ => false,
+        }
+    }
+
+    pub fn is_OH_capable(&self) -> bool {
+        match self {
+            Item::Equippable(eqp) => eqp.is_OH_capable(),
+            _ => false,
+        }
+    }
+}
+
 pub trait IsItem {
     fn from(self) -> Item;
 }

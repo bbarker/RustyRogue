@@ -112,6 +112,19 @@ impl Equipment {
             equipment_type,
         }
     }
+
+    pub fn is_2H(&self) -> bool {
+        self.allowed_slots == TWO_HANDED
+    }
+
+    pub fn is_OH_capable(&self) -> bool {
+        match self.allowed_slots {
+            EquipSlotAllowed::SingleSlot(EquipSlot::OffHand) => true,
+            EquipSlotAllowed::Either(EquipSlot::OffHand, _) => true,
+            EquipSlotAllowed::Either(_, EquipSlot::OffHand) => true,
+            _ => false,
+        }
+    }
 }
 
 // TODO: we would ideally have shared references to a Map that is associated with

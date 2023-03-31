@@ -264,14 +264,9 @@ where
     }))
     .collect_vec();
 
-    // TODO: I think I still need to add the logic so that if we equip something in
-    // the MH slot, whatever is in the MH slot is bumped to the OH slot.
-    // This can be tested using 2 daggers and a shield - once we have a dagger and
-    // a shield equipped, we can never equip two daggers with the current state.
-    // See if we can reproduce this as a unit test.
-
     let unequipped = HashSet::from_iter(
         to_unequip
+            .clone()
             .into_iter()
             .map(|(item_ent, _, itm)| {
                 equipped_items.remove(item_ent);
@@ -301,7 +296,49 @@ where
     ));
     let equip_name = names.get(new_equip_ent).unwrap();
     log.entries.push(format!("You equip {}.", equip_name.name));
-    unequipped
+
+    // If unequipped was in the main hand, and it and the newly equipped are both 1-handed items,
+    // we perform a second recursive call to equip unequipped item in the off-hand slot:
+
+    match unequipped.iter().next() {
+        None => unequipped,
+        Some((uneq_ent, uneq_item)) => {
+            let was_in_MH = to_unequip
+                .iter()
+                .any(|uneq| uneq.1.slot == EquipSlot::MainHand);
+            // TODO: make these lazy so we can short-circuit in conditional and not evaluate them
+            let old_eq_can_OH = || -> bool { uneq_item.is_OH_capable() };
+            let new_eq_is_1h = || -> bool {
+                let new_item_opt: Option<Item> = (entities, items)
+                    .join()
+                    .filter(|(ent, _itm)| new_equip_ent == *ent)
+                    .map(|(_ent, itm)| itm.from())
+                    .next();
+                new_item_opt
+                    .map(|new_item| !new_item.is_2H())
+                    .unwrap_or(false)
+            };
+
+            if was_in_MH && old_eq_can_OH() && new_eq_is_1h() {
+                equip_slot(
+                    log,
+                    entities,
+                    backpack,
+                    items,
+                    equipped_items,
+                    names,
+                    Equipped {
+                        owner: new_equip.owner,
+                        slot: EquipSlot::OffHand,
+                        slot_extra: None,
+                    },
+                    *uneq_ent,
+                )
+            } else {
+                unequipped
+            }
+        }
+    }
 }
 
 fn calculate_unequip<I: Join>(
@@ -411,13 +448,6 @@ mod tests {
         let bpack_items = backpack_items(&gs.ecs, player_entity);
         assert_eq!(bpack_items.len(), 1);
     }
-
-    // TODO (copied from above)
-    // I think I still need to add the logic so that if we equip something in
-    // the MH slot, whatever is in the MH slot is bumped to the OH slot.
-    // This can be tested using 2 daggers and a shield - once we have a dagger and
-    // a shield equipped, we can never equip two daggers with the current state.
-    // See if we can reproduce this as a unit test.
 
     #[test]
     fn main_hand_shifts_to_offhand() {
