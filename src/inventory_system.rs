@@ -188,7 +188,7 @@ impl<'a> System<'a> for ItemUseSystem {
                             .count()
                             > 0;
                         delete_if_consumed(useitem.item, used, player_name);
-                        if player_name.name == PLAYER_NAME {
+                        if used && player_name.name == PLAYER_NAME {
                             log.entries.push(format!(
                                 "You use the {}, inflicting {} damage.",
                                 names.get(useitem.item).unwrap().name,

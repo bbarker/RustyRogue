@@ -312,8 +312,6 @@ impl GameState for State {
                             .unwrap_or_else(|er| {
                                 panic!("Tried to use {} but failed!: {}", item_name, er)
                             });
-                        let mut gamelog = self.ecs.fetch_mut::<gamelog::GameLog>();
-                        gamelog.entries.push(format!("You use the {}.", item_name));
                         newrunstate = RunState::PlayerTurn;
                     }
                 }
