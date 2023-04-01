@@ -306,7 +306,6 @@ where
             let was_in_MH = to_unequip
                 .iter()
                 .any(|uneq| uneq.1.slot == EquipSlot::MainHand);
-            // TODO: make these lazy so we can short-circuit in conditional and not evaluate them
             let old_eq_can_OH = || -> bool { uneq_item.is_OH_capable() };
             let new_eq_is_1h = || -> bool {
                 let new_item_opt: Option<Item> = (entities, items)
@@ -455,7 +454,7 @@ mod tests {
         let player_entity = get_player_unwrap(&gs.ecs, PLAYER_NAME);
         let player_posn = get_player_pos_unwrap(&gs.ecs, PLAYER_NAME);
 
-        let dagger1 = spawner::iron_dagger(&mut gs.ecs, player_posn);
+        let _dagger1 = spawner::iron_dagger(&mut gs.ecs, player_posn);
         get_item(&mut gs.ecs); // pickup an item
         gs.run_systems();
         use_first_backpack_item(&mut gs, player_entity);
