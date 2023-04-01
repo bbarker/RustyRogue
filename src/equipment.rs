@@ -113,17 +113,17 @@ impl Equipment {
         }
     }
 
-    pub fn is_2H(&self) -> bool {
+    pub fn is_2h(&self) -> bool {
         self.allowed_slots == TWO_HANDED
     }
 
-    pub fn is_OH_capable(&self) -> bool {
-        match self.allowed_slots {
-            EquipSlotAllowed::SingleSlot(EquipSlot::OffHand) => true,
-            EquipSlotAllowed::Either(EquipSlot::OffHand, _) => true,
-            EquipSlotAllowed::Either(_, EquipSlot::OffHand) => true,
-            _ => false,
-        }
+    pub fn is_oh_capable(&self) -> bool {
+        matches!(
+            self.allowed_slots,
+            EquipSlotAllowed::SingleSlot(EquipSlot::OffHand)
+                | EquipSlotAllowed::Either(EquipSlot::OffHand, _)
+                | EquipSlotAllowed::Either(_, EquipSlot::OffHand)
+        )
     }
 }
 

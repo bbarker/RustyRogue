@@ -9,7 +9,7 @@ use bracket_lib::{
 };
 use itertools::FoldWhile::{Continue, Done};
 use itertools::Itertools;
-use specs::{join::JoinIter, prelude::*};
+use specs::prelude::*;
 
 use crate::{
     components::{

@@ -190,16 +190,16 @@ pub enum Item {
 }
 
 impl Item {
-    pub fn is_2H(&self) -> bool {
+    pub fn is_2h(&self) -> bool {
         match self {
-            Item::Equippable(eqp) => eqp.is_2H(),
+            Item::Equippable(eqp) => eqp.is_2h(),
             _ => false,
         }
     }
 
-    pub fn is_OH_capable(&self) -> bool {
+    pub fn is_oh_capable(&self) -> bool {
         match self {
-            Item::Equippable(eqp) => eqp.is_OH_capable(),
+            Item::Equippable(eqp) => eqp.is_oh_capable(),
             _ => false,
         }
     }
