@@ -59,27 +59,55 @@ impl<'a> System<'a> for ItemCollectionSystem {
     }
 }
 
+type ItemUseSystemData<'a> = (
+    Entities<'a>,
+    ReadExpect<'a, Map>,
+    ReadStorage<'a, Player>,
+    WriteExpect<'a, GameLog>,
+    WriteStorage<'a, EventWantsToUseItem>,
+    ReadStorage<'a, Name>,
+    ReadStorage<'a, ProvidesHealing>,
+    ReadStorage<'a, InflictsDamage>,
+    WriteStorage<'a, Confusion>,
+    ReadStorage<'a, AreaOfEffect>,
+    WriteStorage<'a, CombatStats>,
+    WriteStorage<'a, EventIncomingDamage>,
+    ReadStorage<'a, Consumable>,
+    ReadStorage<'a, Item>,
+    WriteStorage<'a, Equipped>,
+    WriteStorage<'a, InBackpack>,
+);
+
+/*
+   log: &mut WriteExpect<GameLog>,
+   entities: &Read<EntitiesRes>,
+   backpack: &mut WriteStorage<InBackpack>,
+   items: I,
+   equipped_items: &mut WriteStorage<Equipped>,
+   names: &ReadStorage<Name>,
+*/
+type EquipData<'a, I: Join> = (
+    &'a Read<'a, EntitiesRes>,
+    &'a mut WriteExpect<'a, GameLog>,
+    &'a mut WriteStorage<'a, InBackpack>,
+    I,
+    &'a mut WriteStorage<'a, Equipped>,
+    &'a ReadStorage<'a, Name>,
+);
+
+type EquipData1<'a, I> = &'a (
+    Read<'a, EntitiesRes>,
+    WriteExpect<'a, GameLog>,
+    WriteStorage<'a, InBackpack>,
+    I,
+    WriteStorage<'a, Equipped>,
+    ReadStorage<'a, Name>,
+);
+
 pub struct ItemUseSystem {}
 
 impl<'a> System<'a> for ItemUseSystem {
-    type SystemData = (
-        Entities<'a>,
-        ReadExpect<'a, Map>,
-        ReadStorage<'a, Player>,
-        WriteExpect<'a, GameLog>,
-        WriteStorage<'a, EventWantsToUseItem>,
-        ReadStorage<'a, Name>,
-        ReadStorage<'a, ProvidesHealing>,
-        ReadStorage<'a, InflictsDamage>,
-        WriteStorage<'a, Confusion>,
-        ReadStorage<'a, AreaOfEffect>,
-        WriteStorage<'a, CombatStats>,
-        WriteStorage<'a, EventIncomingDamage>,
-        ReadStorage<'a, Consumable>,
-        ReadStorage<'a, Item>,
-        WriteStorage<'a, Equipped>,
-        WriteStorage<'a, InBackpack>,
-    );
+    type SystemData = ItemUseSystemData<'a>;
 
     fn run(&mut self, data: Self::SystemData) {
         let (
@@ -149,7 +177,7 @@ impl<'a> System<'a> for ItemUseSystem {
                     targets.first().iter().for_each(|target| {
                         let new_equip = Equipped::new(**target, &player_equip, &equip.allowed_slots);
                         // TODO: warn on non-unit discard?:
-                        equip_slot(&mut log, &entities, &mut backpack, &items, &mut equipped, &names, new_equip, useitem.item);
+                        equip_slot((&entities, &mut log, &mut backpack, &items, &mut equipped, &names), new_equip, useitem.item);
                      });
                 };
                 let item_heals = healing.get(useitem.item);
@@ -231,20 +259,16 @@ impl<'a> System<'a> for ItemUseSystem {
     }
 }
 
-fn equip_slot<I: Join>(
-    log: &mut WriteExpect<GameLog>,
-    entities: &Read<EntitiesRes>,
-    backpack: &mut WriteStorage<InBackpack>,
-    items: I,
-    equipped_items: &mut WriteStorage<Equipped>,
-    names: &ReadStorage<Name>,
+fn equip_slot<'a, I: Join + Copy>(
+    equip_data: EquipData<'a, I>,
     new_equip: Equipped,
     new_equip_ent: Entity,
 ) -> HashSet<(Entity, Item)>
 where
-    I: Copy,
     I::Type: IsItem,
 {
+    let (entities, log, backpack, items, equipped_items, names) = equip_data;
+
     let to_unequip = calculate_unequip(
         entities,
         items,
@@ -320,12 +344,7 @@ where
 
             if was_in_mh && old_eq_can_oh() && new_eq_is_1h() {
                 equip_slot(
-                    log,
-                    entities,
-                    backpack,
-                    items,
-                    equipped_items,
-                    names,
+                    equip_data,
                     Equipped {
                         owner: new_equip.owner,
                         slot: EquipSlot::OffHand,
@@ -343,7 +362,7 @@ where
 fn calculate_unequip<I: Join>(
     entities: &Read<EntitiesRes>,
     items: I, // FIXME: need this to be a reference, somehow
-    equipped: &mut WriteStorage<Equipped>,
+    equipped: &WriteStorage<Equipped>,
     owner: Entity,
     slot: EquipSlot,
 ) -> Vec<(Entity, Equipped, Item)>
