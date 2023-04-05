@@ -242,8 +242,8 @@ impl<'a> System<'a> for ItemUseSystem {
     }
 }
 
-fn equip_slot<'a, 'b, I: Join + Copy>(
-    equip_data: EquipData<'a, 'b, I>,
+fn equip_slot<I: Join + Copy>(
+    equip_data: EquipData<I>,
     new_equip: Equipped,
     new_equip_ent: Entity,
 ) -> HashSet<(Entity, Item)>
