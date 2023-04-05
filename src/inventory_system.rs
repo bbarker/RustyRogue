@@ -78,30 +78,13 @@ type ItemUseSystemData<'a> = (
     WriteStorage<'a, InBackpack>,
 );
 
-/*
-   log: &mut WriteExpect<GameLog>,
-   entities: &Read<EntitiesRes>,
-   backpack: &mut WriteStorage<InBackpack>,
-   items: I,
-   equipped_items: &mut WriteStorage<Equipped>,
-   names: &ReadStorage<Name>,
-*/
-type EquipData<'a, I: Join> = (
-    &'a Read<'a, EntitiesRes>,
-    &'a mut WriteExpect<'a, GameLog>,
-    &'a mut WriteStorage<'a, InBackpack>,
+type EquipData<'a, 'b, I> = (
+    &'a Read<'b, EntitiesRes>,
+    &'a mut WriteExpect<'b, GameLog>,
+    &'a mut WriteStorage<'b, InBackpack>,
     I,
-    &'a mut WriteStorage<'a, Equipped>,
-    &'a ReadStorage<'a, Name>,
-);
-
-type EquipData1<'a, I> = &'a (
-    Read<'a, EntitiesRes>,
-    WriteExpect<'a, GameLog>,
-    WriteStorage<'a, InBackpack>,
-    I,
-    WriteStorage<'a, Equipped>,
-    ReadStorage<'a, Name>,
+    &'a mut WriteStorage<'b, Equipped>,
+    &'a ReadStorage<'b, Name>,
 );
 
 pub struct ItemUseSystem {}
@@ -259,8 +242,8 @@ impl<'a> System<'a> for ItemUseSystem {
     }
 }
 
-fn equip_slot<'a, I: Join + Copy>(
-    equip_data: EquipData<'a, I>,
+fn equip_slot<'a, 'b, I: Join + Copy>(
+    equip_data: EquipData<'a, 'b, I>,
     new_equip: Equipped,
     new_equip_ent: Entity,
 ) -> HashSet<(Entity, Item)>
@@ -344,7 +327,7 @@ where
 
             if was_in_mh && old_eq_can_oh() && new_eq_is_1h() {
                 equip_slot(
-                    equip_data,
+                    (entities, log, backpack, items, equipped_items, names),
                     Equipped {
                         owner: new_equip.owner,
                         slot: EquipSlot::OffHand,
