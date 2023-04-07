@@ -8,7 +8,11 @@ use specs::{
     Entity,
 };
 
-use crate::{equipment::Equipment, map::Map, PsnU};
+use crate::{
+    equipment::{EntityEquipmentMap, EquipSlot, EquipSlotAllowed, Equipment},
+    map::Map,
+    PsnU,
+};
 use serde::{Deserialize, Serialize};
 use specs_derive::*;
 
@@ -39,6 +43,72 @@ pub struct Confusion {
 
 #[derive(Component, Deserialize, Serialize, Clone, Debug)]
 pub struct Consumable {}
+
+#[derive(Eq, PartialEq, Hash, Clone, Component, ConvertSaveload, Debug)]
+pub struct Equipped {
+    pub owner: Entity,
+    pub slot: EquipSlot,
+    pub slot_extra: Option<EquipSlot>, // 2H weapons, etc.
+}
+
+impl Equipped {
+    pub fn new(
+        owner: Entity,
+        equip_map: &EntityEquipmentMap,
+        slot_allowed: &EquipSlotAllowed,
+    ) -> Self {
+        match slot_allowed {
+            EquipSlotAllowed::SingleSlot(slot) => Equipped {
+                owner,
+                slot: slot.clone(),
+                slot_extra: None,
+            },
+            EquipSlotAllowed::Both(slot1, slot2) => Equipped {
+                owner,
+                slot: slot1.clone(),
+                slot_extra: Some(slot2.clone()),
+            },
+            EquipSlotAllowed::Either(slot1, slot2) => {
+                // We assume new items are generally better, so preferentally equip it in
+                // the primary slot (slot1) to create a convention
+                let slot = if equip_map.get(slot1).is_some() {
+                    if equip_map.get(slot2).is_some() {
+                        slot1
+                    } else {
+                        slot2
+                    }
+                } else {
+                    slot1
+                };
+
+                Equipped {
+                    owner,
+                    slot: slot.clone(),
+                    slot_extra: None,
+                }
+            }
+        }
+    }
+}
+
+pub trait IsEquipped {
+    fn from(self) -> Equipped;
+}
+
+impl<T> IsEquipped for &T
+where
+    T: IsEquipped + Clone,
+{
+    fn from(self) -> Equipped {
+        self.clone().from()
+    }
+}
+
+impl IsEquipped for Equipped {
+    fn from(self) -> Equipped {
+        self
+    }
+}
 
 #[derive(Component, ConvertSaveload, Clone, Debug)]
 pub struct EventIncomingDamage {
@@ -84,9 +154,28 @@ pub struct EventWantsToPickupItem {
     pub item: Entity,
 }
 
-#[derive(Component, ConvertSaveload, Debug)]
+#[derive(Clone, Component, ConvertSaveload, Debug)]
 pub struct InBackpack {
     pub owner: Entity,
+}
+
+pub trait IsInBackpack {
+    fn from(self) -> InBackpack;
+}
+
+impl<T> IsInBackpack for &T
+where
+    T: IsInBackpack + Clone,
+{
+    fn from(self) -> InBackpack {
+        self.clone().from()
+    }
+}
+
+impl IsInBackpack for InBackpack {
+    fn from(self) -> InBackpack {
+        self
+    }
 }
 
 #[derive(Component, ConvertSaveload, Debug)]
@@ -94,10 +183,45 @@ pub struct InflictsDamage {
     pub damage: u16,
 }
 
-#[derive(Component, ConvertSaveload, Clone, Debug)]
+#[derive(Eq, PartialEq, Hash, Component, ConvertSaveload, Clone, Debug)]
 pub enum Item {
     Consumable,
     Equippable(Equipment), // Note: In book this is a component
+}
+
+impl Item {
+    pub fn is_2h(&self) -> bool {
+        match self {
+            Item::Equippable(eqp) => eqp.is_2h(),
+            _ => false,
+        }
+    }
+
+    pub fn is_oh_capable(&self) -> bool {
+        match self {
+            Item::Equippable(eqp) => eqp.is_oh_capable(),
+            _ => false,
+        }
+    }
+}
+
+pub trait IsItem {
+    fn from(self) -> Item;
+}
+
+impl<T> IsItem for &T
+where
+    T: IsItem + Clone,
+{
+    fn from(self) -> Item {
+        self.clone().from()
+    }
+}
+
+impl IsItem for Item {
+    fn from(self) -> Item {
+        self
+    }
 }
 
 #[derive(Component, Deserialize, Serialize, Clone, Debug)]
@@ -197,10 +321,10 @@ pub struct ProvidesHealing {
     pub heal_amount: u16,
 }
 
-#[derive(Copy, Clone, ConvertSaveload, Debug)]
+#[derive(Eq, PartialEq, Hash, Copy, Clone, ConvertSaveload, Debug)]
 pub struct AbilityRange(pub u16);
 
-#[derive(Component, Clone, ConvertSaveload, Debug)]
+#[derive(Eq, PartialEq, Hash, Component, Clone, ConvertSaveload, Debug)]
 pub struct Range {
     pub range: AbilityRange,
 }

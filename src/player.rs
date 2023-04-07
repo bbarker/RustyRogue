@@ -210,7 +210,7 @@ fn interact(ecs: &mut World) -> RunState {
     }
 }
 
-fn get_item(ecs: &mut World) -> RunState {
+pub fn get_item(ecs: &mut World) -> RunState {
     let entities = ecs.entities();
     let players = ecs.read_storage::<Player>();
     let positions = ecs.read_storage::<Position>();
