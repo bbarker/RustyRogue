@@ -84,7 +84,7 @@ fn equippable_entity(
     non_blocking_entity(ecs, pos, base_data).with(Item::Equippable(item))
 }
 
-fn iron_dagger(ecs: &mut World, pos: Position) -> Entity {
+pub fn iron_dagger(ecs: &mut World, pos: Position) -> Entity {
     equippable_entity(
         ecs,
         pos,
@@ -102,7 +102,7 @@ fn iron_dagger(ecs: &mut World, pos: Position) -> Entity {
     .build()
 }
 
-fn iron_shield(ecs: &mut World, pos: Position) -> Entity {
+pub fn iron_shield(ecs: &mut World, pos: Position) -> Entity {
     equippable_entity(
         ecs,
         pos,
@@ -252,8 +252,8 @@ pub fn room_table(map_depth: i32) -> RandomTable {
         .add(magic_missile_scroll, 40)
         .add(confusion_scroll, 30)
         .add(random_monster, 50 + 2 * map_depth.unsigned_abs() as u16) // TODO: split out separate monster spawners
-        .add(iron_dagger, 10)
-        .add(iron_shield, 10)
+        .add(iron_dagger, 150) // DEBUG: should be 10
+        .add(iron_shield, 150) // DEBUG: should be 10
 }
 
 pub fn random_item(ecs: &mut World, position: Position) -> Entity {

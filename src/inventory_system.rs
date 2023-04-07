@@ -1,11 +1,15 @@
-use bracket_lib::prelude::field_of_view;
-use specs::prelude::*;
+use std::collections::HashSet;
+
+use bracket_lib::{prelude::field_of_view, terminal::console};
+use itertools::Itertools;
+use specs::{prelude::*, world::EntitiesRes};
 
 use crate::{
     components::{
-        AreaOfEffect, CombatStats, Confusion, Consumable, EventIncomingDamage,
-        EventWantsToDropItem, EventWantsToUseItem, InflictsDamage, ProvidesHealing,
+        AreaOfEffect, CombatStats, Confusion, Consumable, Equipped, EventIncomingDamage,
+        EventWantsToDropItem, EventWantsToUseItem, InflictsDamage, IsItem, Item, ProvidesHealing,
     },
+    equipment::{get_equipped_items, EquipSlot},
     map::Map,
     player::PLAYER_NAME,
 };
@@ -55,24 +59,38 @@ impl<'a> System<'a> for ItemCollectionSystem {
     }
 }
 
+type ItemUseSystemData<'a> = (
+    Entities<'a>,
+    ReadExpect<'a, Map>,
+    ReadStorage<'a, Player>,
+    WriteExpect<'a, GameLog>,
+    WriteStorage<'a, EventWantsToUseItem>,
+    ReadStorage<'a, Name>,
+    ReadStorage<'a, ProvidesHealing>,
+    ReadStorage<'a, InflictsDamage>,
+    WriteStorage<'a, Confusion>,
+    ReadStorage<'a, AreaOfEffect>,
+    WriteStorage<'a, CombatStats>,
+    WriteStorage<'a, EventIncomingDamage>,
+    ReadStorage<'a, Consumable>,
+    ReadStorage<'a, Item>,
+    WriteStorage<'a, Equipped>,
+    WriteStorage<'a, InBackpack>,
+);
+
+type EquipData<'a, 'b, I> = (
+    &'a Read<'b, EntitiesRes>,
+    &'a mut WriteExpect<'b, GameLog>,
+    &'a mut WriteStorage<'b, InBackpack>,
+    I,
+    &'a mut WriteStorage<'b, Equipped>,
+    &'a ReadStorage<'b, Name>,
+);
+
 pub struct ItemUseSystem {}
 
 impl<'a> System<'a> for ItemUseSystem {
-    type SystemData = (
-        Entities<'a>,
-        ReadExpect<'a, Map>,
-        ReadStorage<'a, Player>,
-        WriteExpect<'a, GameLog>,
-        WriteStorage<'a, EventWantsToUseItem>,
-        ReadStorage<'a, Name>,
-        ReadStorage<'a, ProvidesHealing>,
-        ReadStorage<'a, InflictsDamage>,
-        WriteStorage<'a, Confusion>,
-        ReadStorage<'a, AreaOfEffect>,
-        WriteStorage<'a, CombatStats>,
-        WriteStorage<'a, EventIncomingDamage>,
-        ReadStorage<'a, Consumable>,
-    );
+    type SystemData = ItemUseSystemData<'a>;
 
     fn run(&mut self, data: Self::SystemData) {
         let (
@@ -88,7 +106,10 @@ impl<'a> System<'a> for ItemUseSystem {
             aoe,
             mut combat_stats,
             mut incoming_damage,
-            consumables,
+            consumables, // TODO: consider removing in a separate commit; should just need Item
+            items,
+            mut equipped,
+            mut backpack,
         ) = data;
 
         let delete_if_consumed = |item: Entity, used: bool, player_name: &Name| {
@@ -134,6 +155,14 @@ impl<'a> System<'a> for ItemUseSystem {
                         }
                     }
                 };
+                if let Some(Item::Equippable(equip)) = items.get(useitem.item) {
+                    let player_equip = get_equipped_items(&items, &equipped, player_entity);
+                    targets.first().iter().for_each(|target| {
+                        let new_equip = Equipped::new(**target, &player_equip, &equip.allowed_slots);
+                        // TODO: warn on non-unit discard?:
+                        equip_slot((&entities, &mut log, &mut backpack, &items, &mut equipped, &names), new_equip, useitem.item);
+                     });
+                };
                 let item_heals = healing.get(useitem.item);
                 match item_heals {
                     None => {}
@@ -170,7 +199,7 @@ impl<'a> System<'a> for ItemUseSystem {
                             .count()
                             > 0;
                         delete_if_consumed(useitem.item, used, player_name);
-                        if player_name.name == PLAYER_NAME {
+                        if used && player_name.name == PLAYER_NAME {
                             log.entries.push(format!(
                                 "You use the {}, inflicting {} damage.",
                                 names.get(useitem.item).unwrap().name,
@@ -213,6 +242,124 @@ impl<'a> System<'a> for ItemUseSystem {
     }
 }
 
+fn equip_slot<I: Join + Copy>(
+    equip_data: EquipData<I>,
+    new_equip: Equipped,
+    new_equip_ent: Entity,
+) -> HashSet<(Entity, Item)>
+where
+    I::Type: IsItem,
+{
+    let (entities, log, backpack, items, equipped_items, names) = equip_data;
+
+    let to_unequip = calculate_unequip(
+        entities,
+        items,
+        equipped_items,
+        new_equip.owner,
+        new_equip.slot.clone(),
+    )
+    .into_iter()
+    .chain(new_equip.slot_extra.iter().flat_map(|slot2| {
+        calculate_unequip(
+            entities,
+            items,
+            equipped_items,
+            new_equip.owner,
+            slot2.clone(),
+        )
+    }))
+    .collect_vec();
+
+    let unequipped = HashSet::from_iter(
+        to_unequip
+            .clone()
+            .into_iter()
+            .map(|(item_ent, _, itm)| {
+                equipped_items.remove(item_ent);
+                let unequip_name = names.get(item_ent).unwrap();
+                log.entries
+                    .push(format!("You unequip {}.", unequip_name.name));
+                backpack
+                    .insert(
+                        item_ent,
+                        InBackpack {
+                            owner: new_equip.owner,
+                        },
+                    )
+                    .unwrap();
+                (item_ent, itm)
+            })
+            .collect_vec(),
+    );
+    backpack.remove(new_equip_ent);
+
+    equipped_items
+        .insert(new_equip_ent, new_equip.clone())
+        .unwrap();
+    console::log(format!(
+        "DEBUG: equipped: {:?}",
+        equipped_items.join().collect_vec()
+    ));
+    let equip_name = names.get(new_equip_ent).unwrap();
+    log.entries.push(format!("You equip {}.", equip_name.name));
+
+    // If unequipped was in the main hand, and it and the newly equipped are both 1-handed items,
+    // we perform a second recursive call to equip unequipped item in the off-hand slot:
+
+    match unequipped.iter().next() {
+        None => unequipped,
+        Some((uneq_ent, uneq_item)) => {
+            let was_in_mh = to_unequip
+                .iter()
+                .any(|uneq| uneq.1.slot == EquipSlot::MainHand);
+            let old_eq_can_oh = || -> bool { uneq_item.is_oh_capable() };
+            let new_eq_is_1h = || -> bool {
+                let new_item_opt: Option<Item> = (entities, items)
+                    .join()
+                    .filter(|(ent, _itm)| new_equip_ent == *ent)
+                    .map(|(_ent, itm)| itm.from())
+                    .next();
+                new_item_opt
+                    .map(|new_item| !new_item.is_2h())
+                    .unwrap_or(false)
+            };
+
+            if was_in_mh && old_eq_can_oh() && new_eq_is_1h() {
+                equip_slot(
+                    (entities, log, backpack, items, equipped_items, names),
+                    Equipped {
+                        owner: new_equip.owner,
+                        slot: EquipSlot::OffHand,
+                        slot_extra: None,
+                    },
+                    *uneq_ent,
+                )
+            } else {
+                unequipped
+            }
+        }
+    }
+}
+
+fn calculate_unequip<I: Join>(
+    entities: &Read<EntitiesRes>,
+    items: I, // FIXME: need this to be a reference, somehow
+    equipped: &WriteStorage<Equipped>,
+    owner: Entity,
+    slot: EquipSlot,
+) -> Vec<(Entity, Equipped, Item)>
+where
+    I: Copy,
+    I::Type: IsItem,
+{
+    (entities, equipped, items)
+        .join()
+        .filter(|(_, eq, _)| eq.owner == owner && eq.slot == slot)
+        .map(|(ent, eq, item)| (ent, eq.clone(), item.from()))
+        .collect()
+}
+
 pub struct ItemDropSystem {}
 
 impl<'a> System<'a> for ItemDropSystem {
@@ -247,5 +394,89 @@ impl<'a> System<'a> for ItemDropSystem {
                     .push(format!("{} drops the {}.", dropper_name, item_name));
             });
         wants_drop.clear();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        gui::backpack_items,
+        init_state,
+        player::{get_item, get_player_pos_unwrap, get_player_unwrap},
+        spawner, State,
+    };
+
+    use super::*;
+
+    fn use_first_backpack_item(gs: &mut State, player_entity: Entity) {
+        let bpack_items = backpack_items(&gs.ecs, player_entity);
+        {
+            let mut intent = gs.ecs.write_storage::<EventWantsToUseItem>();
+            intent
+                .insert(
+                    player_entity,
+                    EventWantsToUseItem {
+                        item: bpack_items[0].0,
+                        target: None,
+                    },
+                )
+                .unwrap();
+        }
+        gs.run_systems();
+    }
+
+    #[test]
+    fn equip_item_removes_from_item_from_bag() {
+        let (mut gs, _) = init_state(true);
+        let player_entity = get_player_unwrap(&gs.ecs, PLAYER_NAME);
+        let player_posn = get_player_pos_unwrap(&gs.ecs, PLAYER_NAME);
+
+        spawner::iron_dagger(&mut gs.ecs, player_posn);
+        get_item(&mut gs.ecs); // pickup an item
+        gs.run_systems();
+
+        spawner::iron_shield(&mut gs.ecs, player_posn);
+        get_item(&mut gs.ecs); // pickup an item
+        gs.run_systems();
+
+        let bpack_items = backpack_items(&gs.ecs, player_entity);
+
+        assert_eq!(bpack_items.len(), 2);
+
+        use_first_backpack_item(&mut gs, player_entity);
+
+        gs.run_systems();
+        let bpack_items = backpack_items(&gs.ecs, player_entity);
+        assert_eq!(bpack_items.len(), 1);
+    }
+
+    #[test]
+    fn main_hand_shifts_to_offhand() {
+        let (mut gs, _) = init_state(true);
+        let player_entity = get_player_unwrap(&gs.ecs, PLAYER_NAME);
+        let player_posn = get_player_pos_unwrap(&gs.ecs, PLAYER_NAME);
+
+        let _dagger1 = spawner::iron_dagger(&mut gs.ecs, player_posn);
+        get_item(&mut gs.ecs); // pickup an item
+        gs.run_systems();
+        use_first_backpack_item(&mut gs, player_entity);
+
+        let shield = spawner::iron_shield(&mut gs.ecs, player_posn);
+        get_item(&mut gs.ecs); // pickup an item
+        gs.run_systems();
+        use_first_backpack_item(&mut gs, player_entity);
+
+        let dagger2 = spawner::iron_dagger(&mut gs.ecs, player_posn);
+        get_item(&mut gs.ecs); // pickup an item
+        gs.run_systems();
+
+        let bpack_items = backpack_items(&gs.ecs, player_entity);
+        assert_eq!(bpack_items.len(), 1);
+        assert_eq!(bpack_items[0].0, dagger2);
+
+        use_first_backpack_item(&mut gs, player_entity);
+        let bpack_items = backpack_items(&gs.ecs, player_entity);
+        assert_eq!(bpack_items.len(), 1);
+        assert_eq!(bpack_items[0].0, shield);
     }
 }
