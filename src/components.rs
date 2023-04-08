@@ -44,6 +44,11 @@ pub struct Confusion {
 #[derive(Component, Deserialize, Serialize, Clone, Debug)]
 pub struct Consumable {}
 
+#[derive(Component, ConvertSaveload, Clone, Debug)]
+pub struct DefenseBonus {
+    pub bonus: i16,
+}
+
 #[derive(Eq, PartialEq, Hash, Clone, Component, ConvertSaveload, Debug)]
 pub struct Equipped {
     pub owner: Entity,
@@ -222,6 +227,11 @@ impl IsItem for Item {
     fn from(self) -> Item {
         self
     }
+}
+
+#[derive(Component, ConvertSaveload, Clone, Debug)]
+pub struct MeleePowerBonus {
+    pub bonus: i16,
 }
 
 #[derive(Component, Deserialize, Serialize, Clone, Debug)]

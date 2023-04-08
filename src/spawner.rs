@@ -99,6 +99,7 @@ pub fn iron_dagger(ecs: &mut World, pos: Position) -> Entity {
         },
         Equipment::new(ONE_HANDED, Weapon(Melee(Dagger))),
     )
+    .with(MeleePowerBonus { bonus: 2 })
     .build()
 }
 
@@ -117,6 +118,7 @@ pub fn iron_shield(ecs: &mut World, pos: Position) -> Entity {
         },
         Equipment::new(OFF_HAND, Shield),
     )
+    .with(DefenseBonus { bonus: 2 })
     .build()
 }
 
