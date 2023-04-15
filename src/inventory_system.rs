@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use bracket_lib::{prelude::field_of_view, terminal::console};
+use bracket_lib::prelude::field_of_view;
 use itertools::Itertools;
 use specs::{prelude::*, world::EntitiesRes};
 
@@ -297,10 +297,6 @@ where
     equipped_items
         .insert(new_equip_ent, new_equip.clone())
         .unwrap();
-    console::log(format!(
-        "DEBUG: equipped: {:?}",
-        equipped_items.join().collect_vec()
-    ));
     let equip_name = names.get(new_equip_ent).unwrap();
     log.entries.push(format!("You equip {}.", equip_name.name));
 

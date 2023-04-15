@@ -18,8 +18,8 @@ impl<'a> System<'a> for MeleeCombatSystem {
         WriteStorage<'a, EventIncomingDamage>,
         WriteStorage<'a, EventWantsToMelee>,
         ReadStorage<'a, Equipped>,
-        ReadStorage<'a, DefenseBonus>,
         ReadStorage<'a, MeleePowerBonus>,
+        ReadStorage<'a, DefenseBonus>,
     );
 
     fn run(&mut self, data: Self::SystemData) {
