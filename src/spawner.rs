@@ -254,8 +254,8 @@ pub fn room_table(map_depth: i32) -> RandomTable {
         .add(magic_missile_scroll, 40)
         .add(confusion_scroll, 30)
         .add(random_monster, 50 + 2 * map_depth.unsigned_abs() as u16) // TODO: split out separate monster spawners
-        .add(iron_dagger, 150) // DEBUG: should be 10
-        .add(iron_shield, 150) // DEBUG: should be 10
+        .add(iron_dagger, 70) // DEBUG: should be 10
+        .add(iron_shield, 70) // DEBUG: should be 10
 }
 
 pub fn random_item(ecs: &mut World, position: Position) -> Entity {
