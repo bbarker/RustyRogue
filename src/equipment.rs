@@ -33,7 +33,7 @@ use specs::{
 
 use specs_derive::*;
 
-use std::{collections::HashMap, convert::Infallible};
+use std::{collections::HashMap, convert::Infallible, fmt::Display};
 
 use crate::components::*;
 // `NoError` alias is deprecated in specs ... but specs_derive needs it
@@ -47,6 +47,19 @@ pub enum EquipmentType {
     Accessory,
 }
 
+impl Display for EquipmentType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            EquipmentType::Weapon(weapon_type) => write!(f, "{}", weapon_type),
+            EquipmentType::Shield => write!(f, "Shield"),
+            EquipmentType::Armor => write!(f, "Armor"),
+            EquipmentType::Accessory => write!(f, "Accessory"),
+        }
+    }
+}
+
+use enum_derive::EnumDisplay;
+
 // TODO: each weapon type could have certain modifiers, applied to its base
 // stats
 #[derive(Eq, PartialEq, Hash, ConvertSaveload, Clone, Debug)]
@@ -55,34 +68,63 @@ pub enum WeaponType {
     Ranged(RangedWeaponType, Range),
 }
 
-#[derive(Eq, PartialEq, Hash, Serialize, Deserialize, Clone, Debug)]
-pub enum MeleeWeaponType {
-    Axe,
-    Mace,
-    Sword,
-    Dagger,
-    Staff,
-    Polearm,
-    Whip,
+impl Display for WeaponType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            WeaponType::Melee(weapon_type) => write!(f, "{}", weapon_type),
+            WeaponType::Ranged(weapon_type, _) => write!(f, "{}", weapon_type),
+        }
+    }
 }
 
-#[derive(Eq, PartialEq, Hash, Serialize, Deserialize, Clone, Debug)]
-pub enum RangedWeaponType {
-    Bow,
-    Crossbow,
-    Thrown,
+macro_attr! {
+    #[derive(Eq, PartialEq, Hash, Serialize, Deserialize, Clone, Debug, EnumDisplay!)]
+    pub enum MeleeWeaponType {
+        Axe,
+        Mace,
+        Sword,
+        Dagger,
+        Staff,
+        Polearm,
+        Whip,
+    }
 }
 
-#[derive(PartialEq, Eq, Clone, Debug, Hash, Deserialize, Serialize)]
-pub enum EquipSlot {
-    Head,
-    Neck,
-    Torso,
-    Ring,
-    Hand,
-    Feet,
-    MainHand,
-    OffHand,
+macro_attr! {
+    #[derive(Eq, PartialEq, Hash, Serialize, Deserialize, Clone, Debug, EnumDisplay!)]
+    pub enum Material {
+        Wood,
+        Stone,
+        Iron,
+        Steel,
+        Silver,
+        Gold,
+        Platinum,
+        Diamond,
+    }
+}
+
+macro_attr! {
+#[derive(Eq, PartialEq, Hash, Serialize, Deserialize, Clone, Debug, EnumDisplay!)]
+    pub enum RangedWeaponType {
+        Bow,
+        Crossbow,
+        Thrown,
+    }
+}
+
+macro_attr! {
+#[derive(PartialEq, Eq, Clone, Debug, Hash, Deserialize, Serialize, EnumDisplay!)]
+    pub enum EquipSlot {
+        Head,
+        Neck,
+        Torso,
+        Ring,
+        Hand,
+        Feet,
+        MainHand,
+        OffHand,
+    }
 }
 
 #[derive(Eq, PartialEq, Hash, Clone, Debug, Deserialize, Serialize)]
@@ -103,14 +145,20 @@ pub const OFF_HAND: EquipSlotAllowed = EquipSlotAllowed::SingleSlot(EquipSlot::O
 pub struct Equipment {
     pub equipment_type: EquipmentType,
     pub allowed_slots: EquipSlotAllowed,
+    pub material: Material,
 }
 
 impl Equipment {
-    pub fn new(slot: EquipSlotAllowed, equipment_type: EquipmentType) -> Self {
+    pub fn new(slot: EquipSlotAllowed, equipment_type: EquipmentType, material: Material) -> Self {
         Equipment {
             allowed_slots: slot,
             equipment_type,
+            material,
         }
+    }
+
+    pub fn name(&self) -> String {
+        format!("{} {}", self.material, self.equipment_type)
     }
 
     pub fn is_2h(&self) -> bool {

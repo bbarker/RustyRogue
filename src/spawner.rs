@@ -84,12 +84,18 @@ fn equippable_entity(
     non_blocking_entity(ecs, pos, base_data).with(Item::Equippable(item))
 }
 
+// TODO: consider removing Bonus components and working them into the equipment stats
+// - we could have a function that maps the material and item type to a bonus, rather
+// than encoding the bonus directly in the item. Special (named) items could override
+// the default bonus.
+
 pub fn iron_dagger(ecs: &mut World, pos: Position) -> Entity {
+    let eq_item = Equipment::new(ONE_HANDED, Weapon(Melee(Dagger)), Material::Iron);
     equippable_entity(
         ecs,
         pos,
         WorldEntityData {
-            name: "Iron Dagger".into(),
+            name: eq_item.name(),
             renderable: Renderable {
                 glyph: bracket_lib::prelude::to_cp437('/'),
                 fg: RGB::named(IRON_COLOR),
@@ -97,18 +103,19 @@ pub fn iron_dagger(ecs: &mut World, pos: Position) -> Entity {
                 render_order: RenderOrder::First,
             },
         },
-        Equipment::new(ONE_HANDED, Weapon(Melee(Dagger))),
+        eq_item,
     )
     .with(MeleePowerBonus { bonus: 2 })
     .build()
 }
 
 pub fn iron_shield(ecs: &mut World, pos: Position) -> Entity {
+    let eq_item = Equipment::new(OFF_HAND, Shield, Material::Iron);
     equippable_entity(
         ecs,
         pos,
         WorldEntityData {
-            name: "Iron Shield".into(),
+            name: eq_item.name(),
             renderable: Renderable {
                 glyph: bracket_lib::prelude::to_cp437('('),
                 fg: RGB::named(IRON_COLOR),
@@ -116,7 +123,7 @@ pub fn iron_shield(ecs: &mut World, pos: Position) -> Entity {
                 render_order: RenderOrder::First,
             },
         },
-        Equipment::new(OFF_HAND, Shield),
+        eq_item,
     )
     .with(DefenseBonus { bonus: 2 })
     .build()

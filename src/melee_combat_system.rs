@@ -4,7 +4,6 @@ use crate::{
 };
 
 use super::{CombatStats, EventIncomingDamage, EventWantsToMelee, Name};
-use bracket_lib::terminal::console;
 use specs::prelude::*;
 
 pub struct MeleeCombatSystem {}
@@ -76,10 +75,6 @@ impl<'a> System<'a> for MeleeCombatSystem {
                             .power
                             .saturating_sub(offensive_bonus.abs().try_into().unwrap())
                     };
-                    console::log(format!(
-                        "power {} and power with bonus {}",
-                        stats.power, stats_power_with_bonus
-                    )); // FIXME: we seem to be getting 0 power bonus even when items are equipped
                     let defense_with_bonus: u16 = if defensive_bonus > 0 {
                         let dp: u16 = target_stats
                             .defense
