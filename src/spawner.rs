@@ -91,6 +91,7 @@ fn equippable_entity(
 
 pub fn iron_dagger(ecs: &mut World, pos: Position) -> Entity {
     let eq_item = Equipment::new(ONE_HANDED, Weapon(Melee(Dagger)), Material::Iron);
+    let bonus = eq_item.bonus();
     equippable_entity(
         ecs,
         pos,
@@ -105,12 +106,13 @@ pub fn iron_dagger(ecs: &mut World, pos: Position) -> Entity {
         },
         eq_item,
     )
-    .with(MeleePowerBonus { bonus: 2 })
+    .with(MeleePowerBonus { bonus })
     .build()
 }
 
 pub fn iron_shield(ecs: &mut World, pos: Position) -> Entity {
     let eq_item = Equipment::new(OFF_HAND, Shield, Material::Iron);
+    let bonus = eq_item.bonus();
     equippable_entity(
         ecs,
         pos,
@@ -125,7 +127,7 @@ pub fn iron_shield(ecs: &mut World, pos: Position) -> Entity {
         },
         eq_item,
     )
-    .with(DefenseBonus { bonus: 2 })
+    .with(DefenseBonus { bonus })
     .build()
 }
 
