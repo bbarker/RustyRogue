@@ -47,6 +47,17 @@ pub enum EquipmentType {
     Accessory,
 }
 
+impl EquipmentType {
+    pub fn bonus(&self) -> i16 {
+        match self {
+            EquipmentType::Weapon(weapon_type) => weapon_type.bonus(),
+            EquipmentType::Shield => 1,
+            EquipmentType::Armor => 1,
+            EquipmentType::Accessory => 1,
+        }
+    }
+}
+
 impl Display for EquipmentType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -66,6 +77,15 @@ use enum_derive::EnumDisplay;
 pub enum WeaponType {
     Melee(MeleeWeaponType),
     Ranged(RangedWeaponType, Range),
+}
+
+impl WeaponType {
+    pub fn bonus(&self) -> i16 {
+        match self {
+            WeaponType::Melee(weapon_type) => weapon_type.bonus(),
+            WeaponType::Ranged(weapon_type, _) => weapon_type.bonus(),
+        }
+    }
 }
 
 impl Display for WeaponType {
@@ -90,6 +110,20 @@ macro_attr! {
     }
 }
 
+impl MeleeWeaponType {
+    pub fn bonus(&self) -> i16 {
+        match self {
+            MeleeWeaponType::Axe => 1,
+            MeleeWeaponType::Mace => 1,
+            MeleeWeaponType::Sword => 1,
+            MeleeWeaponType::Dagger => 0,
+            MeleeWeaponType::Staff => 0,
+            MeleeWeaponType::Polearm => 1,
+            MeleeWeaponType::Whip => 1,
+        }
+    }
+}
+
 macro_attr! {
     #[derive(Eq, PartialEq, Hash, Serialize, Deserialize, Clone, Debug, EnumDisplay!)]
     pub enum Material {
@@ -104,12 +138,37 @@ macro_attr! {
     }
 }
 
+impl Material {
+    pub fn bonus(&self) -> i16 {
+        match self {
+            Material::Wood => 0,
+            Material::Stone => 1,
+            Material::Iron => 2,
+            Material::Steel => 3,
+            Material::Silver => 2,
+            Material::Gold => 2,
+            Material::Platinum => 4,
+            Material::Diamond => 5,
+        }
+    }
+}
+
 macro_attr! {
 #[derive(Eq, PartialEq, Hash, Serialize, Deserialize, Clone, Debug, EnumDisplay!)]
     pub enum RangedWeaponType {
         Bow,
         Crossbow,
         Thrown,
+    }
+}
+
+impl RangedWeaponType {
+    pub fn bonus(&self) -> i16 {
+        match self {
+            RangedWeaponType::Bow => 1,
+            RangedWeaponType::Crossbow => 1,
+            RangedWeaponType::Thrown => 0,
+        }
     }
 }
 
@@ -159,6 +218,10 @@ impl Equipment {
 
     pub fn name(&self) -> String {
         format!("{} {}", self.material, self.equipment_type)
+    }
+
+    pub fn bonus(&self) -> i16 {
+        self.equipment_type.bonus() + self.material.bonus()
     }
 
     pub fn is_2h(&self) -> bool {
