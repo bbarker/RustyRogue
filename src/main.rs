@@ -400,7 +400,6 @@ pub fn init_state(test_ecs: bool) -> (State, Option<BTerm>) {
     gs.ecs.register::<CombatStats>();
     gs.ecs.register::<Confusion>();
     gs.ecs.register::<Consumable>();
-    gs.ecs.register::<DefenseBonus>();
     gs.ecs.register::<Equipped>();
     gs.ecs.register::<EventIncomingDamage>();
     gs.ecs.register::<EventWantsToUseItem>();
@@ -410,7 +409,6 @@ pub fn init_state(test_ecs: bool) -> (State, Option<BTerm>) {
     gs.ecs.register::<InBackpack>();
     gs.ecs.register::<InflictsDamage>();
     gs.ecs.register::<Item>();
-    gs.ecs.register::<MeleePowerBonus>();
     gs.ecs.register::<Monster>();
     gs.ecs.register::<Name>();
     gs.ecs.register::<Player>();
