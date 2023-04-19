@@ -84,14 +84,8 @@ fn equippable_entity(
     non_blocking_entity(ecs, pos, base_data).with(Item::Equippable(item))
 }
 
-// TODO: consider removing Bonus components and working them into the equipment stats
-// - we could have a function that maps the material and item type to a bonus, rather
-// than encoding the bonus directly in the item. Special (named) items could override
-// the default bonus.
-
 pub fn iron_dagger(ecs: &mut World, pos: Position) -> Entity {
     let eq_item = Equipment::new(ONE_HANDED, Weapon(Melee(Dagger)), Material::Iron);
-    let bonus = eq_item.bonus();
     equippable_entity(
         ecs,
         pos,
@@ -106,13 +100,11 @@ pub fn iron_dagger(ecs: &mut World, pos: Position) -> Entity {
         },
         eq_item,
     )
-    .with(MeleePowerBonus { bonus })
     .build()
 }
 
 pub fn iron_shield(ecs: &mut World, pos: Position) -> Entity {
     let eq_item = Equipment::new(OFF_HAND, Shield, Material::Iron);
-    let bonus = eq_item.bonus();
     equippable_entity(
         ecs,
         pos,
@@ -127,7 +119,6 @@ pub fn iron_shield(ecs: &mut World, pos: Position) -> Entity {
         },
         eq_item,
     )
-    .with(DefenseBonus { bonus })
     .build()
 }
 

@@ -1,30 +1,3 @@
-// TODO: how to structure in item "slot"? Let's keep reading and see how it is used.
-// The book has this in the Equippable component
-
-// TODO: think about when we want to use the ECS, vs when we want to use ADTs
-// ECS makes it easy to query - but an ADT makes it easy to compare values, or
-// calculate properties for multiple componenents of the same item; e.g., item value
-//
-// An approach that might work is to define an item type as an ADT, and then
-// interpret (build) values of the ADT into ECS components. We can then create a
-// reference back to the original item type for any of the relevant components.
-//
-// In order to re-use exiting types and values, we can build up Equipment from
-// certain componenets, such as the EquipSlot. Since we still need some for of
-// reference to the parent from in the ADT from the component; traits won't help
-// unless the original value stores a reference to the root - so a trait is useless
-// here, except perhap to have a uniform interface across different ADTs.
-//
-// We can try a reference and see how it goes; i.e. every component that is a node
-// in the ADT(type, but also tree) will have a reference to the root.
-//
-// As I found though, Serde can't serialize references, which throws a significant
-// wrench into this plan. We may need to look into a custom serializer:
-// 1. Serialize not the components, but the ADT (although the root ADT can already
-//    be part of a component - e.g. Equipment is part of Item)
-// 2. After deserializing the ADT, populate components that are children of the ADT
-// 3. The 'Equipped' component would still need to be serialized separately
-
 use serde::{Deserialize, Serialize};
 use specs::{
     prelude::*,
@@ -71,8 +44,6 @@ impl Display for EquipmentType {
 
 use enum_derive::EnumDisplay;
 
-// TODO: each weapon type could have certain modifiers, applied to its base
-// stats
 #[derive(Eq, PartialEq, Hash, ConvertSaveload, Clone, Debug)]
 pub enum WeaponType {
     Melee(MeleeWeaponType),
@@ -199,12 +170,13 @@ pub const ONE_HANDED: EquipSlotAllowed =
     EquipSlotAllowed::Either(EquipSlot::MainHand, EquipSlot::OffHand);
 pub const OFF_HAND: EquipSlotAllowed = EquipSlotAllowed::SingleSlot(EquipSlot::OffHand);
 
-// TODO: add combat stats to equipment
 #[derive(Eq, PartialEq, Hash, Component, ConvertSaveload, Clone, Debug)]
 pub struct Equipment {
     pub equipment_type: EquipmentType,
     pub allowed_slots: EquipSlotAllowed,
     pub material: Material,
+    pub special_melee_modifier: i16,
+    pub special_defense_modifier: i16,
 }
 
 impl Equipment {
@@ -213,6 +185,8 @@ impl Equipment {
             allowed_slots: slot,
             equipment_type,
             material,
+            special_melee_modifier: 0,
+            special_defense_modifier: 0,
         }
     }
 
@@ -220,8 +194,22 @@ impl Equipment {
         format!("{} {}", self.material, self.equipment_type)
     }
 
-    pub fn bonus(&self) -> i16 {
-        self.equipment_type.bonus() + self.material.bonus()
+    pub fn melee_bonus(&self) -> i16 {
+        let derived_bonus = match self.equipment_type {
+            EquipmentType::Weapon(_) => self.equipment_type.bonus() + self.material.bonus(),
+            _ => 0,
+        };
+        derived_bonus + self.special_melee_modifier
+    }
+
+    pub fn defense_bonus(&self) -> i16 {
+        let derived_bonus = match self.equipment_type {
+            EquipmentType::Armor | EquipmentType::Shield => {
+                self.equipment_type.bonus() + self.material.bonus()
+            }
+            _ => 0,
+        };
+        derived_bonus + self.special_defense_modifier
     }
 
     pub fn is_2h(&self) -> bool {
@@ -237,19 +225,6 @@ impl Equipment {
         )
     }
 }
-
-// TODO: we would ideally have shared references to a Map that is associated with
-// the entity; this Map should probably be a component, since it could be
-// associated with various entity types
-//
-// Then when we attempt to equip an item, we can check which slots are available
-// for that entity.
-//
-// The alternative would be to query all equipment on the entity, and compute the map on the fly
-// This would be more flexible, but also more expensive; however it relies on a single source of
-// truth, which I like. It also avoids the need for any shared reference.
-// We still need an Equipped component in order to associate the item with the entity
-// equipping it.
 
 pub type EntityEquipmentMap = HashMap<EquipSlot, Equipment>;
 

@@ -44,11 +44,6 @@ pub struct Confusion {
 #[derive(Component, Deserialize, Serialize, Clone, Debug)]
 pub struct Consumable {}
 
-#[derive(Component, ConvertSaveload, Clone, Debug)]
-pub struct DefenseBonus {
-    pub bonus: i16,
-}
-
 #[derive(Eq, PartialEq, Hash, Clone, Component, ConvertSaveload, Debug)]
 pub struct Equipped {
     pub owner: Entity,
@@ -195,6 +190,14 @@ pub enum Item {
 }
 
 impl Item {
+    pub fn equip_opt(&self) -> Option<&Equipment> {
+        match self {
+            Item::Equippable(eqp) => Some(eqp),
+            _ => None,
+        }
+    }
+
+    // TODO: should probably delete the below functions and use filter_map and equip_opt instead
     pub fn is_2h(&self) -> bool {
         match self {
             Item::Equippable(eqp) => eqp.is_2h(),
@@ -227,11 +230,6 @@ impl IsItem for Item {
     fn from(self) -> Item {
         self
     }
-}
-
-#[derive(Component, ConvertSaveload, Clone, Debug)]
-pub struct MeleePowerBonus {
-    pub bonus: i16,
 }
 
 #[derive(Component, Deserialize, Serialize, Clone, Debug)]

@@ -1,5 +1,5 @@
 use crate::{
-    components::{DefenseBonus, Equipped, MeleePowerBonus},
+    components::{Equipped, Item},
     gamelog::GameLog,
 };
 
@@ -17,8 +17,7 @@ impl<'a> System<'a> for MeleeCombatSystem {
         WriteStorage<'a, EventIncomingDamage>,
         WriteStorage<'a, EventWantsToMelee>,
         ReadStorage<'a, Equipped>,
-        ReadStorage<'a, MeleePowerBonus>,
-        ReadStorage<'a, DefenseBonus>,
+        ReadStorage<'a, Item>,
     );
 
     fn run(&mut self, data: Self::SystemData) {
@@ -30,8 +29,7 @@ impl<'a> System<'a> for MeleeCombatSystem {
             mut inflict_damage,
             mut wants_melee,
             equipped,
-            melee_bonus,
-            defense_bonus,
+            items,
         ) = data;
 
         let debug_name = Name {
@@ -44,20 +42,22 @@ impl<'a> System<'a> for MeleeCombatSystem {
                 let target_name = names.get(target).unwrap_or(&debug_name);
                 let target_stats_opt = combat_stats.get(target);
                 let offensive_bonus = if stats.hp > 0 {
-                    (&entities, &melee_bonus, &equipped)
+                    (&entities, &items, &equipped)
                         .join()
-                        .filter(|(_e, _mb, eq)| eq.owner == entity)
-                        .map(|(_e, mb, _eq)| mb.bonus)
+                        .filter(|(_e, _itm, eq)| eq.owner == entity)
+                        .filter_map(|(_e, item, _eq)| item.equip_opt().map(|et| et.melee_bonus()))
                         .sum::<i16>()
                 } else {
                     0
                 };
                 let defensive_bonus = target_stats_opt.map_or(0, |ts| {
                     if ts.hp > 0 {
-                        (&entities, &defense_bonus, &equipped)
+                        (&entities, &items, &equipped)
                             .join()
-                            .filter(|(_e, _db, eq)| eq.owner == target)
-                            .map(|(_e, db, _eq)| db.bonus)
+                            .filter(|(_e, _itm, eq)| eq.owner == target)
+                            .filter_map(|(_e, item, _eq)| {
+                                item.equip_opt().map(|et| et.defense_bonus())
+                            })
                             .sum::<i16>()
                     } else {
                         0
