@@ -309,7 +309,11 @@ where
             let was_in_mh = to_unequip
                 .iter()
                 .any(|uneq| uneq.1.slot == EquipSlot::MainHand);
-            let old_eq_can_oh = || -> bool { uneq_item.is_oh_capable() };
+            let old_eq_can_oh = || -> bool {
+                uneq_item
+                    .equip_opt()
+                    .map_or_else(|| false, |eq| eq.is_oh_capable())
+            };
             let new_eq_is_1h = || -> bool {
                 let new_item_opt: Option<Item> = (entities, items)
                     .join()
@@ -317,7 +321,7 @@ where
                     .map(|(_ent, itm)| itm.from())
                     .next();
                 new_item_opt
-                    .map(|new_item| !new_item.is_2h())
+                    .map(|new_item| !new_item.equip_opt().map_or_else(|| false, |eq| eq.is_2h()))
                     .unwrap_or(false)
             };
 

@@ -196,21 +196,6 @@ impl Item {
             _ => None,
         }
     }
-
-    // TODO: should probably delete the below functions and use filter_map and equip_opt instead
-    pub fn is_2h(&self) -> bool {
-        match self {
-            Item::Equippable(eqp) => eqp.is_2h(),
-            _ => false,
-        }
-    }
-
-    pub fn is_oh_capable(&self) -> bool {
-        match self {
-            Item::Equippable(eqp) => eqp.is_oh_capable(),
-            _ => false,
-        }
-    }
 }
 
 pub trait IsItem {
