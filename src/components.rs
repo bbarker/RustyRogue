@@ -352,3 +352,52 @@ pub struct Viewshed {
     pub range: ViewRange,
     pub dirty: bool,
 }
+
+#[derive(Component, Debug, ConvertSaveload, Clone)]
+pub struct WantsToUnequipItem {
+    pub item: Entity,
+}
+
+// see https://users.rust-lang.org/t/how-to-store-a-list-tuple-of-types-that-can-be-uses-as-arguments-in-another-macro/87891
+// credit to Michael F. Bryan for this approach
+#[macro_export]
+macro_rules! execute_with_type_list {
+    ($name:ident!($($arg:tt)*)) => {
+        $name!(
+          $($arg)*,
+          AreaOfEffect,
+          BlocksTile,
+          CombatStats,
+          Confusion,
+          Consumable,
+          Equipped,
+          EventIncomingDamage,
+          EventWantsToDropItem,
+          EventWantsToMelee,
+          EventWantsToPickupItem,
+          EventWantsToUseItem,
+          InBackpack,
+          InflictsDamage,
+          Item,
+          Monster,
+          Name,
+          Player,
+          Position,
+          ProvidesHealing,
+          Range,
+          Renderable,
+          SerializationHelper,
+          Viewshed,
+          WantsToUnequipItem,
+        )
+    }
+  }
+
+#[macro_export]
+macro_rules! register_individually {
+    ($ecs:expr, $( $type:ty),*, $(,)?) => {
+        $(
+        $ecs.register::<$type>();
+        )*
+    };
+  }

@@ -6,41 +6,9 @@ use std::{
 use specs::{prelude::*, saveload::*, World, WorldExt};
 
 use crate::components::*;
+use crate::execute_with_type_list;
 
 const SAVE_FILE: &str = "savegame.json";
-
-// see https://users.rust-lang.org/t/how-to-store-a-list-tuple-of-types-that-can-be-uses-as-arguments-in-another-macro/87891
-// credit to Michael F. Bryan for this approach
-macro_rules! execute_with_type_list {
-  ($name:ident!($($arg:tt)*)) => {
-      $name!(
-        $($arg)*,
-        AreaOfEffect,
-        BlocksTile,
-        CombatStats,
-        Confusion,
-        Consumable,
-        Equipped,
-        EventIncomingDamage,
-        EventWantsToDropItem,
-        EventWantsToMelee,
-        EventWantsToPickupItem,
-        EventWantsToUseItem,
-        InBackpack,
-        InflictsDamage,
-        Item,
-        Monster,
-        Name,
-        Player,
-        Position,
-        ProvidesHealing,
-        Range,
-        Renderable,
-        SerializationHelper,
-        Viewshed,
-      )
-  }
-}
 
 macro_rules! serialize_individually {
   ($ecs:expr, $ser:expr, $data:expr, $( $type:ty),*, $(,)?) => {

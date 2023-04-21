@@ -63,6 +63,7 @@ pub enum RunState {
         range: u16,
         item: Entity,
     },
+    ShowRemoveItem,
     MainMenu {
         menu_selection: gui::MainMenuSelection,
     },
@@ -288,6 +289,11 @@ impl GameState for State {
                     }
                 }
             }
+            RunState::ShowRemoveItem => {
+                // TODO
+                // let result = gui::remove_item_menu(self, ctx);
+                ()
+            }
             RunState::ShowTargeting { range, item } => {
                 let result = gui::ranged_target(self, ctx, range);
                 match result.0 {
@@ -394,30 +400,8 @@ pub fn init_state(test_ecs: bool) -> (State, Option<BTerm>) {
         )
     };
 
-    // register components
-    gs.ecs.register::<AreaOfEffect>();
-    gs.ecs.register::<BlocksTile>();
-    gs.ecs.register::<CombatStats>();
-    gs.ecs.register::<Confusion>();
-    gs.ecs.register::<Consumable>();
-    gs.ecs.register::<Equipped>();
-    gs.ecs.register::<EventIncomingDamage>();
-    gs.ecs.register::<EventWantsToUseItem>();
-    gs.ecs.register::<EventWantsToDropItem>();
-    gs.ecs.register::<EventWantsToMelee>();
-    gs.ecs.register::<EventWantsToPickupItem>();
-    gs.ecs.register::<InBackpack>();
-    gs.ecs.register::<InflictsDamage>();
-    gs.ecs.register::<Item>();
-    gs.ecs.register::<Monster>();
-    gs.ecs.register::<Name>();
-    gs.ecs.register::<Player>();
-    gs.ecs.register::<Position>();
-    gs.ecs.register::<ProvidesHealing>();
-    gs.ecs.register::<Range>();
-    gs.ecs.register::<Renderable>();
-    gs.ecs.register::<SerializationHelper>();
-    gs.ecs.register::<Viewshed>();
+    execute_with_type_list!(register_individually!(gs.ecs));
+
     // register makers
     gs.ecs.register::<SimpleMarker<SerializeMe>>();
 
