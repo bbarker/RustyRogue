@@ -77,6 +77,7 @@ pub fn player_input(gs: &mut State, ctx: &mut BTerm) -> RunState {
             VirtualKeyCode::Escape => RunState::MainMenu {
                 menu_selection: SaveGame,
             },
+            VirtualKeyCode::R => RunState::ShowRemoveItem,
 
             // Player Movement
             VirtualKeyCode::Left | VirtualKeyCode::Numpad4 | VirtualKeyCode::A => {
