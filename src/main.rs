@@ -216,7 +216,7 @@ impl GameState for State {
             }
             // TODO: consider abstracting the next 3 into a single function ... but probably not worth it
             RunState::ShowInventory => {
-                let result = show_inventory(self, ctx, "Inventory: Use Item");
+                let result = show_inventory(self, ctx, InventoryMode::Use);
                 match result.0 {
                     gui::ItemMenuResult::Cancel => newrunstate = RunState::AwaitingInput,
                     gui::ItemMenuResult::NoResponse => {}
@@ -258,7 +258,7 @@ impl GameState for State {
                 }
             }
             RunState::ShowDropItem => {
-                let result = gui::show_inventory(self, ctx, "Inventory: Drop Item");
+                let result = gui::show_inventory(self, ctx, InventoryMode::Drop);
                 match result.0 {
                     gui::ItemMenuResult::Cancel => newrunstate = RunState::AwaitingInput,
                     gui::ItemMenuResult::NoResponse => {}
@@ -291,7 +291,7 @@ impl GameState for State {
             }
             RunState::ShowRemoveItem => {
                 // TODO
-                // let result = gui::remove_item_menu(self, ctx);
+                let result = gui::show_inventory(self, ctx, InventoryMode::Unequip);
                 ()
             }
             RunState::ShowTargeting { range, item } => {
