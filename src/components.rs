@@ -17,6 +17,7 @@ use serde::{Deserialize, Serialize};
 use specs_derive::*;
 
 use std::convert::Infallible;
+
 // `NoError` alias is deprecated in specs ... but specs_derive needs it
 pub type NoError = Infallible;
 
@@ -107,6 +108,31 @@ where
 impl IsEquipped for Equipped {
     fn from(self) -> Equipped {
         self
+    }
+}
+
+pub trait HasOwner {
+    fn owner(&self) -> Entity;
+    // fn any(&self) -> &dyn Any;
+    //  fn as_has_owner_ref(&self) -> &dyn HasOwner;
+    fn as_has_owner(self) -> Box<dyn HasOwner>;
+}
+
+impl HasOwner for InBackpack {
+    fn owner(&self) -> Entity {
+        self.owner
+    }
+    fn as_has_owner(self) -> Box<dyn HasOwner> {
+        Box::new(self)
+    }
+}
+
+impl HasOwner for Equipped {
+    fn owner(&self) -> Entity {
+        self.owner
+    }
+    fn as_has_owner(self) -> Box<dyn HasOwner> {
+        Box::new(self)
     }
 }
 

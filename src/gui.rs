@@ -13,7 +13,7 @@ use specs::prelude::*;
 
 use crate::{
     components::{
-        CombatStats, Equipped, InBackpack, Name, Player, Position, Positionable, Viewshed,
+        CombatStats, Equipped, HasOwner, InBackpack, Name, Player, Position, Positionable, Viewshed,
     },
     display_state::DisplayState,
     gamelog::GameLog,
@@ -162,35 +162,60 @@ pub fn backpack_items(ecs: &World, owner: Entity) -> Vec<(Entity, String)> {
         .collect::<Vec<(Entity, String)>>()
 }
 //
-pub fn owned_items(ecs: &World, owner: Entity) -> Vec<(Entity, String)> {
+pub fn equipped_items(ecs: &World, owner: Entity) -> Vec<(Entity, String)> {
     let entities = ecs.entities();
     let equipped = ecs.read_storage::<Equipped>();
     let names = ecs.read_storage::<Name>();
 
-    let mut equipped_items = (&entities, &equipped, &names)
+    (&entities, &equipped, &names)
         .join()
         .filter(|(_e, equip, _n)| equip.owner == owner)
         .map(|(ent, _b, name)| (ent, name.name.to_string()))
-        .collect::<Vec<(Entity, String)>>();
+        .collect::<Vec<(Entity, String)>>()
+}
+//
+pub fn owned_items(ecs: &World, owner: Entity) -> Vec<(Entity, String)> {
     // Seems difficult to avoid mutation here given the APIs on hand
+    let mut equipped_items = equipped_items(ecs, owner);
     equipped_items.append(&mut backpack_items(ecs, owner));
     equipped_items
+}
+
+pub enum InventoryMode {
+    Use,
+    Drop,
+    Unequip,
+}
+
+impl InventoryMode {
+    pub fn menu_name(&self) -> String {
+        match self {
+            InventoryMode::Use => "Use item",
+            InventoryMode::Drop => "Drop item",
+            InventoryMode::Unequip => "Unequip item",
+        }
+        .to_string()
+    }
 }
 
 pub fn show_inventory(
     gs: &mut State,
     ctx: &mut BTerm,
-    title: impl Into<String>,
+    mode: InventoryMode,
 ) -> (ItemMenuResult, Option<Entity>) {
     const ESCAPE_MSG: &str = "ESCAPE to cancel";
-    let title_str = title.into();
+    let title_str = mode.menu_name();
     let entities = gs.ecs.entities();
     let names = gs.ecs.read_storage::<Name>();
     let backpack = gs.ecs.read_storage::<InBackpack>();
+    let equipped = gs.ecs.read_storage::<Equipped>();
 
     let player_entity = get_player_unwrap(&gs.ecs, PLAYER_NAME);
 
-    let inventory = backpack_items(&gs.ecs, player_entity);
+    let inventory = match mode {
+        InventoryMode::Unequip => equipped_items(&gs.ecs, player_entity),
+        _ => backpack_items(&gs.ecs, player_entity),
+    };
 
     let (inventory_size, max_item_name_length) = inventory
         .iter()
@@ -226,11 +251,21 @@ pub fn show_inventory(
         ESCAPE_MSG,
     );
 
-    let useable: Vec<Entity> = (&entities, &backpack, &names)
-        .join()
+    let abs_pack: Vec<(Entity, Box<dyn HasOwner>, &Name)> = match mode {
+        InventoryMode::Unequip => (&entities, &equipped, &names)
+            .join()
+            .map(|(ent, eqpd, name)| (ent, eqpd.clone().as_has_owner(), name))
+            .collect_vec(),
+        _ => (&entities, &backpack, &names)
+            .join()
+            .map(|(ent, bpack, name)| (ent, bpack.clone().as_has_owner(), name))
+            .collect_vec(),
+    };
+    let useable: Vec<Entity> = abs_pack
+        .into_iter()
         .enumerate()
         .filter_map(|(jj, (entity, item, name))| {
-            if item.owner == player_entity {
+            if item.owner() == player_entity {
                 ctx.set(
                     x_init + 1,
                     y_init + jj as PsnU,
