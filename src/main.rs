@@ -161,6 +161,62 @@ impl State {
     }
 }
 
+fn remove_or_drop(
+    state: &mut State,
+    ctx: &mut BTerm,
+    newrunstate: &mut RunState,
+    mode: InventoryMode,
+) {
+    let result = gui::show_inventory(state, ctx, mode.clone());
+    match result.0 {
+        gui::ItemMenuResult::Cancel => *newrunstate = RunState::AwaitingInput,
+        gui::ItemMenuResult::NoResponse => {}
+        gui::ItemMenuResult::Selected => {
+            let item_entity = result
+                .1
+                .unwrap_or_else(|| panic!("Item selected but not found!"));
+            let item_name = state
+                .ecs
+                .read_storage::<Name>()
+                .get(item_entity)
+                .unwrap()
+                .name
+                .clone();
+            match mode {
+                InventoryMode::Drop => {
+                    let mut intent = state.ecs.write_storage::<EventWantsToDropItem>();
+                    intent
+                        .insert(
+                            get_player_unwrap(&state.ecs, PLAYER_NAME),
+                            EventWantsToDropItem { item: item_entity },
+                        )
+                        .unwrap_or_else(|er| {
+                            panic!("Tried to drop {} but failed!: {}", item_name, er)
+                        });
+                }
+                InventoryMode::Unequip => {
+                    let mut intent = state.ecs.write_storage::<EventWantsToRemoveItem>();
+                    intent
+                        .insert(
+                            get_player_unwrap(&state.ecs, PLAYER_NAME),
+                            EventWantsToRemoveItem { item: item_entity },
+                        )
+                        .unwrap_or_else(|er| {
+                            panic!("Tried to remove {} but failed!: {}", item_name, er)
+                        });
+                }
+                InventoryMode::Use => panic!("mode is Use for removeOrDropItem"),
+            };
+
+            let mut gamelog = state.ecs.fetch_mut::<gamelog::GameLog>();
+            gamelog
+                .entries
+                .push(format!("You remove the {}.", item_name));
+            *newrunstate = RunState::PlayerTurn;
+        }
+    }
+}
+
 impl GameState for State {
     fn tick(&mut self, ctx: &mut BTerm) {
         // This might be a good candidate for mutual TCO, someday
@@ -258,41 +314,10 @@ impl GameState for State {
                 }
             }
             RunState::ShowDropItem => {
-                let result = gui::show_inventory(self, ctx, InventoryMode::Drop);
-                match result.0 {
-                    gui::ItemMenuResult::Cancel => newrunstate = RunState::AwaitingInput,
-                    gui::ItemMenuResult::NoResponse => {}
-                    gui::ItemMenuResult::Selected => {
-                        let item_entity = result
-                            .1
-                            .unwrap_or_else(|| panic!("Item selected but not found!"));
-                        let mut intent = self.ecs.write_storage::<EventWantsToDropItem>();
-                        let item_name = self
-                            .ecs
-                            .read_storage::<Name>()
-                            .get(item_entity)
-                            .unwrap()
-                            .name
-                            .clone();
-                        intent
-                            .insert(
-                                get_player_unwrap(&self.ecs, PLAYER_NAME),
-                                EventWantsToDropItem { item: item_entity },
-                            )
-                            .unwrap_or_else(|er| {
-                                panic!("Tried to drop {} but failed!: {}", item_name, er)
-                            });
-
-                        let mut gamelog = self.ecs.fetch_mut::<gamelog::GameLog>();
-                        gamelog.entries.push(format!("You drop the {}.", item_name));
-                        newrunstate = RunState::PlayerTurn;
-                    }
-                }
+                remove_or_drop(self, ctx, &mut newrunstate, InventoryMode::Drop)
             }
             RunState::ShowRemoveItem => {
-                // TODO
-                let result = gui::show_inventory(self, ctx, InventoryMode::Unequip);
-                ()
+                remove_or_drop(self, ctx, &mut newrunstate, InventoryMode::Unequip)
             }
             RunState::ShowTargeting { range, item } => {
                 let result = gui::ranged_target(self, ctx, range);
