@@ -181,6 +181,7 @@ pub fn owned_items(ecs: &World, owner: Entity) -> Vec<(Entity, String)> {
     equipped_items
 }
 
+#[derive(Clone, Debug)]
 pub enum InventoryMode {
     Use,
     Drop,
@@ -254,11 +255,11 @@ pub fn show_inventory(
     let abs_pack: Vec<(Entity, Box<dyn HasOwner>, &Name)> = match mode {
         InventoryMode::Unequip => (&entities, &equipped, &names)
             .join()
-            .map(|(ent, eqpd, name)| (ent, eqpd.clone().as_has_owner(), name))
+            .map(|(ent, eqpd, name)| (ent, eqpd.clone().into_has_owner(), name))
             .collect_vec(),
         _ => (&entities, &backpack, &names)
             .join()
-            .map(|(ent, bpack, name)| (ent, bpack.clone().as_has_owner(), name))
+            .map(|(ent, bpack, name)| (ent, bpack.clone().into_has_owner(), name))
             .collect_vec(),
     };
     let useable: Vec<Entity> = abs_pack

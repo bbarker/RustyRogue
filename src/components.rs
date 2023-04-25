@@ -113,16 +113,14 @@ impl IsEquipped for Equipped {
 
 pub trait HasOwner {
     fn owner(&self) -> Entity;
-    // fn any(&self) -> &dyn Any;
-    //  fn as_has_owner_ref(&self) -> &dyn HasOwner;
-    fn as_has_owner(self) -> Box<dyn HasOwner>;
+    fn into_has_owner(self) -> Box<dyn HasOwner>;
 }
 
 impl HasOwner for InBackpack {
     fn owner(&self) -> Entity {
         self.owner
     }
-    fn as_has_owner(self) -> Box<dyn HasOwner> {
+    fn into_has_owner(self) -> Box<dyn HasOwner> {
         Box::new(self)
     }
 }
@@ -131,7 +129,7 @@ impl HasOwner for Equipped {
     fn owner(&self) -> Entity {
         self.owner
     }
-    fn as_has_owner(self) -> Box<dyn HasOwner> {
+    fn into_has_owner(self) -> Box<dyn HasOwner> {
         Box::new(self)
     }
 }
@@ -177,6 +175,11 @@ pub struct EventWantsToMelee {
 #[derive(Component, ConvertSaveload, Clone, Debug)]
 pub struct EventWantsToPickupItem {
     pub collected_by: Entity,
+    pub item: Entity,
+}
+
+#[derive(Component, ConvertSaveload, Debug, Clone)]
+pub struct EventWantsToRemoveItem {
     pub item: Entity,
 }
 
@@ -401,6 +404,7 @@ macro_rules! execute_with_type_list {
           EventWantsToDropItem,
           EventWantsToMelee,
           EventWantsToPickupItem,
+          EventWantsToRemoveItem,
           EventWantsToUseItem,
           InBackpack,
           InflictsDamage,
