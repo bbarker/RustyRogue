@@ -7,7 +7,8 @@ use specs::{prelude::*, world::EntitiesRes};
 use crate::{
     components::{
         AreaOfEffect, CombatStats, Confusion, Consumable, Equipped, EventIncomingDamage,
-        EventWantsToDropItem, EventWantsToUseItem, InflictsDamage, IsItem, Item, ProvidesHealing,
+        EventWantsToDropItem, EventWantsToRemoveItem, EventWantsToUseItem, InflictsDamage, IsItem,
+        Item, ProvidesHealing,
     },
     equipment::{get_equipped_items, EquipSlot},
     map::Map,
@@ -394,6 +395,42 @@ impl<'a> System<'a> for ItemDropSystem {
                     .push(format!("{} drops the {}.", dropper_name, item_name));
             });
         wants_drop.clear();
+    }
+}
+
+pub struct ItemRemoveSystem {}
+
+impl<'a> System<'a> for ItemRemoveSystem {
+    type SystemData = (
+        Entities<'a>,
+        WriteStorage<'a, EventWantsToRemoveItem>,
+        ReadStorage<'a, Name>,
+        WriteStorage<'a, InBackpack>,
+        WriteStorage<'a, Equipped>,
+        WriteExpect<'a, GameLog>,
+    );
+
+    fn run(&mut self, data: Self::SystemData) {
+        let (entities, mut wants_remove, names, mut backpack, mut equipped, mut log) = data;
+        (&entities, &wants_remove)
+            .join()
+            .for_each(|(entity, to_remove)| {
+                equipped.remove(to_remove.item);
+                backpack
+                    .insert(to_remove.item, InBackpack { owner: entity })
+                    .unwrap_or_else(|er| panic!("Unable to unequip item fully: {}", er));
+                let item_name = names
+                    .get(to_remove.item)
+                    .map(|n| n.name.clone())
+                    .unwrap_or_else(|| format!("item {}", to_remove.item.id()));
+                let remover_name = names
+                    .get(entity)
+                    .map(|n| n.name.clone())
+                    .unwrap_or_else(|| format!("Entity {}", entity.id()));
+                log.entries
+                    .push(format!("{} unequips the {}.", remover_name, item_name));
+            });
+        wants_remove.clear();
     }
 }
 
