@@ -398,6 +398,12 @@ impl GameState for State {
 }
 
 pub fn init_state(test_ecs: bool) -> (State, Option<BTerm>) {
+    // Initialize globals
+    {
+        let default_keys = KeyBindings::_make_default();
+        DEFAULT_KEY_BINDINGS.set(default_keys).unwrap();
+    }
+
     let (mut gs, opt_ctxt) = if test_ecs {
         (
             State {

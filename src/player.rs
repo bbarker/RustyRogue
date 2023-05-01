@@ -1,5 +1,8 @@
+use std::collections::HashMap;
+
 use bracket_lib::terminal::{BTerm, VirtualKeyCode};
 use itertools::Itertools;
+use once_cell::sync::OnceCell;
 use specs::{world::EntitiesRes, *};
 
 use crate::{
@@ -64,6 +67,64 @@ pub fn try_move_player(delta_x: i32, delta_y: i32, gs: &mut State) -> RunState {
         }
     } else {
         RunState::AwaitingInput
+    }
+}
+
+// TODO: we can build two maps from a list of PlayerInputEntry values
+// - one will have keys that are the key codes, so we can immediately lookup
+// the action. The other will have the name of the action as the key, so we
+// can see what keys are bound for an action.
+//
+// But what if we want to change the key bindings - do we have to entirely rebuild
+// both maps from this list? May be better to start with the name-keyed map, and
+// if a change is made, update the entries in the other map accordingly:
+
+#[derive(PartialEq, Eq, Clone, Debug, Hash)]
+enum PlayerAction {
+    ShowInventory,
+}
+
+#[derive(Clone, Debug)]
+
+struct ActionAndKeys {
+    key_codes: Vec<VirtualKeyCode>,
+    action: fn() -> RunState,
+}
+
+#[derive(Clone, Debug)]
+struct ActionAndId {
+    id: PlayerAction,
+    action: fn() -> RunState,
+}
+
+#[derive(Debug)]
+pub struct KeyBindings {
+    get_action: HashMap<PlayerAction, ActionAndKeys>,
+}
+
+pub static DEFAULT_KEY_BINDINGS: OnceCell<KeyBindings> = OnceCell::new();
+
+impl KeyBindings {
+    pub fn default() -> &'static KeyBindings {
+        DEFAULT_KEY_BINDINGS
+            .get()
+            .expect("DEFAULT_KEY_BINDINGS not initialized")
+    }
+
+    pub fn _make_default() -> KeyBindings {
+        let get_action_map: HashMap<PlayerAction, ActionAndKeys> = [(
+            PlayerAction::ShowInventory,
+            ActionAndKeys {
+                key_codes: vec![VirtualKeyCode::I],
+                action: || RunState::ShowInventory,
+            },
+        )]
+        .iter()
+        .cloned()
+        .collect();
+        KeyBindings {
+            get_action: get_action_map,
+        }
     }
 }
 
