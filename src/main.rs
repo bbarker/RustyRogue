@@ -76,6 +76,12 @@ pub struct State {
     pub display: DisplayState,
 }
 
+impl std::fmt::Debug for State {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "<World; DisplayState = {:#?}>", self.display)
+    }
+}
+
 impl State {
     fn run_systems(&mut self) {
         // These systems are required to be mutable by run_now, but
@@ -398,12 +404,6 @@ impl GameState for State {
 }
 
 pub fn init_state(test_ecs: bool) -> (State, Option<BTerm>) {
-    // Initialize globals
-    {
-        let default_keys = KeyBindings::_make_default();
-        DEFAULT_KEY_BINDINGS.set(default_keys).unwrap();
-    }
-
     let (mut gs, opt_ctxt) = if test_ecs {
         (
             State {
@@ -463,6 +463,11 @@ pub fn init_state(test_ecs: bool) -> (State, Option<BTerm>) {
 }
 
 fn main() {
+    {
+        // Globals
+        let default_keys = KeyBindings::_make_default();
+        DEFAULT_KEY_BINDINGS.set(default_keys).unwrap();
+    }
     if let (gs, Some(context)) = init_state(false) {
         bracket_lib::prelude::main_loop(context, gs).unwrap()
     } else {

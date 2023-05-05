@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use bracket_lib::terminal::{BTerm, VirtualKeyCode};
 use itertools::Itertools;
@@ -79,27 +80,50 @@ pub fn try_move_player(delta_x: i32, delta_y: i32, gs: &mut State) -> RunState {
 // both maps from this list? May be better to start with the name-keyed map, and
 // if a change is made, update the entries in the other map accordingly:
 
-#[derive(PartialEq, Eq, Clone, Debug, Hash)]
+#[derive(PartialEq, Eq, Clone, Copy, Debug, Hash)]
 enum PlayerAction {
     ShowInventory,
+    ShowDropItem,
+    Escape,
+    ShowRemoveItem,
+    Left,
+    Right,
+    Up,
+    Down,
+    UpLeft,
+    UpRight,
+    DownLeft,
+    DownRight,
+}
+
+pub trait PlayerActionFnT: FnMut(&mut State) -> RunState + Send + Sync + 'static {}
+
+impl<F> PlayerActionFnT for F where F: FnMut(&mut State) -> RunState + Send + Sync + 'static {}
+
+pub type PlayerActionFn = Arc<dyn PlayerActionFnT>;
+
+impl std::fmt::Debug for dyn PlayerActionFnT {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "<PlayerActionFn>")
+    }
 }
 
 #[derive(Clone, Debug)]
-
 struct ActionAndKeys {
     key_codes: Vec<VirtualKeyCode>,
-    action: fn() -> RunState,
+    action: PlayerActionFn,
 }
 
 #[derive(Clone, Debug)]
 struct ActionAndId {
     id: PlayerAction,
-    action: fn() -> RunState,
+    action: PlayerActionFn,
 }
 
 #[derive(Debug)]
 pub struct KeyBindings {
-    get_action: HashMap<PlayerAction, ActionAndKeys>,
+    action_by_id: HashMap<PlayerAction, ActionAndKeys>,
+    action_by_key: HashMap<VirtualKeyCode, ActionAndId>,
 }
 
 pub static DEFAULT_KEY_BINDINGS: OnceCell<KeyBindings> = OnceCell::new();
@@ -111,19 +135,75 @@ impl KeyBindings {
             .expect("DEFAULT_KEY_BINDINGS not initialized")
     }
 
+    // TODO: wrap State in OnceCell so we can have a static reference to it
+    // Update: does not seem to work well as State needs to be &mut
+    // Alternatively may need to try FnMut(gs: &mut State) -> RunState
     pub fn _make_default() -> KeyBindings {
-        let get_action_map: HashMap<PlayerAction, ActionAndKeys> = [(
-            PlayerAction::ShowInventory,
-            ActionAndKeys {
-                key_codes: vec![VirtualKeyCode::I],
-                action: || RunState::ShowInventory,
-            },
-        )]
+        let action_by_id: HashMap<PlayerAction, ActionAndKeys> = [
+            (
+                PlayerAction::ShowInventory,
+                ActionAndKeys {
+                    key_codes: vec![VirtualKeyCode::I],
+                    action: Arc::new(|_| RunState::ShowInventory),
+                },
+            ),
+            (
+                PlayerAction::ShowDropItem,
+                ActionAndKeys {
+                    key_codes: vec![VirtualKeyCode::D],
+                    action: Arc::new(|_| RunState::ShowDropItem),
+                },
+            ),
+            (
+                PlayerAction::Escape,
+                ActionAndKeys {
+                    key_codes: vec![VirtualKeyCode::Escape],
+                    action: Arc::new(|_| RunState::MainMenu {
+                        menu_selection: SaveGame,
+                    }),
+                },
+            ),
+            (
+                PlayerAction::ShowRemoveItem,
+                ActionAndKeys {
+                    key_codes: vec![VirtualKeyCode::R],
+                    action: Arc::new(|_| RunState::ShowRemoveItem),
+                },
+            ),
+            (
+                PlayerAction::Left,
+                ActionAndKeys {
+                    key_codes: vec![
+                        VirtualKeyCode::Left,
+                        VirtualKeyCode::A,
+                        VirtualKeyCode::Numpad4,
+                    ],
+                    action: Arc::new(|gs| try_move_player(-1, 0, gs)),
+                },
+            ),
+        ]
         .iter()
         .cloned()
         .collect();
+
+        let action_by_key: HashMap<VirtualKeyCode, ActionAndId> = action_by_id
+            .iter()
+            .flat_map(|(id, action_and_keys)| {
+                action_and_keys.key_codes.iter().map(|key_code| {
+                    (
+                        *key_code,
+                        ActionAndId {
+                            id: *id,
+                            action: action_and_keys.action.clone(),
+                        },
+                    )
+                })
+            })
+            .collect();
+
         KeyBindings {
-            get_action: get_action_map,
+            action_by_id,
+            action_by_key,
         }
     }
 }

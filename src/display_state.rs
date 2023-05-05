@@ -2,6 +2,7 @@ use bracket_lib::terminal::BTerm;
 
 use crate::PsnU;
 
+#[derive(Debug)]
 pub struct DisplayState {
     pub width: PsnU,
     pub height: PsnU,
