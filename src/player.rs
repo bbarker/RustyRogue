@@ -94,6 +94,8 @@ enum PlayerAction {
     UpRight,
     DownLeft,
     DownRight,
+    SkipTurn,
+    Interact,
 }
 
 pub trait PlayerActionFnT: FnMut(&mut State) -> RunState + Send + Sync + 'static {}
@@ -179,6 +181,81 @@ impl KeyBindings {
                         VirtualKeyCode::Numpad4,
                     ],
                     action: Arc::new(|gs| try_move_player(-1, 0, gs)),
+                },
+            ),
+            (
+                PlayerAction::Right,
+                ActionAndKeys {
+                    key_codes: vec![
+                        VirtualKeyCode::Right,
+                        VirtualKeyCode::D,
+                        VirtualKeyCode::Numpad6,
+                    ],
+                    action: Arc::new(|gs| try_move_player(1, 0, gs)),
+                },
+            ),
+            (
+                PlayerAction::Up,
+                ActionAndKeys {
+                    key_codes: vec![
+                        VirtualKeyCode::Up,
+                        VirtualKeyCode::W,
+                        VirtualKeyCode::Numpad8,
+                    ],
+                    action: Arc::new(|gs| try_move_player(0, -1, gs)),
+                },
+            ),
+            (
+                PlayerAction::Down,
+                ActionAndKeys {
+                    key_codes: vec![
+                        VirtualKeyCode::Down,
+                        VirtualKeyCode::S,
+                        VirtualKeyCode::Numpad2,
+                    ],
+                    action: Arc::new(|gs| try_move_player(0, 1, gs)),
+                },
+            ),
+            (
+                PlayerAction::UpLeft,
+                ActionAndKeys {
+                    key_codes: vec![VirtualKeyCode::Numpad7],
+                    action: Arc::new(|gs| try_move_player(-1, -1, gs)),
+                },
+            ),
+            (
+                PlayerAction::UpRight,
+                ActionAndKeys {
+                    key_codes: vec![VirtualKeyCode::Numpad9],
+                    action: Arc::new(|gs| try_move_player(1, -1, gs)),
+                },
+            ),
+            (
+                PlayerAction::DownLeft,
+                ActionAndKeys {
+                    key_codes: vec![VirtualKeyCode::Numpad1],
+                    action: Arc::new(|gs| try_move_player(-1, 1, gs)),
+                },
+            ),
+            (
+                PlayerAction::DownRight,
+                ActionAndKeys {
+                    key_codes: vec![VirtualKeyCode::Numpad3],
+                    action: Arc::new(|gs| try_move_player(1, 1, gs)),
+                },
+            ),
+            (
+                PlayerAction::SkipTurn,
+                ActionAndKeys {
+                    key_codes: vec![VirtualKeyCode::Numpad5, VirtualKeyCode::Space],
+                    action: Arc::new(|gs| skip_turn(&mut gs.ecs)),
+                },
+            ),
+            (
+                PlayerAction::Interact,
+                ActionAndKeys {
+                    key_codes: vec![VirtualKeyCode::G],
+                    action: Arc::new(|gs| interact(&mut gs.ecs)),
                 },
             ),
         ]
