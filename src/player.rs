@@ -285,6 +285,20 @@ impl KeyBindings {
     }
 }
 
+pub fn player_input2(gs: &mut State, ctx: &mut BTerm) -> RunState {
+    let key_map = &KeyBindings::default().action_by_key;
+    match ctx.key {
+        None => RunState::AwaitingInput,
+        Some(key) => match key_map.get(&key) {
+            None => RunState::AwaitingInput,
+            Some(action_and_id) => {
+                let action = action_and_id.action.clone();
+                action(gs) // TODO: looks like we need mutex
+            }
+        },
+    }
+}
+
 pub fn player_input(gs: &mut State, ctx: &mut BTerm) -> RunState {
     match ctx.key {
         None => RunState::AwaitingInput,
