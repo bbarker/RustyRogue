@@ -98,9 +98,9 @@ enum PlayerAction {
     Interact,
 }
 
-pub trait PlayerActionFnT: FnMut(&mut State) -> RunState + Send + Sync + 'static {}
+pub trait PlayerActionFnT: Fn(&mut State) -> RunState + Send + Sync + 'static {}
 
-impl<F> PlayerActionFnT for F where F: FnMut(&mut State) -> RunState + Send + Sync + 'static {}
+impl<F> PlayerActionFnT for F where F: Fn(&mut State) -> RunState + Send + Sync + 'static {}
 
 pub type PlayerActionFn = Arc<dyn PlayerActionFnT>;
 
@@ -285,57 +285,13 @@ impl KeyBindings {
     }
 }
 
-pub fn player_input2(gs: &mut State, ctx: &mut BTerm) -> RunState {
+pub fn player_input(gs: &mut State, ctx: &mut BTerm) -> RunState {
     let key_map = &KeyBindings::default().action_by_key;
     match ctx.key {
         None => RunState::AwaitingInput,
         Some(key) => match key_map.get(&key) {
             None => RunState::AwaitingInput,
-            Some(action_and_id) => {
-                let action = action_and_id.action.clone();
-                action(gs) // TODO: looks like we need mutex
-            }
-        },
-    }
-}
-
-pub fn player_input(gs: &mut State, ctx: &mut BTerm) -> RunState {
-    match ctx.key {
-        None => RunState::AwaitingInput,
-        Some(key) => match key {
-            // Menus
-            VirtualKeyCode::I => RunState::ShowInventory,
-            VirtualKeyCode::D if ctx.shift => RunState::ShowDropItem,
-            VirtualKeyCode::Escape => RunState::MainMenu {
-                menu_selection: SaveGame,
-            },
-            VirtualKeyCode::R => RunState::ShowRemoveItem,
-
-            // Player Movement
-            VirtualKeyCode::Left | VirtualKeyCode::Numpad4 | VirtualKeyCode::A => {
-                try_move_player(-1, 0, gs)
-            }
-            VirtualKeyCode::Right | VirtualKeyCode::Numpad6 | VirtualKeyCode::D => {
-                try_move_player(1, 0, gs)
-            }
-            VirtualKeyCode::Up | VirtualKeyCode::Numpad8 | VirtualKeyCode::W => {
-                try_move_player(0, -1, gs)
-            }
-            VirtualKeyCode::Down | VirtualKeyCode::Numpad2 | VirtualKeyCode::S => {
-                try_move_player(0, 1, gs)
-            }
-            VirtualKeyCode::Numpad5 | VirtualKeyCode::Space => skip_turn(&mut gs.ecs),
-
-            // Diagonals
-            VirtualKeyCode::Numpad7 | VirtualKeyCode::Q => try_move_player(-1, -1, gs),
-            VirtualKeyCode::Numpad9 | VirtualKeyCode::E => try_move_player(1, -1, gs),
-            VirtualKeyCode::Numpad1 | VirtualKeyCode::Z => try_move_player(-1, 1, gs),
-            VirtualKeyCode::Numpad3 | VirtualKeyCode::X => try_move_player(1, 1, gs),
-
-            // Misc Map Actions
-            // G was originally for "grab", but we'll turn this into a general interaction
-            VirtualKeyCode::G => interact(&mut gs.ecs),
-            _ => RunState::AwaitingInput,
+            Some(action_and_id) => (action_and_id.action)(gs),
         },
     }
 }
