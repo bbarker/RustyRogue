@@ -1,3 +1,4 @@
+use enum_derive::EnumDisplay;
 use serde::{Deserialize, Serialize};
 use specs::{
     prelude::*,
@@ -41,8 +42,6 @@ impl Display for EquipmentType {
         }
     }
 }
-
-use enum_derive::EnumDisplay;
 
 #[derive(Eq, PartialEq, Hash, ConvertSaveload, Clone, Debug)]
 pub enum WeaponType {

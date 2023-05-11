@@ -18,11 +18,14 @@ use crate::{
     display_state::DisplayState,
     gamelog::GameLog,
     map::Map,
-    player::{get_player_pos_unwrap, get_player_unwrap, PLAYER_NAME},
+    player::{
+        get_player_pos_unwrap, get_player_unwrap, KeyBindings, DEFAULT_KEY_BINDINGS, PLAYER_NAME,
+    },
     util::*,
     PsnU, RunState, State,
 };
 
+const ESCAPE_MSG: &str = "ESCAPE to cancel";
 pub const PANEL_HEIGHT: usize = 7;
 pub const PANEL_HEIGHT_SAFE: usize = max(PANEL_HEIGHT, 1);
 pub const PANEL_HEIGHT_INTERIOR: usize = min(PANEL_HEIGHT, PANEL_HEIGHT - 2);
@@ -199,12 +202,33 @@ impl InventoryMode {
     }
 }
 
+pub fn show_keybindings(ctx: &mut BTerm) -> bool {
+    KeyBindings::default()
+        .action_by_id
+        .iter()
+        .enumerate()
+        .for_each(|(ii, (action_id, action_keys))| {
+            ctx.print(
+                2,
+                ii as i32 + 1,
+                &format!("{}: {:?}", action_id, action_keys.key_codes),
+            )
+        });
+    if let Some(key) = ctx.key {
+        match key {
+            VirtualKeyCode::Escape => false,
+            _ => true,
+        }
+    } else {
+        true
+    }
+}
+
 pub fn show_inventory(
     gs: &mut State,
     ctx: &mut BTerm,
     mode: InventoryMode,
 ) -> (ItemMenuResult, Option<Entity>) {
-    const ESCAPE_MSG: &str = "ESCAPE to cancel";
     let title_str = mode.menu_name();
     let entities = gs.ecs.entities();
     let names = gs.ecs.read_storage::<Name>();
@@ -386,12 +410,13 @@ pub fn ranged_target(
 }
 
 macro_attr! {
-    #[derive(PartialEq, Copy, Clone, PrevVariant!, NextVariant!, IterVariants!(MainMenuVariants))]
+    #[derive(PartialEq, Copy, Clone, PrevVariant!, NextVariant!, IterVariants!(MainMenuVariants), EnumDisplay!)]
     pub enum MainMenuSelection {
         NewGame,
         SaveGame,
         ResumeGame,
         LoadGame,
+        KeyBindings,
         Quit,
     }
 }
@@ -405,6 +430,7 @@ const fn main_menu_entry_string(selection: MainMenuSelection) -> &'static str {
         MainMenuSelection::SaveGame => "Save Game",
         MainMenuSelection::ResumeGame => "Resume Playing",
         MainMenuSelection::LoadGame => "Load Game",
+        MainMenuSelection::KeyBindings => "Key Bindings",
         MainMenuSelection::Quit => "Quit",
     }
 }
