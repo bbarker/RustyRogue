@@ -1,0 +1,23 @@
+<html>
+
+<head>
+  <meta content="text/html;charset=utf-8" http-equiv="Content-Type" />
+</head>
+
+<body>
+  <canvas id="canvas" width="640" height="480"></canvas>
+  <script src="./rusty_rogue.js "></script>
+  <script>
+    window.addEventListener("load", async () => {
+      await wasm_bindgen("./rusty_rogue_bg.wasm");
+    });
+  </script>
+  <ul>
+    <li>This is a work in progress.</li>
+    <li>Saving is currently not supported in the web browser; check
+      <a href="https://github.com/bbarker/RustyRogue/releases" target="_blank">here</a> for downloadable releases.
+    </li>
+  </ul>
+</body>
+
+</html>

@@ -6,7 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bracket-lib = { version = "0.8.7", features = ["serde"] }
+bracket-lib = { git = "https://github.com/amethyst/bracket-lib.git", rev = "851f6f08675444fb6fa088b9e67bee9fd75554c6", features = ["serde"] }
+#have to use git rev to support wasm; see https://github.com/amethyst/bracket-lib/issues/301
 enum_derive = "0.1.7"
 frunk = "0.4.1" # Note, currently not using this - but worth a look
 itertools = "0.10.5"
