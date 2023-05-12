@@ -1,5 +1,9 @@
 # Rusty Rogue
 
+## Play online
+
+A web-browser version of the game is available [here](https://bbarker.github.io/RustyRogue/wasm/).
+
 ## Building for the Browser
 
 A full guide with which most of these notes are based on are located
