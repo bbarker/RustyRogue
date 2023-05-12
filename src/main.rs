@@ -391,7 +391,7 @@ impl GameState for State {
                     },
                 }
             }
-            RunState::KeyBindingsMenu => match gui::show_keybindings(ctx) {
+            RunState::KeyBindingsMenu => match gui::show_keybindings(&self, ctx) {
                 true => newrunstate = RunState::KeyBindingsMenu,
                 false => {
                     newrunstate = RunState::MainMenu {

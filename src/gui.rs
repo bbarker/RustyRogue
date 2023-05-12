@@ -202,18 +202,74 @@ impl InventoryMode {
     }
 }
 
-pub fn show_keybindings(ctx: &mut BTerm) -> bool {
-    KeyBindings::default()
+// TODO: draw a box that tells the user to press escape to exit
+// TODO: better alignment, clearer font?
+pub fn show_keybindings(gs: &State, ctx: &mut BTerm) -> bool {
+    let title_str = "Key Bindings";
+
+    // TODO: (optimization) make this static using once_cell
+    let max_action_name_len = KeyBindings::default()
         .action_by_id
         .iter()
-        .enumerate()
-        .for_each(|(ii, (action_id, action_keys))| {
-            ctx.print(
-                2,
-                ii as i32 + 1,
-                &format!("{}: {:?}", action_id, action_keys.key_codes),
+        .map(|(action_id, _)| action_id.to_string().len())
+        .max()
+        .unwrap_or(0);
+
+    let formatted_lines: Vec<String> = KeyBindings::default()
+        .action_by_id
+        .iter()
+        .map(|(action_id, action_keys)| {
+            format!(
+                "{:<width$} | {:?}",
+                action_id,
+                action_keys.key_codes,
+                width = max_action_name_len
             )
-        });
+        })
+        .collect();
+    let num_actions = formatted_lines.len();
+
+    let max_line_length = formatted_lines
+        .iter()
+        .map(|line| line.len())
+        .max()
+        .unwrap_or(0);
+
+    let box_width = max(max(max_line_length, ESCAPE_MSG.len()), title_str.len()) + 4;
+
+    // TODO: factor out custom box drawing code - used elsewhere already
+    // (start at: mid height - half of item size):
+    let x_init = 15;
+    let y_init = (gs.display.height - num_actions as PsnU) / 2;
+    let y_box_init = (y_init - 2).clamp(0, y_init);
+    ctx.draw_box(
+        x_init,
+        y_box_init,
+        box_width,
+        num_actions + 3,
+        RGB::named(WHITE),
+        RGB::named(BLACK),
+    );
+    ctx.print_color(
+        x_init + 3,
+        y_box_init,
+        RGB::named(YELLOW),
+        RGB::named(BLACK),
+        title_str,
+    );
+    ctx.print_color(
+        x_init + 3,
+        y_init + num_actions as PsnU + 1,
+        RGB::named(YELLOW),
+        RGB::named(BLACK),
+        ESCAPE_MSG,
+    );
+
+    formatted_lines
+        .iter()
+        .enumerate()
+        .for_each(|(ii, line)| ctx.print(x_init + 4, y_init + ii as PsnU, line));
+
     if let Some(key) = ctx.key {
         match key {
             VirtualKeyCode::Escape => false,
@@ -225,7 +281,7 @@ pub fn show_keybindings(ctx: &mut BTerm) -> bool {
 }
 
 pub fn show_inventory(
-    gs: &mut State,
+    gs: &State,
     ctx: &mut BTerm,
     mode: InventoryMode,
 ) -> (ItemMenuResult, Option<Entity>) {
