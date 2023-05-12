@@ -18,11 +18,14 @@ use crate::{
     display_state::DisplayState,
     gamelog::GameLog,
     map::Map,
-    player::{get_player_pos_unwrap, get_player_unwrap, PLAYER_NAME},
+    player::{
+        get_player_pos_unwrap, get_player_unwrap, KeyBindings, DEFAULT_KEY_BINDINGS, PLAYER_NAME,
+    },
     util::*,
     PsnU, RunState, State,
 };
 
+const ESCAPE_MSG: &str = "ESCAPE to cancel";
 pub const PANEL_HEIGHT: usize = 7;
 pub const PANEL_HEIGHT_SAFE: usize = max(PANEL_HEIGHT, 1);
 pub const PANEL_HEIGHT_INTERIOR: usize = min(PANEL_HEIGHT, PANEL_HEIGHT - 2);
@@ -199,12 +202,89 @@ impl InventoryMode {
     }
 }
 
+// TODO: draw a box that tells the user to press escape to exit
+// TODO: better alignment, clearer font?
+pub fn show_keybindings(gs: &State, ctx: &mut BTerm) -> bool {
+    let title_str = "Key Bindings";
+
+    // TODO: (optimization) make this static using once_cell
+    let max_action_name_len = KeyBindings::default()
+        .action_by_id
+        .iter()
+        .map(|(action_id, _)| action_id.to_string().len())
+        .max()
+        .unwrap_or(0);
+
+    let formatted_lines: Vec<String> = KeyBindings::default()
+        .action_by_id
+        .iter()
+        .map(|(action_id, action_keys)| {
+            format!(
+                "{:<width$} | {:?}",
+                action_id,
+                action_keys.key_codes,
+                width = max_action_name_len
+            )
+        })
+        .collect();
+    let num_actions = formatted_lines.len();
+
+    let max_line_length = formatted_lines
+        .iter()
+        .map(|line| line.len())
+        .max()
+        .unwrap_or(0);
+
+    let box_width = max(max(max_line_length, ESCAPE_MSG.len()), title_str.len()) + 4;
+
+    // TODO: factor out custom box drawing code - used elsewhere already
+    // (start at: mid height - half of item size):
+    let x_init = 15;
+    let y_init = (gs.display.height - num_actions as PsnU) / 2;
+    let y_box_init = (y_init - 2).clamp(0, y_init);
+    ctx.draw_box(
+        x_init,
+        y_box_init,
+        box_width,
+        num_actions + 3,
+        RGB::named(WHITE),
+        RGB::named(BLACK),
+    );
+    ctx.print_color(
+        x_init + 3,
+        y_box_init,
+        RGB::named(YELLOW),
+        RGB::named(BLACK),
+        title_str,
+    );
+    ctx.print_color(
+        x_init + 3,
+        y_init + num_actions as PsnU + 1,
+        RGB::named(YELLOW),
+        RGB::named(BLACK),
+        ESCAPE_MSG,
+    );
+
+    formatted_lines
+        .iter()
+        .enumerate()
+        .for_each(|(ii, line)| ctx.print(x_init + 4, y_init + ii as PsnU, line));
+
+    if let Some(key) = ctx.key {
+        match key {
+            VirtualKeyCode::Escape => false,
+            _ => true,
+        }
+    } else {
+        true
+    }
+}
+
 pub fn show_inventory(
-    gs: &mut State,
+    gs: &State,
     ctx: &mut BTerm,
     mode: InventoryMode,
 ) -> (ItemMenuResult, Option<Entity>) {
-    const ESCAPE_MSG: &str = "ESCAPE to cancel";
     let title_str = mode.menu_name();
     let entities = gs.ecs.entities();
     let names = gs.ecs.read_storage::<Name>();
@@ -386,12 +466,13 @@ pub fn ranged_target(
 }
 
 macro_attr! {
-    #[derive(PartialEq, Copy, Clone, PrevVariant!, NextVariant!, IterVariants!(MainMenuVariants))]
+    #[derive(PartialEq, Copy, Clone, PrevVariant!, NextVariant!, IterVariants!(MainMenuVariants), EnumDisplay!)]
     pub enum MainMenuSelection {
         NewGame,
         SaveGame,
         ResumeGame,
         LoadGame,
+        KeyBindings,
         Quit,
     }
 }
@@ -405,6 +486,7 @@ const fn main_menu_entry_string(selection: MainMenuSelection) -> &'static str {
         MainMenuSelection::SaveGame => "Save Game",
         MainMenuSelection::ResumeGame => "Resume Playing",
         MainMenuSelection::LoadGame => "Load Game",
+        MainMenuSelection::KeyBindings => "Key Bindings",
         MainMenuSelection::Quit => "Quit",
     }
 }

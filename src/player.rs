@@ -71,36 +71,30 @@ pub fn try_move_player(delta_x: i32, delta_y: i32, gs: &mut State) -> RunState {
     }
 }
 
-// TODO: we can build two maps from a list of PlayerInputEntry values
-// - one will have keys that are the key codes, so we can immediately lookup
-// the action. The other will have the name of the action as the key, so we
-// can see what keys are bound for an action.
-//
-// But what if we want to change the key bindings - do we have to entirely rebuild
-// both maps from this list? May be better to start with the name-keyed map, and
-// if a change is made, update the entries in the other map accordingly:
+macro_attr! {
 
-#[derive(PartialEq, Eq, Clone, Copy, Debug, Hash)]
-enum PlayerAction {
-    ShowInventory,
-    ShowDropItem,
-    Escape,
-    ShowRemoveItem,
-    Left,
-    Right,
-    Up,
-    Down,
-    UpLeft,
-    UpRight,
-    DownLeft,
-    DownRight,
-    SkipTurn,
-    Interact,
+    #[derive(PartialEq, Eq, Clone, Copy, Debug, Hash, EnumDisplay!)]
+    pub enum PlayerAction {
+        ShowInventory,
+        ShowDropItem,
+        Escape,
+        ShowRemoveItem,
+        Left,
+        Right,
+        Up,
+        Down,
+        UpLeft,
+        UpRight,
+        DownLeft,
+        DownRight,
+        SkipTurn,
+        Interact,
+    }
 }
 
-pub trait PlayerActionFnT: FnMut(&mut State) -> RunState + Send + Sync + 'static {}
+pub trait PlayerActionFnT: Fn(&mut State) -> RunState + Send + Sync + 'static {}
 
-impl<F> PlayerActionFnT for F where F: FnMut(&mut State) -> RunState + Send + Sync + 'static {}
+impl<F> PlayerActionFnT for F where F: Fn(&mut State) -> RunState + Send + Sync + 'static {}
 
 pub type PlayerActionFn = Arc<dyn PlayerActionFnT>;
 
@@ -111,21 +105,21 @@ impl std::fmt::Debug for dyn PlayerActionFnT {
 }
 
 #[derive(Clone, Debug)]
-struct ActionAndKeys {
-    key_codes: Vec<VirtualKeyCode>,
-    action: PlayerActionFn,
+pub struct ActionAndKeys {
+    pub key_codes: Vec<VirtualKeyCode>,
+    pub action: PlayerActionFn,
 }
 
 #[derive(Clone, Debug)]
-struct ActionAndId {
-    id: PlayerAction,
-    action: PlayerActionFn,
+pub struct ActionAndId {
+    pub id: PlayerAction,
+    pub action: PlayerActionFn,
 }
 
 #[derive(Debug)]
 pub struct KeyBindings {
-    action_by_id: HashMap<PlayerAction, ActionAndKeys>,
-    action_by_key: HashMap<VirtualKeyCode, ActionAndId>,
+    pub action_by_id: HashMap<PlayerAction, ActionAndKeys>,
+    pub action_by_key: HashMap<VirtualKeyCode, ActionAndId>,
 }
 
 pub static DEFAULT_KEY_BINDINGS: OnceCell<KeyBindings> = OnceCell::new();
@@ -286,42 +280,12 @@ impl KeyBindings {
 }
 
 pub fn player_input(gs: &mut State, ctx: &mut BTerm) -> RunState {
+    let key_map = &KeyBindings::default().action_by_key;
     match ctx.key {
         None => RunState::AwaitingInput,
-        Some(key) => match key {
-            // Menus
-            VirtualKeyCode::I => RunState::ShowInventory,
-            VirtualKeyCode::D if ctx.shift => RunState::ShowDropItem,
-            VirtualKeyCode::Escape => RunState::MainMenu {
-                menu_selection: SaveGame,
-            },
-            VirtualKeyCode::R => RunState::ShowRemoveItem,
-
-            // Player Movement
-            VirtualKeyCode::Left | VirtualKeyCode::Numpad4 | VirtualKeyCode::A => {
-                try_move_player(-1, 0, gs)
-            }
-            VirtualKeyCode::Right | VirtualKeyCode::Numpad6 | VirtualKeyCode::D => {
-                try_move_player(1, 0, gs)
-            }
-            VirtualKeyCode::Up | VirtualKeyCode::Numpad8 | VirtualKeyCode::W => {
-                try_move_player(0, -1, gs)
-            }
-            VirtualKeyCode::Down | VirtualKeyCode::Numpad2 | VirtualKeyCode::S => {
-                try_move_player(0, 1, gs)
-            }
-            VirtualKeyCode::Numpad5 | VirtualKeyCode::Space => skip_turn(&mut gs.ecs),
-
-            // Diagonals
-            VirtualKeyCode::Numpad7 | VirtualKeyCode::Q => try_move_player(-1, -1, gs),
-            VirtualKeyCode::Numpad9 | VirtualKeyCode::E => try_move_player(1, -1, gs),
-            VirtualKeyCode::Numpad1 | VirtualKeyCode::Z => try_move_player(-1, 1, gs),
-            VirtualKeyCode::Numpad3 | VirtualKeyCode::X => try_move_player(1, 1, gs),
-
-            // Misc Map Actions
-            // G was originally for "grab", but we'll turn this into a general interaction
-            VirtualKeyCode::G => interact(&mut gs.ecs),
-            _ => RunState::AwaitingInput,
+        Some(key) => match key_map.get(&key) {
+            None => RunState::AwaitingInput,
+            Some(action_and_id) => (action_and_id.action)(gs),
         },
     }
 }

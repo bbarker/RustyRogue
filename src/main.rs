@@ -67,6 +67,7 @@ pub enum RunState {
     MainMenu {
         menu_selection: gui::MainMenuSelection,
     },
+    KeyBindingsMenu,
     SaveGame,
     NextLevel,
 }
@@ -383,10 +384,21 @@ impl GameState for State {
                                 newrunstate = RunState::PreRun
                             }
                         }
+                        gui::MainMenuSelection::KeyBindings => {
+                            newrunstate = RunState::KeyBindingsMenu;
+                        }
                         gui::MainMenuSelection::Quit => ctx.quit(),
                     },
                 }
             }
+            RunState::KeyBindingsMenu => match gui::show_keybindings(&self, ctx) {
+                true => newrunstate = RunState::KeyBindingsMenu,
+                false => {
+                    newrunstate = RunState::MainMenu {
+                        menu_selection: gui::MainMenuSelection::KeyBindings,
+                    }
+                }
+            },
             RunState::SaveGame => {
                 saveload_system::save_game(&mut self.ecs);
                 newrunstate = RunState::MainMenu {
