@@ -26,7 +26,7 @@ macro_rules! serialize_individually {
 
 #[cfg(target_arch = "wasm32")]
 pub fn save_game(_ecs: &mut World) {
-    console.log("Saving is not supported on the web");
+    bracket_lib::terminal::console::log("Saving is not supported on the web");
 }
 
 #[cfg(not(target_arch = "wasm32"))]
