@@ -267,14 +267,7 @@ pub fn show_keybindings(gs: &State, ctx: &mut BTerm) -> bool {
         .enumerate()
         .for_each(|(ii, line)| ctx.print(x_init + 4, y_init + ii as PsnU, line));
 
-    if let Some(key) = ctx.key {
-        match key {
-            VirtualKeyCode::Escape => false,
-            _ => true,
-        }
-    } else {
-        true
-    }
+    !matches!(ctx.key, Some(VirtualKeyCode::Escape))
 }
 
 pub fn show_inventory(
