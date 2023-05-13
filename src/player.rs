@@ -104,7 +104,7 @@ impl ContextKeys {
         if keys.is_empty() {
             "".to_string()
         } else {
-            " + ".to_owned() + &keys.iter().map(|k| k.to_string()).join(" + ")
+            keys.iter().map(|k| k.to_string()).join(" + ") + " + "
         }
     }
 }
@@ -113,7 +113,7 @@ type Keys = (VirtualKeyCode, Vec<ContextKeys>);
 
 pub fn display_key_combo(keys: &Keys) -> String {
     let (key, context_keys) = keys;
-    format!("{:?}{}", key, ContextKeys::display_vec(context_keys))
+    format!("{}{:?}", ContextKeys::display_vec(context_keys), key)
 }
 
 pub trait PlayerActionFnT: Fn(&mut State) -> RunState + Send + Sync + 'static {}
