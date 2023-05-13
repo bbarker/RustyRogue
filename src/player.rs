@@ -87,8 +87,8 @@ macro_attr! {
         UpRight,
         DownLeft,
         DownRight,
-        SkipTurn,
-        Interact,
+        Rest,
+        Grab,
     }
 }
 
@@ -239,14 +239,14 @@ impl KeyBindings {
                 },
             ),
             (
-                PlayerAction::SkipTurn,
+                PlayerAction::Rest,
                 ActionAndKeys {
                     key_codes: vec![VirtualKeyCode::Numpad5, VirtualKeyCode::Space],
                     action: Arc::new(|gs| skip_turn(&mut gs.ecs)),
                 },
             ),
             (
-                PlayerAction::Interact,
+                PlayerAction::Grab,
                 ActionAndKeys {
                     key_codes: vec![VirtualKeyCode::G],
                     action: Arc::new(|gs| interact(&mut gs.ecs)),
