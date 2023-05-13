@@ -146,8 +146,8 @@ pub fn player(gs: &mut State, position: Position) -> Entity {
         },
         Some(ViewRange(8)),
         CombatStats {
-            max_hp: 100, // TODO: Should be 30
-            hp: 100,     // Should be 30
+            max_hp: 30,
+            hp: 30,
             defense: 2,
             power: 5,
         },
@@ -254,8 +254,8 @@ pub fn room_table(map_depth: i32) -> RandomTable {
         .add(magic_missile_scroll, 40)
         .add(confusion_scroll, 30)
         .add(random_monster, 50 + 2 * map_depth.unsigned_abs() as u16) // TODO: split out separate monster spawners
-        .add(iron_dagger, 70) // DEBUG: should be 10
-        .add(iron_shield, 70) // DEBUG: should be 10
+        .add(iron_dagger, 10)
+        .add(iron_shield, 10)
 }
 
 pub fn random_item(ecs: &mut World, position: Position) -> Entity {
