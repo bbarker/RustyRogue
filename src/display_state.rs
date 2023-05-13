@@ -15,6 +15,12 @@ impl DisplayState {
     pub fn height_i32(&self) -> i32 {
         self.height as i32
     }
+    pub fn default() -> DisplayState {
+        DisplayState {
+            width: 80,
+            height: 50,
+        }
+    }
 }
 
 pub fn calc_display_state(ctxt: &BTerm) -> DisplayState {

@@ -368,8 +368,10 @@ impl GameState for State {
                         };
                     }
                     gui::MainMenuStatus::Selected => match result.highlighted {
-                        //FIXME: NewGame doesn't create a new game if a game is already running
-                        gui::MainMenuSelection::NewGame => newrunstate = RunState::PreRun,
+                        gui::MainMenuSelection::NewGame => {
+                            (*self, _) = init_state(false, Some(ctx));
+                            newrunstate = RunState::PreRun
+                        }
                         gui::MainMenuSelection::SaveGame => newrunstate = RunState::SaveGame,
                         gui::MainMenuSelection::ResumeGame => newrunstate = RunState::PreRun,
                         gui::MainMenuSelection::LoadGame => {
@@ -391,7 +393,7 @@ impl GameState for State {
                     },
                 }
             }
-            RunState::KeyBindingsMenu => match gui::show_keybindings(&self, ctx) {
+            RunState::KeyBindingsMenu => match gui::show_keybindings(self, ctx) {
                 true => newrunstate = RunState::KeyBindingsMenu,
                 false => {
                     newrunstate = RunState::MainMenu {
@@ -415,41 +417,48 @@ impl GameState for State {
     }
 }
 
-pub fn init_state(test_ecs: bool) -> (State, Option<BTerm>) {
+pub fn init_state(test_ecs: bool, ctxt_opt: Option<&BTerm>) -> (State, Option<BTerm>) {
     let (mut gs, opt_ctxt) = if test_ecs {
         (
             State {
                 ecs: World::new(),
-                display: DisplayState {
-                    width: 80,
-                    height: 50,
-                },
+                display: DisplayState::default(),
             },
             None,
         )
     } else {
         use bracket_lib::prelude::BTermBuilder;
-        let context = {
+        let context_opt = if ctxt_opt.is_some() {
+            None
+        } else {
             let mut ctxt = BTermBuilder::simple80x50()
                 .with_title("Rusty Rogue")
                 .build()
                 .unwrap(); // TODO: better error handling from software tools
             ctxt.with_post_scanlines(true);
             // ^ gives a retro "scanlines and screen burn" effect
-            ctxt
+            Some(ctxt)
         };
+        let display_state = if let Some(ctxt) = context_opt.as_ref() {
+            calc_display_state(ctxt)
+        } else if let Some(ctxt) = ctxt_opt {
+            calc_display_state(ctxt)
+        } else {
+            DisplayState::default()
+        };
+
         (
             State {
                 ecs: World::new(),
-                display: calc_display_state(&context),
+                display: display_state,
             },
-            Some(context),
+            context_opt,
         )
     };
 
     execute_with_type_list!(register_individually!(gs.ecs));
 
-    // register makers
+    // register markers
     gs.ecs.register::<SimpleMarker<SerializeMe>>();
 
     gs.ecs.insert(SimpleMarkerAllocator::<SerializeMe>::new());
@@ -480,7 +489,7 @@ fn main() {
         let default_keys = KeyBindings::_make_default();
         DEFAULT_KEY_BINDINGS.set(default_keys).unwrap();
     }
-    if let (gs, Some(context)) = init_state(false) {
+    if let (gs, Some(context)) = init_state(false, None) {
         bracket_lib::prelude::main_loop(context, gs).unwrap()
     } else {
         console::log("init_state called as if in test mode, exiting");
