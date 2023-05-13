@@ -1549,6 +1549,7 @@ dependencies = [
  "bracket-lib",
  "enum_derive",
  "frunk",
+ "indexmap",
  "itertools",
  "macro-attr",
  "once_cell",
