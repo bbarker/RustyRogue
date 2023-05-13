@@ -1,7 +1,7 @@
-use std::collections::HashMap;
 use std::sync::Arc;
 
 use bracket_lib::terminal::{BTerm, VirtualKeyCode};
+use indexmap::IndexMap;
 use itertools::Itertools;
 use once_cell::sync::OnceCell;
 use specs::{world::EntitiesRes, *};
@@ -118,8 +118,8 @@ pub struct ActionAndId {
 
 #[derive(Debug)]
 pub struct KeyBindings {
-    pub action_by_id: HashMap<PlayerAction, ActionAndKeys>,
-    pub action_by_key: HashMap<VirtualKeyCode, ActionAndId>,
+    pub action_by_id: IndexMap<PlayerAction, ActionAndKeys>,
+    pub action_by_key: IndexMap<VirtualKeyCode, ActionAndId>,
 }
 
 pub static DEFAULT_KEY_BINDINGS: OnceCell<KeyBindings> = OnceCell::new();
@@ -135,7 +135,7 @@ impl KeyBindings {
     // Update: does not seem to work well as State needs to be &mut
     // Alternatively may need to try FnMut(gs: &mut State) -> RunState
     pub fn _make_default() -> KeyBindings {
-        let action_by_id: HashMap<PlayerAction, ActionAndKeys> = [
+        let action_by_id: IndexMap<PlayerAction, ActionAndKeys> = [
             (
                 PlayerAction::ShowInventory,
                 ActionAndKeys {
@@ -257,7 +257,7 @@ impl KeyBindings {
         .cloned()
         .collect();
 
-        let action_by_key: HashMap<VirtualKeyCode, ActionAndId> = action_by_id
+        let action_by_key: IndexMap<VirtualKeyCode, ActionAndId> = action_by_id
             .iter()
             .flat_map(|(id, action_and_keys)| {
                 action_and_keys.key_codes.iter().map(|key_code| {
