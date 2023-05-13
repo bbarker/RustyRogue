@@ -18,7 +18,9 @@ use crate::{
     display_state::DisplayState,
     gamelog::GameLog,
     map::Map,
-    player::{get_player_pos_unwrap, get_player_unwrap, KeyBindings, PLAYER_NAME},
+    player::{
+        display_key_combo, get_player_pos_unwrap, get_player_unwrap, KeyBindings, PLAYER_NAME,
+    },
     util::*,
     PsnU, RunState, State,
 };
@@ -218,9 +220,13 @@ pub fn show_keybindings(gs: &State, ctx: &mut BTerm) -> bool {
         .iter()
         .map(|(action_id, action_keys)| {
             format!(
-                "{:max_action_name_len$} | {:?}",
+                "{:max_action_name_len$} | {}",
                 action_id.to_string(),
-                action_keys.key_codes,
+                action_keys
+                    .key_codes
+                    .iter()
+                    .map(display_key_combo)
+                    .join(", "),
             )
         })
         .collect();
