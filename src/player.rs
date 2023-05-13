@@ -72,7 +72,6 @@ pub fn try_move_player(delta_x: i32, delta_y: i32, gs: &mut State) -> RunState {
 }
 
 macro_attr! {
-
     #[derive(PartialEq, Eq, Clone, Copy, Debug, Hash, EnumDisplay!)]
     pub enum PlayerAction {
         ShowInventory,
@@ -92,6 +91,31 @@ macro_attr! {
     }
 }
 
+macro_attr! {
+    #[derive(PartialEq, Eq, Clone, Copy, Debug, Hash, EnumDisplay!)]
+    pub enum ContextKeys {
+        Shift
+    }
+
+}
+
+impl ContextKeys {
+    pub fn display_vec(keys: &Vec<ContextKeys>) -> String {
+        if keys.is_empty() {
+            "".to_string()
+        } else {
+            " + ".to_owned() + &keys.iter().map(|k| k.to_string()).join(" + ")
+        }
+    }
+}
+
+type Keys = (VirtualKeyCode, Vec<ContextKeys>);
+
+pub fn display_key_combo(keys: &Keys) -> String {
+    let (key, context_keys) = keys;
+    format!("{:?}{}", key, ContextKeys::display_vec(context_keys))
+}
+
 pub trait PlayerActionFnT: Fn(&mut State) -> RunState + Send + Sync + 'static {}
 
 impl<F> PlayerActionFnT for F where F: Fn(&mut State) -> RunState + Send + Sync + 'static {}
@@ -106,7 +130,7 @@ impl std::fmt::Debug for dyn PlayerActionFnT {
 
 #[derive(Clone, Debug)]
 pub struct ActionAndKeys {
-    pub key_codes: Vec<VirtualKeyCode>,
+    pub key_codes: Vec<Keys>,
     pub action: PlayerActionFn,
 }
 
@@ -119,7 +143,7 @@ pub struct ActionAndId {
 #[derive(Debug)]
 pub struct KeyBindings {
     pub action_by_id: IndexMap<PlayerAction, ActionAndKeys>,
-    pub action_by_key: IndexMap<VirtualKeyCode, ActionAndId>,
+    pub action_by_key: IndexMap<Keys, ActionAndId>,
 }
 
 pub static DEFAULT_KEY_BINDINGS: OnceCell<KeyBindings> = OnceCell::new();
@@ -136,21 +160,21 @@ impl KeyBindings {
             (
                 PlayerAction::ShowInventory,
                 ActionAndKeys {
-                    key_codes: vec![VirtualKeyCode::I],
+                    key_codes: vec![(VirtualKeyCode::I, vec![])],
                     action: Arc::new(|_| RunState::ShowInventory),
                 },
             ),
             (
                 PlayerAction::ShowDropItem,
                 ActionAndKeys {
-                    key_codes: vec![VirtualKeyCode::D],
+                    key_codes: vec![(VirtualKeyCode::D, vec![ContextKeys::Shift])],
                     action: Arc::new(|_| RunState::ShowDropItem),
                 },
             ),
             (
                 PlayerAction::Escape,
                 ActionAndKeys {
-                    key_codes: vec![VirtualKeyCode::Escape],
+                    key_codes: vec![(VirtualKeyCode::Escape, vec![])],
                     action: Arc::new(|_| RunState::MainMenu {
                         menu_selection: SaveGame,
                     }),
@@ -159,7 +183,7 @@ impl KeyBindings {
             (
                 PlayerAction::ShowRemoveItem,
                 ActionAndKeys {
-                    key_codes: vec![VirtualKeyCode::R],
+                    key_codes: vec![(VirtualKeyCode::R, vec![])],
                     action: Arc::new(|_| RunState::ShowRemoveItem),
                 },
             ),
@@ -167,9 +191,9 @@ impl KeyBindings {
                 PlayerAction::Left,
                 ActionAndKeys {
                     key_codes: vec![
-                        VirtualKeyCode::Left,
-                        VirtualKeyCode::A,
-                        VirtualKeyCode::Numpad4,
+                        (VirtualKeyCode::Left, vec![]),
+                        (VirtualKeyCode::A, vec![]),
+                        (VirtualKeyCode::Numpad4, vec![]),
                     ],
                     action: Arc::new(|gs| try_move_player(-1, 0, gs)),
                 },
@@ -178,9 +202,9 @@ impl KeyBindings {
                 PlayerAction::Right,
                 ActionAndKeys {
                     key_codes: vec![
-                        VirtualKeyCode::Right,
-                        VirtualKeyCode::D,
-                        VirtualKeyCode::Numpad6,
+                        (VirtualKeyCode::Right, vec![]),
+                        (VirtualKeyCode::D, vec![]),
+                        (VirtualKeyCode::Numpad6, vec![]),
                     ],
                     action: Arc::new(|gs| try_move_player(1, 0, gs)),
                 },
@@ -189,9 +213,9 @@ impl KeyBindings {
                 PlayerAction::Up,
                 ActionAndKeys {
                     key_codes: vec![
-                        VirtualKeyCode::Up,
-                        VirtualKeyCode::W,
-                        VirtualKeyCode::Numpad8,
+                        (VirtualKeyCode::Up, vec![]),
+                        (VirtualKeyCode::W, vec![]),
+                        (VirtualKeyCode::Numpad8, vec![]),
                     ],
                     action: Arc::new(|gs| try_move_player(0, -1, gs)),
                 },
@@ -200,9 +224,9 @@ impl KeyBindings {
                 PlayerAction::Down,
                 ActionAndKeys {
                     key_codes: vec![
-                        VirtualKeyCode::Down,
-                        VirtualKeyCode::S,
-                        VirtualKeyCode::Numpad2,
+                        (VirtualKeyCode::Down, vec![]),
+                        (VirtualKeyCode::S, vec![]),
+                        (VirtualKeyCode::Numpad2, vec![]),
                     ],
                     action: Arc::new(|gs| try_move_player(0, 1, gs)),
                 },
@@ -210,42 +234,45 @@ impl KeyBindings {
             (
                 PlayerAction::UpLeft,
                 ActionAndKeys {
-                    key_codes: vec![VirtualKeyCode::Numpad7],
+                    key_codes: vec![(VirtualKeyCode::Numpad7, vec![])],
                     action: Arc::new(|gs| try_move_player(-1, -1, gs)),
                 },
             ),
             (
                 PlayerAction::UpRight,
                 ActionAndKeys {
-                    key_codes: vec![VirtualKeyCode::Numpad9],
+                    key_codes: vec![(VirtualKeyCode::Numpad9, vec![])],
                     action: Arc::new(|gs| try_move_player(1, -1, gs)),
                 },
             ),
             (
                 PlayerAction::DownLeft,
                 ActionAndKeys {
-                    key_codes: vec![VirtualKeyCode::Numpad1],
+                    key_codes: vec![(VirtualKeyCode::Numpad1, vec![])],
                     action: Arc::new(|gs| try_move_player(-1, 1, gs)),
                 },
             ),
             (
                 PlayerAction::DownRight,
                 ActionAndKeys {
-                    key_codes: vec![VirtualKeyCode::Numpad3],
+                    key_codes: vec![(VirtualKeyCode::Numpad3, vec![])],
                     action: Arc::new(|gs| try_move_player(1, 1, gs)),
                 },
             ),
             (
                 PlayerAction::Rest,
                 ActionAndKeys {
-                    key_codes: vec![VirtualKeyCode::Numpad5, VirtualKeyCode::Space],
+                    key_codes: vec![
+                        (VirtualKeyCode::Numpad5, vec![]),
+                        (VirtualKeyCode::Space, vec![]),
+                    ],
                     action: Arc::new(|gs| skip_turn(&mut gs.ecs)),
                 },
             ),
             (
                 PlayerAction::Grab,
                 ActionAndKeys {
-                    key_codes: vec![VirtualKeyCode::G],
+                    key_codes: vec![(VirtualKeyCode::G, vec![])],
                     action: Arc::new(|gs| interact(&mut gs.ecs)),
                 },
             ),
@@ -254,12 +281,12 @@ impl KeyBindings {
         .cloned()
         .collect();
 
-        let action_by_key: IndexMap<VirtualKeyCode, ActionAndId> = action_by_id
+        let action_by_key: IndexMap<Keys, ActionAndId> = action_by_id
             .iter()
             .flat_map(|(id, action_and_keys)| {
                 action_and_keys.key_codes.iter().map(|key_code| {
                     (
-                        *key_code,
+                        key_code.clone(),
                         ActionAndId {
                             id: *id,
                             action: action_and_keys.action.clone(),
@@ -278,9 +305,15 @@ impl KeyBindings {
 
 pub fn player_input(gs: &mut State, ctx: &mut BTerm) -> RunState {
     let key_map = &KeyBindings::default().action_by_key;
-    match ctx.key {
+
+    let mut ctxt_keys = vec![];
+    if ctx.shift {
+        ctxt_keys.push(ContextKeys::Shift);
+    }
+    let keys_opt = ctx.key.map(|key| (key, ctxt_keys));
+    match keys_opt {
         None => RunState::AwaitingInput,
-        Some(key) => match key_map.get(&key) {
+        Some(keys) => match key_map.get(&keys) {
             None => RunState::AwaitingInput,
             Some(action_and_id) => (action_and_id.action)(gs),
         },
