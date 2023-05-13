@@ -253,7 +253,7 @@ pub fn room_table(map_depth: i32) -> RandomTable {
         .add(fireball_scroll, 30)
         .add(magic_missile_scroll, 40)
         .add(confusion_scroll, 30)
-        .add(random_monster, 50 + 2 * map_depth.unsigned_abs() as u16) // TODO: split out separate monster spawners
+        .add(random_monster, 120 + 2 * map_depth.unsigned_abs() as u16)
         .add(iron_dagger, 10)
         .add(iron_shield, 10)
 }
@@ -278,6 +278,7 @@ pub fn random_item(ecs: &mut World, position: Position) -> Entity {
 }
 
 pub fn random_monster(ecs: &mut World, position: Position) -> Entity {
+    let map_depth = ecs.fetch::<Map>().depth;
     let pos_ix = {
         let map = ecs.read_resource::<Map>();
         map.pos_idx(position)
@@ -289,15 +290,20 @@ pub fn random_monster(ecs: &mut World, position: Position) -> Entity {
 
     let roll = {
         let mut rng = ecs.write_resource::<RandomNumberGenerator>();
-        rng.range(0, 4) // TODO: refactor monsters as an ADT?
-                        // Some possibilities listed here: https://stackoverflow.com/questions/41637978/how-to-get-the-number-of-elements-variants-in-an-enum-as-a-constant-value
+        rng.range(0, 100) // TODO: refactor monsters as an ADT?
+                          // Some possibilities listed here: https://stackoverflow.com/questions/41637978/how-to-get-the-number-of-elements-variants-in-an-enum-as-a-constant-value
     };
-    match roll {
-        0 => goblin(ecs, position),
-        1 => orc(ecs, position),
-        2 => tarrasque(ecs, position),
-        _ => troll(ecs, position),
+    match roll + 2 * map_depth {
+        0..=60 => goblin(ecs, position),
+        61..=80 => orc(ecs, position),
+        81..=95 => troll(ecs, position),
+        _ => tarrasque(ecs, position),
     }
+}
+
+struct MonsterModifiers {
+    pub damage: u16,
+    pub defense: u16,
 }
 
 fn goblin(ecs: &mut World, position: Position) -> Entity {
@@ -307,6 +313,10 @@ fn goblin(ecs: &mut World, position: Position) -> Entity {
         bracket_lib::prelude::to_cp437('g'),
         "Goblin",
         RGB::named(RED),
+        MonsterModifiers {
+            damage: 0,
+            defense: 0,
+        },
     )
 }
 
@@ -317,16 +327,10 @@ fn orc(ecs: &mut World, position: Position) -> Entity {
         bracket_lib::prelude::to_cp437('o'),
         "Orc",
         RGB::named(GREEN),
-    )
-}
-
-fn tarrasque(ecs: &mut World, position: Position) -> Entity {
-    monster(
-        ecs,
-        position,
-        bracket_lib::prelude::to_cp437('T'),
-        "Tarrasque",
-        RGB::named(YELLOW),
+        MonsterModifiers {
+            damage: 0,
+            defense: 1,
+        },
     )
 }
 
@@ -337,6 +341,24 @@ fn troll(ecs: &mut World, position: Position) -> Entity {
         bracket_lib::prelude::to_cp437('t'),
         "Troll",
         RGB::named(BLUE),
+        MonsterModifiers {
+            damage: 1,
+            defense: 1,
+        },
+    )
+}
+
+fn tarrasque(ecs: &mut World, position: Position) -> Entity {
+    monster(
+        ecs,
+        position,
+        bracket_lib::prelude::to_cp437('T'),
+        "Tarrasque",
+        RGB::named(YELLOW),
+        MonsterModifiers {
+            damage: 2,
+            defense: 1,
+        },
     )
 }
 
@@ -346,6 +368,7 @@ fn monster<S: ToString>(
     glyph: FontCharType,
     name: S,
     fg: RGB,
+    mods: MonsterModifiers,
 ) -> Entity {
     combat_entity(
         ecs,
@@ -363,8 +386,8 @@ fn monster<S: ToString>(
         CombatStats {
             max_hp: 16,
             hp: 16,
-            defense: 1,
-            power: 4,
+            defense: 1 + mods.defense,
+            power: 4 + mods.damage,
         },
     )
     .with(Monster {})

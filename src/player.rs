@@ -131,9 +131,6 @@ impl KeyBindings {
             .expect("DEFAULT_KEY_BINDINGS not initialized")
     }
 
-    // TODO: wrap State in OnceCell so we can have a static reference to it
-    // Update: does not seem to work well as State needs to be &mut
-    // Alternatively may need to try FnMut(gs: &mut State) -> RunState
     pub fn _make_default() -> KeyBindings {
         let action_by_id: IndexMap<PlayerAction, ActionAndKeys> = [
             (
