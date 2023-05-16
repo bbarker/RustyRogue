@@ -202,10 +202,44 @@ impl InventoryMode {
     }
 }
 
-// TODO: draw a box that tells the user to press escape to exit
-// TODO: better alignment, clearer font?
+fn draw_menu_box(
+    gs: &State,
+    ctx: &mut BTerm,
+    x_init: u16,
+    title: String,
+    num_entries: usize,
+    max_line_length: usize,
+) -> u16 {
+    let box_width = max(max(max_line_length, ESCAPE_MSG.len()), title.len()) + 4;
+    let y_init = (gs.display.height - num_entries as PsnU) / 2;
+    let y_box_init = (y_init - 2).clamp(0, y_init);
+    ctx.draw_box(
+        x_init,
+        y_box_init,
+        box_width,
+        num_entries + 3,
+        RGB::named(WHITE),
+        RGB::named(BLACK),
+    );
+    ctx.print_color(
+        x_init + 3,
+        y_box_init,
+        RGB::named(YELLOW),
+        RGB::named(BLACK),
+        title,
+    );
+    ctx.print_color(
+        x_init + 3,
+        y_init + num_entries as PsnU + 1,
+        RGB::named(YELLOW),
+        RGB::named(BLACK),
+        ESCAPE_MSG,
+    );
+    y_init
+}
+
 pub fn show_keybindings(gs: &State, ctx: &mut BTerm) -> bool {
-    let title_str = "Key Bindings";
+    let title_str: String = "Key Bindings".to_string();
 
     // TODO: (optimization) make this static using once_cell
     let max_action_name_len = KeyBindings::default()
@@ -230,42 +264,21 @@ pub fn show_keybindings(gs: &State, ctx: &mut BTerm) -> bool {
             )
         })
         .collect();
-    let num_actions = formatted_lines.len();
 
+    let x_init = 15;
     let max_line_length = formatted_lines
         .iter()
         .map(|line| line.len())
         .max()
         .unwrap_or(0);
 
-    let box_width = max(max(max_line_length, ESCAPE_MSG.len()), title_str.len()) + 4;
-
-    // TODO: factor out custom box drawing code - used elsewhere already
-    // (start at: mid height - half of item size):
-    let x_init = 15;
-    let y_init = (gs.display.height - num_actions as PsnU) / 2;
-    let y_box_init = (y_init - 2).clamp(0, y_init);
-    ctx.draw_box(
+    let y_init = draw_menu_box(
+        gs,
+        ctx,
         x_init,
-        y_box_init,
-        box_width,
-        num_actions + 3,
-        RGB::named(WHITE),
-        RGB::named(BLACK),
-    );
-    ctx.print_color(
-        x_init + 3,
-        y_box_init,
-        RGB::named(YELLOW),
-        RGB::named(BLACK),
         title_str,
-    );
-    ctx.print_color(
-        x_init + 3,
-        y_init + num_actions as PsnU + 1,
-        RGB::named(YELLOW),
-        RGB::named(BLACK),
-        ESCAPE_MSG,
+        formatted_lines.len(),
+        max_line_length,
     );
 
     formatted_lines
@@ -299,33 +312,14 @@ pub fn show_inventory(
         .fold((0, 0), |(size, max_length), (_item, name)| {
             (size + 1, max_length.max(name.len()))
         });
-    let box_width = max(max(max_item_name_length, ESCAPE_MSG.len()), title_str.len()) + 4;
-
-    // (start at: mid height - half of item size):
     let x_init = 15;
-    let y_init = (gs.display.height - inventory_size as PsnU) / 2;
-    let y_box_init = (y_init - 2).clamp(0, y_init);
-    ctx.draw_box(
+    let y_init = draw_menu_box(
+        gs,
+        ctx,
         x_init,
-        y_box_init,
-        box_width,
-        inventory_size + 3,
-        RGB::named(WHITE),
-        RGB::named(BLACK),
-    );
-    ctx.print_color(
-        x_init + 3,
-        y_box_init,
-        RGB::named(YELLOW),
-        RGB::named(BLACK),
         title_str,
-    );
-    ctx.print_color(
-        x_init + 3,
-        y_init + inventory_size as PsnU + 1,
-        RGB::named(YELLOW),
-        RGB::named(BLACK),
-        ESCAPE_MSG,
+        inventory_size,
+        max_item_name_length,
     );
 
     let abs_pack: Vec<(Entity, Box<dyn HasOwner>, &Name)> = match mode {
@@ -383,7 +377,9 @@ pub fn show_inventory(
         match key {
             VirtualKeyCode::Escape => (ItemMenuResult::Cancel, None),
             _ => {
-                if let Some(selection) = letter_to_option(key).clamp_opt(0, inventory_size - 1) {
+                if let Some(selection) =
+                    letter_to_option(key).clamp_opt(0, inventory_size as i32 - 1)
+                {
                     (ItemMenuResult::Selected, Some(useable[selection as usize]))
                 } else {
                     (ItemMenuResult::NoResponse, None)
