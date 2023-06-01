@@ -483,6 +483,8 @@ pub fn init_state(test_ecs: bool, ctxt_opt: Option<&BTerm>) -> (State, Option<BT
     (gs, opt_ctxt)
 }
 
+// TODO: start using RustIO here;
+// https://github.com/politrons/FunctionalRust/blob/main/src/features/rust_io.rs#L478
 fn main() {
     {
         // Globals

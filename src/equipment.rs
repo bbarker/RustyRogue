@@ -94,6 +94,22 @@ impl MeleeWeaponType {
     }
 }
 
+#[derive(Eq, PartialEq, Hash, Serialize, Deserialize, Clone, Debug)]
+pub enum Infix {
+    None,
+    Long,
+    Great,
+}
+impl Display for Infix {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Infix::None => write!(f, ""),
+            Infix::Long => write!(f, "Long"),
+            Infix::Great => write!(f, "Great"),
+        }
+    }
+}
+
 macro_attr! {
     #[derive(Eq, PartialEq, Hash, Serialize, Deserialize, Clone, Debug, EnumDisplay!)]
     pub enum Material {
@@ -174,18 +190,46 @@ pub struct Equipment {
     pub equipment_type: EquipmentType,
     pub allowed_slots: EquipSlotAllowed,
     pub material: Material,
+    pub quality: u8,
     pub special_melee_modifier: i16,
     pub special_defense_modifier: i16,
 }
 
 impl Equipment {
-    pub fn new(slot: EquipSlotAllowed, equipment_type: EquipmentType, material: Material) -> Self {
+    pub fn new(
+        slot: EquipSlotAllowed,
+        equipment_type: EquipmentType,
+        material: Material,
+        quality: u8,
+    ) -> Self {
         Equipment {
             allowed_slots: slot,
             equipment_type,
             material,
+            quality,
             special_melee_modifier: 0,
             special_defense_modifier: 0,
+        }
+    }
+
+    // TODO - look at names and ranks again from some popular games
+    fn sword_infix(quality: u8) -> Infix {
+        match quality {
+            0 => Infix::None,
+            1 => Infix::Long,
+            _ => Infix::None,
+        }
+    }
+    fn infix(&self) -> Infix {
+        match &self.equipment_type {
+            EquipmentType::Weapon(weapon_type) => match weapon_type {
+                WeaponType::Melee(melee_weapon_type) => match melee_weapon_type {
+                    MeleeWeaponType::Sword => Self::sword_infix(self.quality),
+                    _ => Infix::None,
+                },
+                WeaponType::Ranged(_, _) => Infix::None,
+            },
+            _ => Infix::None,
         }
     }
 

@@ -85,7 +85,7 @@ fn equippable_entity(
 }
 
 pub fn iron_dagger(ecs: &mut World, pos: Position) -> Entity {
-    let eq_item = Equipment::new(ONE_HANDED, Weapon(Melee(Dagger)), Material::Iron);
+    let eq_item = Equipment::new(ONE_HANDED, Weapon(Melee(Dagger)), Material::Iron, 0);
     equippable_entity(
         ecs,
         pos,
@@ -103,8 +103,27 @@ pub fn iron_dagger(ecs: &mut World, pos: Position) -> Entity {
     .build()
 }
 
+pub fn iron_sword(ecs: &mut World, pos: Position) -> Entity {
+    let eq_item = Equipment::new(ONE_HANDED, Weapon(Melee(Sword)), Material::Iron, 0);
+    equippable_entity(
+        ecs,
+        pos,
+        WorldEntityData {
+            name: eq_item.name(),
+            renderable: Renderable {
+                glyph: bracket_lib::prelude::to_cp437('│'),
+                fg: RGB::named(IRON_COLOR),
+                bg: RGB::named(BLACK),
+                render_order: RenderOrder::First,
+            },
+        },
+        eq_item,
+    )
+    .build()
+}
+
 pub fn iron_shield(ecs: &mut World, pos: Position) -> Entity {
-    let eq_item = Equipment::new(OFF_HAND, Shield, Material::Iron);
+    let eq_item = Equipment::new(OFF_HAND, Shield, Material::Iron, 0);
     equippable_entity(
         ecs,
         pos,
@@ -112,6 +131,27 @@ pub fn iron_shield(ecs: &mut World, pos: Position) -> Entity {
             name: eq_item.name(),
             renderable: Renderable {
                 glyph: bracket_lib::prelude::to_cp437('('),
+                fg: RGB::named(IRON_COLOR),
+                bg: RGB::named(BLACK),
+                render_order: RenderOrder::First,
+            },
+        },
+        eq_item,
+    )
+    .build()
+}
+
+// TODO: for this and the long sword, it would be good to add some "infixes", like "tower", "long", etc
+// TODO: 1 complication is that not all infixes apply to all types of equipment
+pub fn iron_tower_shield(ecs: &mut World, pos: Position) -> Entity {
+    let eq_item = Equipment::new(OFF_HAND, Shield, Material::Iron, 0);
+    equippable_entity(
+        ecs,
+        pos,
+        WorldEntityData {
+            name: "Iron Tower Shield".to_string(),
+            renderable: Renderable {
+                glyph: bracket_lib::prelude::to_cp437('◙'),
                 fg: RGB::named(IRON_COLOR),
                 bg: RGB::named(BLACK),
                 render_order: RenderOrder::First,
@@ -255,7 +295,9 @@ pub fn room_table(map_depth: i32) -> RandomTable {
         .add(confusion_scroll, 30)
         .add(random_monster, 120 + 2 * map_depth.unsigned_abs() as u16)
         .add(iron_dagger, 10)
+        .add(iron_sword, 5)
         .add(iron_shield, 10)
+        .add(iron_tower_shield, 1000) // TODO DEBUG
 }
 
 pub fn random_item(ecs: &mut World, position: Position) -> Entity {

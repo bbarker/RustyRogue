@@ -8,3 +8,5 @@ savegame.json
 
 wasm/*.js
 wasm/*.wasm
+
+.vscode
