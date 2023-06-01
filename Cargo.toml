@@ -18,3 +18,4 @@ specs = { version = "0.18.0", features = ["serde"]}
 specs-derive = "0.4.1"
 once_cell = "1.5.2"
 indexmap = "1.9.3"
+FunctionalRust = { git = "https://github.com/politrons/FunctionalRust.git", rev = "1f34793"}

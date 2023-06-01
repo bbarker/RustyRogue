@@ -464,7 +464,7 @@ mod tests {
 
     #[test]
     fn equip_item_removes_from_item_from_bag() {
-        let (mut gs, _) = init_state(true);
+        let (mut gs, _) = init_state(true, None);
         let player_entity = get_player_unwrap(&gs.ecs, PLAYER_NAME);
         let player_posn = get_player_pos_unwrap(&gs.ecs, PLAYER_NAME);
 
@@ -489,7 +489,7 @@ mod tests {
 
     #[test]
     fn main_hand_shifts_to_offhand() {
-        let (mut gs, _) = init_state(true);
+        let (mut gs, _) = init_state(true, None);
         let player_entity = get_player_unwrap(&gs.ecs, PLAYER_NAME);
         let player_posn = get_player_pos_unwrap(&gs.ecs, PLAYER_NAME);
 
