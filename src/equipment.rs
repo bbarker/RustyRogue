@@ -97,15 +97,35 @@ impl MeleeWeaponType {
 #[derive(Eq, PartialEq, Hash, Serialize, Deserialize, Clone, Debug)]
 pub enum Infix {
     None,
+    //
+    Short,
+    Broad,
     Long,
+    Bastard,
     Great,
+    //
+    Buckler,
+    Round,
+    Heater,
+    Kite,
+    Tower,
 }
 impl Display for Infix {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Infix::None => write!(f, ""),
+            //
+            Infix::Short => write!(f, "Short"),
+            Infix::Broad => write!(f, "Broad"),
             Infix::Long => write!(f, "Long"),
+            Infix::Bastard => write!(f, "Bastard"),
             Infix::Great => write!(f, "Great"),
+            //
+            Infix::Buckler => write!(f, "Buckler"),
+            Infix::Round => write!(f, "Round"),
+            Infix::Heater => write!(f, "Heater"),
+            Infix::Kite => write!(f, "Kite"),
+            Infix::Tower => write!(f, "Tower"),
         }
     }
 }
@@ -216,10 +236,25 @@ impl Equipment {
     fn sword_infix(quality: u8) -> Infix {
         match quality {
             0 => Infix::None,
-            1 => Infix::Long,
-            _ => Infix::None,
+            1 => Infix::Short,
+            2 => Infix::Broad,
+            3 => Infix::Long,
+            4 => Infix::Bastard,
+            _ => Infix::Great,
         }
     }
+
+    fn shield_infix(quality: u8) -> Infix {
+        match quality {
+            0 => Infix::None,
+            1 => Infix::Buckler,
+            2 => Infix::Round,
+            3 => Infix::Heater,
+            4 => Infix::Kite,
+            _ => Infix::Tower,
+        }
+    }
+
     fn infix(&self) -> Infix {
         match &self.equipment_type {
             EquipmentType::Weapon(weapon_type) => match weapon_type {
@@ -229,12 +264,17 @@ impl Equipment {
                 },
                 WeaponType::Ranged(_, _) => Infix::None,
             },
+            EquipmentType::Shield => Self::shield_infix(self.quality),
             _ => Infix::None,
         }
     }
 
     pub fn name(&self) -> String {
-        format!("{} {}", self.material, self.equipment_type)
+        let infix = match self.infix() {
+            Infix::None => " ".to_string(),
+            ifx => format!(" {} ", ifx),
+        };
+        format!("{}{}{}", self.material, infix, self.equipment_type)
     }
 
     pub fn melee_bonus(&self) -> i16 {
