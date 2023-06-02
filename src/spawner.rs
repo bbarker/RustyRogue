@@ -143,7 +143,7 @@ pub fn iron_shield(ecs: &mut World, pos: Position) -> Entity {
 
 // TODO: make this generic over the quality of the item
 pub fn iron_tower_shield(ecs: &mut World, pos: Position) -> Entity {
-    let eq_item = Equipment::new(OFF_HAND, Shield, Material::Iron, 5);
+    let eq_item = Equipment::new(OFF_HAND, Shield, Material::Iron, 4);
     equippable_entity(
         ecs,
         pos,

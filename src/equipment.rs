@@ -232,25 +232,22 @@ impl Equipment {
         }
     }
 
-    // TODO - look at names and ranks again from some popular games
     fn sword_infix(quality: u8) -> Infix {
         match quality {
-            0 => Infix::None,
-            1 => Infix::Short,
-            2 => Infix::Broad,
-            3 => Infix::Long,
-            4 => Infix::Bastard,
+            0 => Infix::Short,
+            1 => Infix::Broad,
+            2 => Infix::Long,
+            3 => Infix::Bastard,
             _ => Infix::Great,
         }
     }
 
     fn shield_infix(quality: u8) -> Infix {
         match quality {
-            0 => Infix::None,
-            1 => Infix::Buckler,
-            2 => Infix::Round,
-            3 => Infix::Heater,
-            4 => Infix::Kite,
+            0 => Infix::Buckler,
+            1 => Infix::Round,
+            2 => Infix::Heater,
+            3 => Infix::Kite,
             _ => Infix::Tower,
         }
     }
