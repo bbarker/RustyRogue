@@ -141,15 +141,14 @@ pub fn iron_shield(ecs: &mut World, pos: Position) -> Entity {
     .build()
 }
 
-// TODO: for this and the long sword, it would be good to add some "infixes", like "tower", "long", etc
-// TODO: 1 complication is that not all infixes apply to all types of equipment
+// TODO: make this generic over the quality of the item
 pub fn iron_tower_shield(ecs: &mut World, pos: Position) -> Entity {
-    let eq_item = Equipment::new(OFF_HAND, Shield, Material::Iron, 0);
+    let eq_item = Equipment::new(OFF_HAND, Shield, Material::Iron, 5);
     equippable_entity(
         ecs,
         pos,
         WorldEntityData {
-            name: "Iron Tower Shield".to_string(),
+            name: eq_item.name(),
             renderable: Renderable {
                 glyph: bracket_lib::prelude::to_cp437('◙'),
                 fg: RGB::named(IRON_COLOR),
