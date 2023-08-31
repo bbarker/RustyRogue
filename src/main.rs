@@ -1,6 +1,6 @@
-#![feature(const_cmp)]
 #![feature(const_trait_impl)]
 #![feature(type_ascription)]
+// #![feature(tuple_trait)] // internal-only
 // #![feature(derive_const)] // need nightly for this
 
 #[macro_use]

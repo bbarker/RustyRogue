@@ -5,6 +5,7 @@ use specs::{
     saveload::{MarkedBuilder, SimpleMarker},
 };
 
+use crate::util::*;
 use crate::{components::*, equipment::*, map::Map, random_table::*, rect::Rect, State};
 use EquipmentType::*;
 use MeleeWeaponType::*;
@@ -13,6 +14,9 @@ use WeaponType::*;
 const INIT_MAX_SPAWN: u16 = 5;
 
 pub const IRON_COLOR: (u8, u8, u8) = GREY10;
+
+//pub trait SimpleSpawner: Fn(&mut World, Position) -> Entity {}
+type SimpleSpawner<'a> = dyn CloneableFnAB<&'a mut World, Position, Entity>;
 
 struct WorldEntityData {
     name: String,
@@ -141,9 +145,71 @@ pub fn iron_shield(ecs: &mut World, pos: Position) -> Entity {
     .build()
 }
 
-// TODO: make this generic over the quality of the item
-pub fn iron_tower_shield(ecs: &mut World, pos: Position) -> Entity {
-    let eq_item = Equipment::new(OFF_HAND, Shield, Material::Iron, 4);
+pub fn random_quality(ecs: &mut World, map_depth: i32) -> u8 {
+    let mut rng = ecs.write_resource::<RandomNumberGenerator>();
+    let roll = rng.range(0, 100);
+    let weighted_roll = roll + 3 * map_depth;
+    match weighted_roll {
+        0..=50 => 0,
+        51..=70 => 1,
+        71..=82 => 2,
+        83..=93 => 3,
+        94..=98 => 4,
+        _ => 5,
+    }
+}
+
+pub fn random_blade_material(ecs: &mut World, map_depth: i32) -> Material {
+    let mut rng = ecs.write_resource::<RandomNumberGenerator>();
+    let roll = rng.range(0, 100);
+    let weighted_roll = roll + 3 * map_depth;
+    match weighted_roll {
+        0..=40 => Material::Wood,
+        41..=50 => Material::Stone,
+        51..=56 => Material::Copper,
+        57..=60 => Material::Bronze,
+        61..=70 => Material::Iron,
+        71..=75 => Material::Steel,
+        94..=98 => Material::Titanium,
+        _ => Material::DamascusSteel,
+    }
+}
+
+pub fn random_shield_material(rng: &mut RandomNumberGenerator, map_depth: i32) -> Material {
+    fn depth_table(map_depth: i32) -> RandomTable<Material> {
+        RandomTable::new()
+            .add(
+                Material::Wood,
+                40_u16.saturating_sub(3 * (map_depth.abs() as u16)),
+            )
+            .add(
+                Material::Copper,
+                20_u16.saturating_sub(2 * (map_depth.abs() as u16)),
+            )
+            .add(
+                Material::Bronze,
+                20_u16.saturating_sub(map_depth.abs() as u16),
+            )
+            .add(
+                Material::Iron,
+                10_u16.saturating_add(map_depth.abs() as u16),
+            )
+            .add(
+                Material::Steel,
+                5_u16.saturating_add(2 * (map_depth.abs() as u16)),
+            )
+    }
+
+    let mat_table = depth_table(map_depth);
+    mat_table.roll(rng)
+}
+
+fn shield_at_level(map_depth: i32, ecs: &mut World, pos: Position) -> Entity {
+    let eq_item = {
+        let rng = &mut ecs.write_resource::<RandomNumberGenerator>();
+        let shield_material = random_shield_material(rng, map_depth);
+        Equipment::new(OFF_HAND, Shield, shield_material, 4)
+    };
     equippable_entity(
         ecs,
         pos,
@@ -159,6 +225,10 @@ pub fn iron_tower_shield(ecs: &mut World, pos: Position) -> Entity {
         eq_item,
     )
     .build()
+}
+
+pub fn shield<'a>(map_depth: i32) -> Box<SimpleSpawner<'a>> {
+    Box::new(move |ecs, pos| shield_at_level(map_depth, ecs, pos))
 }
 
 fn ranged_consumable_entity(
@@ -198,6 +268,26 @@ pub fn player(gs: &mut State, position: Position) -> Entity {
 }
 
 pub fn health_potion(ecs: &mut World, position: Position) -> Entity {
+    consumable_entity(
+        ecs,
+        position,
+        WorldEntityData {
+            name: "Health Potion".into(),
+            renderable: Renderable {
+                glyph: bracket_lib::prelude::to_cp437('¡'),
+                fg: RGB::named(RED),
+                bg: RGB::named(BLACK),
+                render_order: RenderOrder::First,
+            },
+        },
+    )
+    .with(ProvidesHealing { heal_amount: 8 })
+    .build()
+}
+
+pub fn health_potion_tuple_test(args: (&mut World, Position)) -> Entity {
+    // DEBUG: remove this fn
+    let (ecs, position) = args;
     consumable_entity(
         ecs,
         position,
@@ -286,37 +376,47 @@ pub fn confusion_scroll(ecs: &mut World, position: Position) -> Entity {
     .build()
 }
 
-pub fn room_table(map_depth: i32) -> RandomTable {
+pub fn room_table<'a>(map_depth: i32) -> RandomTable<Box<SimpleSpawner<'a>>> {
+    //let health_pot: Box<SimpleSpawner> = Box::new(health_potion); // type as function pointer
     RandomTable::new()
-        .add(health_potion, 30)
-        .add(fireball_scroll, 30)
-        .add(magic_missile_scroll, 40)
-        .add(confusion_scroll, 30)
-        .add(random_monster, 120 + 2 * map_depth.unsigned_abs() as u16)
-        .add(iron_dagger, 10)
-        .add(iron_sword, 5)
-        .add(iron_shield, 10)
-        .add(iron_tower_shield, 1000) // TODO DEBUG
+        .add(Box::new(health_potion) as Box<SimpleSpawner<'a>>, 30)
+        .add(Box::new(fireball_scroll), 30)
+        .add(Box::new(magic_missile_scroll), 40)
+        .add(Box::new(confusion_scroll), 30)
+        .add(
+            Box::new(random_monster),
+            120 + 2 * map_depth.unsigned_abs() as u16,
+        )
+        // TODO: for our equipment spawners, we want a closure that also takes the map depth
+        // and adjust the internal weights accordingly
+        .add(Box::new(iron_dagger), 10)
+        .add(Box::new(iron_sword), 5)
+    //.add(shield(map_depth).spawn(), 10)
 }
 
 pub fn random_item(ecs: &mut World, position: Position) -> Entity {
     let map_depth = ecs.fetch::<Map>().depth;
     let spawn_table = room_table(map_depth);
 
-    let roll = {
-        let mut rng = ecs.write_resource::<RandomNumberGenerator>();
-        rng.range(0, spawn_table.total_weight)
-    };
-
+    let random_spawner = spawn_table.roll(&mut ecs.write_resource::<RandomNumberGenerator>());
     // TODO: if we get a lot of items, may want to consider a search
-    (spawn_table
-        .entries
-        .iter()
-        .find(|(_, weight)| roll < *weight)
-        .unwrap()
-        .0
-        .spawner)(ecs, position)
+    random_spawner(ecs, position)
 }
+
+/*
+pub fn random_item(ecs: &mut World, position: Position) -> Entity {
+    let map_depth = ecs.fetch::<Map>().depth;
+    let spawn_table = room_table(map_depth);
+
+    let random_spawner = {
+        let rng = &mut ecs.write_resource::<RandomNumberGenerator>();
+        spawn_table.roll(rng)
+    };
+    // let random_spawner = spawn_table.roll(&mut ecs.write_resource::<RandomNumberGenerator>());
+    // TODO: if we get a lot of items, may want to consider a search
+    random_spawner(ecs, position)
+}
+*/
 
 pub fn random_monster(ecs: &mut World, position: Position) -> Entity {
     let map_depth = ecs.fetch::<Map>().depth;
@@ -491,4 +591,14 @@ pub fn spawn_in_room(
             entity
         })
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::health_potion_tuple_test;
+
+    // compile-time test
+    fn test_cloneable_fn() {
+        let _cloned_health_potion_tuple_test = health_potion_tuple_test.clone();
+    }
 }

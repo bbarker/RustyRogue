@@ -135,26 +135,38 @@ macro_attr! {
     pub enum Material {
         Wood,
         Stone,
+        Copper,
+        Tin,
+        Bronze,
         Iron,
         Steel,
         Silver,
         Gold,
         Platinum,
+        Titanium,
+        DamascusSteel,
         Diamond,
     }
 }
 
 impl Material {
+    // Note: We may want to override these bonuses for specific equipment types
+    // or for specific interactions (e.g. silver vs. undead)
     pub fn bonus(&self) -> i16 {
         match self {
             Material::Wood => 0,
             Material::Stone => 1,
-            Material::Iron => 2,
-            Material::Steel => 3,
-            Material::Silver => 2,
-            Material::Gold => 2,
-            Material::Platinum => 4,
-            Material::Diamond => 5,
+            Material::Copper => 1,
+            Material::Tin => 0,
+            Material::Bronze => 2,
+            Material::Iron => 3,
+            Material::Steel => 4,
+            Material::Silver => 3,
+            Material::Gold => 4,
+            Material::Platinum => 5,
+            Material::Titanium => 5,
+            Material::DamascusSteel => 6,
+            Material::Diamond => 6,
         }
     }
 }
