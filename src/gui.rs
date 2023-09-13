@@ -1,5 +1,4 @@
-use std::cmp::{max, min};
-
+use crate::util::{max_usize, min_usize};
 use bracket_lib::{
     prelude::{BTerm, RGB},
     terminal::{
@@ -27,8 +26,8 @@ use crate::{
 
 const ESCAPE_MSG: &str = "ESCAPE to cancel";
 pub const PANEL_HEIGHT: usize = 7;
-pub const PANEL_HEIGHT_SAFE: usize = max(PANEL_HEIGHT, 1);
-pub const PANEL_HEIGHT_INTERIOR: usize = min(PANEL_HEIGHT, PANEL_HEIGHT - 2);
+pub const PANEL_HEIGHT_SAFE: usize = max_usize(PANEL_HEIGHT, 1);
+pub const PANEL_HEIGHT_INTERIOR: usize = min_usize(PANEL_HEIGHT, PANEL_HEIGHT - 2);
 
 fn panel_top(display_state: &DisplayState) -> PsnU {
     display_state.height - (PANEL_HEIGHT as PsnU)
@@ -210,7 +209,7 @@ fn draw_menu_box(
     num_entries: usize,
     max_line_length: usize,
 ) -> u16 {
-    let box_width = max(max(max_line_length, ESCAPE_MSG.len()), title.len()) + 4;
+    let box_width = max_usize(max_usize(max_line_length, ESCAPE_MSG.len()), title.len()) + 4;
     let y_init = (gs.display.height - num_entries as PsnU) / 2;
     let y_box_init = (y_init - 2).clamp(0, y_init);
     ctx.draw_box(

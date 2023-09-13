@@ -64,7 +64,27 @@ fn foo(aa: i32, bb: i32) -> i32 {
     aa + bb
 }
 
-fn test_fn() -> () {
+#[test]
+fn cloneable_fn_test_fn() -> () {
     let _foo2 = foo.clone();
     let _foo3 = Box::new(foo).clone_box();
+}
+
+// const traits and fns seem to be in flux right now; workaround:
+#[inline]
+pub const fn max_usize(aa: usize, bb: usize) -> usize {
+    if aa > bb {
+        aa
+    } else {
+        bb
+    }
+}
+//
+#[inline]
+pub const fn min_usize(aa: usize, bb: usize) -> usize {
+    if aa < bb {
+        aa
+    } else {
+        bb
+    }
 }
