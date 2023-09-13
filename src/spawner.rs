@@ -15,8 +15,7 @@ const INIT_MAX_SPAWN: u16 = 5;
 
 pub const IRON_COLOR: (u8, u8, u8) = GREY10;
 
-//pub trait SimpleSpawner: Fn(&mut World, Position) -> Entity {}
-type SimpleSpawner<'a> = dyn CloneableFnAB<&'a mut World, Position, Entity>;
+type SimpleSpawner<'a> = dyn CloneableFnAB<&'a mut World, Position, Entity> + 'a;
 
 struct WorldEntityData {
     name: String,
@@ -176,28 +175,27 @@ pub fn random_blade_material(ecs: &mut World, map_depth: i32) -> Material {
 }
 
 pub fn random_shield_material(rng: &mut RandomNumberGenerator, map_depth: i32) -> Material {
-    fn depth_table(map_depth: i32) -> RandomTable<Material> {
-        RandomTable::new()
-            .add(
-                Material::Wood,
-                40_u16.saturating_sub(3 * (map_depth.abs() as u16)),
-            )
-            .add(
-                Material::Copper,
-                20_u16.saturating_sub(2 * (map_depth.abs() as u16)),
-            )
-            .add(
-                Material::Bronze,
-                20_u16.saturating_sub(map_depth.abs() as u16),
-            )
-            .add(
-                Material::Iron,
-                10_u16.saturating_add(map_depth.abs() as u16),
-            )
-            .add(
-                Material::Steel,
-                5_u16.saturating_add(2 * (map_depth.abs() as u16)),
-            )
+    fn depth_table<'a>(map_depth: i32) -> RandomTable<'a, Material> {
+        RandomTable::<'a, Material>::new(
+            Material::Wood,
+            40_u16.saturating_sub(3 * (map_depth.abs() as u16)),
+        )
+        .add(
+            Material::Copper,
+            20_u16.saturating_sub(2 * (map_depth.abs() as u16)),
+        )
+        .add(
+            Material::Bronze,
+            20_u16.saturating_sub(map_depth.abs() as u16),
+        )
+        .add(
+            Material::Iron,
+            10_u16.saturating_add(map_depth.abs() as u16),
+        )
+        .add(
+            Material::Steel,
+            5_u16.saturating_add(2 * (map_depth.abs() as u16)),
+        )
     }
 
     let mat_table = depth_table(map_depth);
@@ -376,22 +374,28 @@ pub fn confusion_scroll(ecs: &mut World, position: Position) -> Entity {
     .build()
 }
 
-pub fn room_table<'a>(map_depth: i32) -> RandomTable<Box<SimpleSpawner<'a>>> {
-    //let health_pot: Box<SimpleSpawner> = Box::new(health_potion); // type as function pointer
-    RandomTable::new()
-        .add(Box::new(health_potion) as Box<SimpleSpawner<'a>>, 30)
-        .add(Box::new(fireball_scroll), 30)
-        .add(Box::new(magic_missile_scroll), 40)
-        .add(Box::new(confusion_scroll), 30)
-        .add(
-            Box::new(random_monster),
-            120 + 2 * map_depth.unsigned_abs() as u16,
-        )
-        // TODO: for our equipment spawners, we want a closure that also takes the map depth
-        // and adjust the internal weights accordingly
-        .add(Box::new(iron_dagger), 10)
-        .add(Box::new(iron_sword), 5)
-    //.add(shield(map_depth).spawn(), 10)
+pub fn room_table<'a, 'b>(map_depth: i32) -> RandomTable<'a, Box<SimpleSpawner<'b>>> {
+    // RandomTable::<'a, Box<SimpleSpawner<'a>>>::new()
+    RandomTable::<'a, Box<SimpleSpawner<'b>>>::new(
+        Box::new(health_potion) as Box<SimpleSpawner<'b>>,
+        30, // TODO: So it seems to be an issue with the lifetime in SimpleSpawner;
+    )
+    // https://play.rust-lang.org/?version=nightly&mode=debug&edition=2021&gist=b7f3d8f98de275f1075b717b14b0f7c9
+    // On further reflection, it seems like new() may be problematic, so we need
+    // new to take a t least one entry to establish some non-static lifetime.
+    //.add(Box::new(health_potion) as Box<SimpleSpawner<'a>>, 30)
+    .add(Box::new(fireball_scroll), 30)
+    .add(Box::new(magic_missile_scroll), 40)
+    .add(Box::new(confusion_scroll), 30)
+    .add(
+        Box::new(random_monster),
+        120 + 2 * map_depth.unsigned_abs() as u16,
+    )
+    // TODO: for our equipment spawners, we want a closure that also takes the map depth
+    // and adjust the internal weights accordingly
+    .add(Box::new(iron_dagger), 10)
+    .add(Box::new(iron_sword), 5)
+    .add(shield(map_depth), 10)
 }
 
 pub fn random_item(ecs: &mut World, position: Position) -> Entity {

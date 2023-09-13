@@ -1,25 +1,35 @@
 use bracket_lib::random::RandomNumberGenerator;
 
+use std::marker::PhantomData;
+
 #[derive(Clone, Copy)]
-pub struct RandomEntry<T> {
+pub struct RandomEntry<'a, T> {
     pub spawner: T,
     pub weight: u16,
+    phantom: PhantomData<&'a T>,
 }
 
 #[derive(Clone)]
-pub struct RandomTable<T> {
-    pub entries: Vec<(RandomEntry<T>, u16)>,
+pub struct RandomTable<'a, T> {
+    pub entries: Vec<(RandomEntry<'a, T>, u16)>,
     pub total_weight: u16,
 }
 
-impl<T> RandomTable<T>
+impl<'a, T> RandomTable<'a, T>
 where
     T: Clone,
 {
-    pub fn new() -> Self {
+    pub fn new(init: T, init_weight: u16) -> RandomTable<'a, T> {
         RandomTable {
-            entries: Vec::new(),
-            total_weight: 0,
+            entries: vec![(
+                RandomEntry {
+                    spawner: init,
+                    weight: init_weight,
+                    phantom: PhantomData,
+                },
+                init_weight,
+            )],
+            total_weight: init_weight,
         }
     }
 
@@ -30,6 +40,7 @@ where
                 RandomEntry {
                     spawner: spawn,
                     weight,
+                    phantom: PhantomData,
                 },
                 new_total_weight,
             ))
