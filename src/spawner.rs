@@ -125,27 +125,7 @@ pub fn iron_sword(ecs: &mut World, pos: Position) -> Entity {
     .build()
 }
 
-pub fn iron_shield(ecs: &mut World, pos: Position) -> Entity {
-    let eq_item = Equipment::new(OFF_HAND, Shield, Material::Iron, 0);
-    equippable_entity(
-        ecs,
-        pos,
-        WorldEntityData {
-            name: eq_item.name(),
-            renderable: Renderable {
-                glyph: bracket_lib::prelude::to_cp437('('),
-                fg: RGB::named(IRON_COLOR),
-                bg: RGB::named(BLACK),
-                render_order: RenderOrder::First,
-            },
-        },
-        eq_item,
-    )
-    .build()
-}
-
-pub fn random_quality(ecs: &mut World, map_depth: i32) -> u8 {
-    let mut rng = ecs.write_resource::<RandomNumberGenerator>();
+pub fn random_quality(rng: &mut RandomNumberGenerator, map_depth: i32) -> u8 {
     let roll = rng.range(0, 100);
     let weighted_roll = roll + 3 * map_depth;
     match weighted_roll {
@@ -206,7 +186,8 @@ fn shield_at_level(map_depth: i32, ecs: &mut World, pos: Position) -> Entity {
     let eq_item = {
         let rng = &mut ecs.write_resource::<RandomNumberGenerator>();
         let shield_material = random_shield_material(rng, map_depth);
-        Equipment::new(OFF_HAND, Shield, shield_material, 4)
+        let shield_quality = random_quality(rng, map_depth);
+        Equipment::new(OFF_HAND, Shield, shield_material, shield_quality)
     };
     equippable_entity(
         ecs,
@@ -266,26 +247,6 @@ pub fn player(gs: &mut State, position: Position) -> Entity {
 }
 
 pub fn health_potion(ecs: &mut World, position: Position) -> Entity {
-    consumable_entity(
-        ecs,
-        position,
-        WorldEntityData {
-            name: "Health Potion".into(),
-            renderable: Renderable {
-                glyph: bracket_lib::prelude::to_cp437('¡'),
-                fg: RGB::named(RED),
-                bg: RGB::named(BLACK),
-                render_order: RenderOrder::First,
-            },
-        },
-    )
-    .with(ProvidesHealing { heal_amount: 8 })
-    .build()
-}
-
-pub fn health_potion_tuple_test(args: (&mut World, Position)) -> Entity {
-    // DEBUG: remove this fn
-    let (ecs, position) = args;
     consumable_entity(
         ecs,
         position,
@@ -375,15 +336,10 @@ pub fn confusion_scroll(ecs: &mut World, position: Position) -> Entity {
 }
 
 pub fn room_table<'a, 'b>(map_depth: i32) -> RandomTable<'a, Box<SimpleSpawner<'b>>> {
-    // RandomTable::<'a, Box<SimpleSpawner<'a>>>::new()
     RandomTable::<'a, Box<SimpleSpawner<'b>>>::new(
         Box::new(health_potion) as Box<SimpleSpawner<'b>>,
-        30, // TODO: So it seems to be an issue with the lifetime in SimpleSpawner;
+        30,
     )
-    // https://play.rust-lang.org/?version=nightly&mode=debug&edition=2021&gist=b7f3d8f98de275f1075b717b14b0f7c9
-    // On further reflection, it seems like new() may be problematic, so we need
-    // new to take a t least one entry to establish some non-static lifetime.
-    //.add(Box::new(health_potion) as Box<SimpleSpawner<'a>>, 30)
     .add(Box::new(fireball_scroll), 30)
     .add(Box::new(magic_missile_scroll), 40)
     .add(Box::new(confusion_scroll), 30)

@@ -20,7 +20,7 @@ impl<'a> System<'a> for DamageSystem {
 
         (&mut combat_stats, &incoming_damage)
             .join()
-            .for_each(|(mut stats, damage)| {
+            .for_each(|(stats, damage)| {
                 stats.hp -= damage.amount.iter().sum::<u16>().clamp(0, stats.hp);
             });
         incoming_damage.clear();

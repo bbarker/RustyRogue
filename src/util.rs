@@ -60,12 +60,11 @@ cloneable_fn!(A, B, C, D, E);
 cloneable_fn!(A, B, C, D, E, F);
 cloneable_fn!(A, B, C, D, E, F, G);
 
-fn foo(aa: i32, bb: i32) -> i32 {
-    aa + bb
-}
-
 #[test]
 fn cloneable_fn_test_fn() -> () {
+    fn foo(aa: i32, bb: i32) -> i32 {
+        aa + bb
+    }
     let _foo2 = foo.clone();
     let _foo3 = Box::new(foo).clone_box();
 }
