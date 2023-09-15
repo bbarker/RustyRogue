@@ -391,7 +391,7 @@ pub fn show_inventory(
 }
 
 pub fn ranged_target(
-    gs: &mut State,
+    gs: &State,
     ctx: &mut BTerm,
     range: u16,
 ) -> (ItemMenuResult, Option<Position>) {
@@ -509,7 +509,7 @@ fn draw_main_menu_entry(ctx: &mut BTerm, entry: MainMenuSelection, selection: Ma
         main_menu_entry_string(entry),
     );
 }
-pub fn main_menu(gs: &mut State, ctx: &mut BTerm) -> MainMenuResult {
+pub fn main_menu(gs: &State, ctx: &mut BTerm) -> MainMenuResult {
     let runstate = gs.ecs.fetch::<RunState>();
 
     ctx.print_color_centered(15, RGB::named(YELLOW), RGB::named(BLACK), "Rusty Rogue");

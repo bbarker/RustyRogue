@@ -138,7 +138,7 @@ pub fn random_quality(rng: &mut RandomNumberGenerator, map_depth: i32) -> u8 {
     }
 }
 
-pub fn random_blade_material(ecs: &mut World, map_depth: i32) -> Material {
+pub fn random_blade_material(ecs: &World, map_depth: i32) -> Material {
     let mut rng = ecs.write_resource::<RandomNumberGenerator>();
     let roll = rng.range(0, 100);
     let weighted_roll = roll + 3 * map_depth;
@@ -156,26 +156,12 @@ pub fn random_blade_material(ecs: &mut World, map_depth: i32) -> Material {
 
 pub fn random_shield_material(rng: &mut RandomNumberGenerator, map_depth: i32) -> Material {
     fn depth_table<'a>(map_depth: i32) -> RandomTable<'a, Material> {
-        RandomTable::<'a, Material>::new(
-            Material::Wood,
-            40_u16.saturating_sub(3 * (map_depth.abs() as u16)),
-        )
-        .add(
-            Material::Copper,
-            20_u16.saturating_sub(2 * (map_depth.abs() as u16)),
-        )
-        .add(
-            Material::Bronze,
-            20_u16.saturating_sub(map_depth.abs() as u16),
-        )
-        .add(
-            Material::Iron,
-            10_u16.saturating_add(map_depth.abs() as u16),
-        )
-        .add(
-            Material::Steel,
-            5_u16.saturating_add(2 * (map_depth.abs() as u16)),
-        )
+        let map_depth_u16 = <u32 as TryInto<u16>>::try_into(map_depth.unsigned_abs()).unwrap();
+        RandomTable::<'a, Material>::new(Material::Wood, 40_u16.saturating_sub(3 * map_depth_u16))
+            .add(Material::Copper, 20_u16.saturating_sub(2 * map_depth_u16))
+            .add(Material::Bronze, 20_u16.saturating_sub(map_depth_u16))
+            .add(Material::Iron, 10_u16.saturating_add(map_depth_u16))
+            .add(Material::Steel, 5_u16.saturating_add(2 * map_depth_u16))
     }
 
     let mat_table = depth_table(map_depth);
@@ -503,7 +489,7 @@ pub fn spawn_room(ecs: &mut World, room: &Rect, map_depth: i32) -> Vec<Entity> {
     }
     .try_into()
     .unwrap();
-    vec![spawn_in_room(ecs, room, num_entities, random_item)].concat()
+    spawn_in_room(ecs, room, num_entities, random_item)
 }
 
 /// Fills a room with monsters and items

@@ -172,12 +172,7 @@ impl State {
     }
 }
 
-fn remove_or_drop(
-    state: &mut State,
-    ctx: &mut BTerm,
-    newrunstate: &mut RunState,
-    mode: InventoryMode,
-) {
+fn remove_or_drop(state: &State, ctx: &mut BTerm, newrunstate: &mut RunState, mode: InventoryMode) {
     let result = gui::show_inventory(state, ctx, mode.clone());
     match result.0 {
         gui::ItemMenuResult::Cancel => *newrunstate = RunState::AwaitingInput,
