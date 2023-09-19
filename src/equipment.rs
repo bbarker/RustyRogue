@@ -169,6 +169,24 @@ impl Material {
             Material::Diamond => 6,
         }
     }
+
+    pub fn color(&self) -> (u8, u8, u8) {
+        match self {
+            Material::Wood => (102, 51, 0),
+            Material::Stone => (105, 105, 105),
+            Material::Copper => (184, 115, 51),
+            Material::Tin => (211, 212, 213),
+            Material::Bronze => (205, 127, 50),
+            Material::Iron => (67, 70, 75),
+            Material::Steel => (203, 205, 205),
+            Material::Silver => (192, 192, 192),
+            Material::Gold => (255, 215, 0),
+            Material::Platinum => (229, 228, 226),
+            Material::Titanium => (135, 134, 129),
+            Material::DamascusSteel => (100, 100, 110),
+            Material::Diamond => (185, 242, 255),
+        }
+    }
 }
 
 macro_attr! {

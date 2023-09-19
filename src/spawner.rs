@@ -13,8 +13,6 @@ use WeaponType::*;
 
 const INIT_MAX_SPAWN: u16 = 5;
 
-pub const IRON_COLOR: (u8, u8, u8) = GREY10;
-
 type SimpleSpawner<'a> = dyn CloneableFnAB<&'a mut World, Position, Entity> + 'a;
 
 struct WorldEntityData {
@@ -96,7 +94,7 @@ pub fn iron_dagger(ecs: &mut World, pos: Position) -> Entity {
             name: eq_item.name(),
             renderable: Renderable {
                 glyph: bracket_lib::prelude::to_cp437('/'),
-                fg: RGB::named(IRON_COLOR),
+                fg: RGB::named(Material::Iron.color()),
                 bg: RGB::named(BLACK),
                 render_order: RenderOrder::First,
             },
@@ -106,8 +104,20 @@ pub fn iron_dagger(ecs: &mut World, pos: Position) -> Entity {
     .build()
 }
 
-pub fn iron_sword(ecs: &mut World, pos: Position) -> Entity {
-    let eq_item = Equipment::new(ONE_HANDED, Weapon(Melee(Sword)), Material::Iron, 0);
+pub fn sword_at_level(map_depth: i32, ecs: &mut World, pos: Position) -> Entity {
+    let (sword_material, sword_quality) = {
+        let rng = &mut ecs.write_resource::<RandomNumberGenerator>();
+        (
+            random_blade_material(ecs, map_depth),
+            random_quality(rng, map_depth),
+        )
+    };
+    let eq_item = Equipment::new(
+        ONE_HANDED,
+        Weapon(Melee(Sword)),
+        sword_material.clone(),
+        sword_quality,
+    );
     equippable_entity(
         ecs,
         pos,
@@ -115,7 +125,7 @@ pub fn iron_sword(ecs: &mut World, pos: Position) -> Entity {
             name: eq_item.name(),
             renderable: Renderable {
                 glyph: bracket_lib::prelude::to_cp437('│'),
-                fg: RGB::named(IRON_COLOR),
+                fg: RGB::named(sword_material.color()),
                 bg: RGB::named(BLACK),
                 render_order: RenderOrder::First,
             },
@@ -123,6 +133,10 @@ pub fn iron_sword(ecs: &mut World, pos: Position) -> Entity {
         eq_item,
     )
     .build()
+}
+
+pub fn sword<'a>(map_depth: i32) -> Box<SimpleSpawner<'a>> {
+    Box::new(move |ecs, pos| sword_at_level(map_depth, ecs, pos))
 }
 
 pub fn random_quality(rng: &mut RandomNumberGenerator, map_depth: i32) -> u8 {
@@ -169,12 +183,14 @@ pub fn random_shield_material(rng: &mut RandomNumberGenerator, map_depth: i32) -
 }
 
 fn shield_at_level(map_depth: i32, ecs: &mut World, pos: Position) -> Entity {
-    let eq_item = {
+    let (shield_material, shield_quality) = {
         let rng = &mut ecs.write_resource::<RandomNumberGenerator>();
-        let shield_material = random_shield_material(rng, map_depth);
-        let shield_quality = random_quality(rng, map_depth);
-        Equipment::new(OFF_HAND, Shield, shield_material, shield_quality)
+        (
+            random_shield_material(rng, map_depth),
+            random_quality(rng, map_depth),
+        )
     };
+    let eq_item = Equipment::new(OFF_HAND, Shield, shield_material.clone(), shield_quality);
     equippable_entity(
         ecs,
         pos,
@@ -182,7 +198,7 @@ fn shield_at_level(map_depth: i32, ecs: &mut World, pos: Position) -> Entity {
             name: eq_item.name(),
             renderable: Renderable {
                 glyph: bracket_lib::prelude::to_cp437('◙'),
-                fg: RGB::named(IRON_COLOR),
+                fg: RGB::named(shield_material.color()),
                 bg: RGB::named(BLACK),
                 render_order: RenderOrder::First,
             },
@@ -336,7 +352,7 @@ pub fn room_table<'a, 'b>(map_depth: i32) -> RandomTable<'a, Box<SimpleSpawner<'
     // TODO: for our equipment spawners, we want a closure that also takes the map depth
     // and adjust the internal weights accordingly
     .add(Box::new(iron_dagger), 10)
-    .add(Box::new(iron_sword), 5)
+    .add(sword(map_depth), 5)
     .add(shield(map_depth), 10)
 }
 
