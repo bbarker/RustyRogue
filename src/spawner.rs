@@ -85,8 +85,20 @@ fn equippable_entity(
     non_blocking_entity(ecs, pos, base_data).with(Item::Equippable(item))
 }
 
-pub fn iron_dagger(ecs: &mut World, pos: Position) -> Entity {
-    let eq_item = Equipment::new(ONE_HANDED, Weapon(Melee(Dagger)), Material::Iron, 0);
+pub fn dagger_at_level(map_depth: i32, ecs: &mut World, pos: Position) -> Entity {
+    let (dagger_material, dagger_quality) = {
+        let rng = &mut ecs.write_resource::<RandomNumberGenerator>();
+        (
+            random_blade_material(rng, map_depth),
+            random_quality(rng, map_depth),
+        )
+    };
+    let eq_item = Equipment::new(
+        ONE_HANDED,
+        Weapon(Melee(Dagger)),
+        dagger_material.clone(),
+        dagger_quality,
+    );
     equippable_entity(
         ecs,
         pos,
@@ -94,7 +106,7 @@ pub fn iron_dagger(ecs: &mut World, pos: Position) -> Entity {
             name: eq_item.name(),
             renderable: Renderable {
                 glyph: bracket_lib::prelude::to_cp437('/'),
-                fg: RGB::named(Material::Iron.color()),
+                fg: RGB::named(dagger_material.color()),
                 bg: RGB::named(BLACK),
                 render_order: RenderOrder::First,
             },
@@ -104,11 +116,15 @@ pub fn iron_dagger(ecs: &mut World, pos: Position) -> Entity {
     .build()
 }
 
+pub fn dagger<'a>(map_depth: i32) -> Box<SimpleSpawner<'a>> {
+    Box::new(move |ecs, pos| dagger_at_level(map_depth, ecs, pos))
+}
+
 pub fn sword_at_level(map_depth: i32, ecs: &mut World, pos: Position) -> Entity {
     let (sword_material, sword_quality) = {
         let rng = &mut ecs.write_resource::<RandomNumberGenerator>();
         (
-            random_blade_material(ecs, map_depth),
+            random_blade_material(rng, map_depth),
             random_quality(rng, map_depth),
         )
     };
@@ -152,8 +168,7 @@ pub fn random_quality(rng: &mut RandomNumberGenerator, map_depth: i32) -> u8 {
     }
 }
 
-pub fn random_blade_material(ecs: &World, map_depth: i32) -> Material {
-    let mut rng = ecs.write_resource::<RandomNumberGenerator>();
+pub fn random_blade_material(rng: &mut RandomNumberGenerator, map_depth: i32) -> Material {
     let roll = rng.range(0, 100);
     let weighted_roll = roll + 3 * map_depth;
     match weighted_roll {
@@ -349,9 +364,7 @@ pub fn room_table<'a, 'b>(map_depth: i32) -> RandomTable<'a, Box<SimpleSpawner<'
         Box::new(random_monster),
         120 + 2 * map_depth.unsigned_abs() as u16,
     )
-    // TODO: for our equipment spawners, we want a closure that also takes the map depth
-    // and adjust the internal weights accordingly
-    .add(Box::new(iron_dagger), 10)
+    .add(dagger(map_depth), 10)
     .add(sword(map_depth), 5)
     .add(shield(map_depth), 10)
 }
@@ -364,21 +377,6 @@ pub fn random_item(ecs: &mut World, position: Position) -> Entity {
     // TODO: if we get a lot of items, may want to consider a search
     random_spawner(ecs, position)
 }
-
-/*
-pub fn random_item(ecs: &mut World, position: Position) -> Entity {
-    let map_depth = ecs.fetch::<Map>().depth;
-    let spawn_table = room_table(map_depth);
-
-    let random_spawner = {
-        let rng = &mut ecs.write_resource::<RandomNumberGenerator>();
-        spawn_table.roll(rng)
-    };
-    // let random_spawner = spawn_table.roll(&mut ecs.write_resource::<RandomNumberGenerator>());
-    // TODO: if we get a lot of items, may want to consider a search
-    random_spawner(ecs, position)
-}
-*/
 
 pub fn random_monster(ecs: &mut World, position: Position) -> Entity {
     let map_depth = ecs.fetch::<Map>().depth;
