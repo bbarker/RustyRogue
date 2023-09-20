@@ -20,7 +20,7 @@ use crate::{
 // TODO: add this to a sub-state "Option<ClientState>" in State
 pub const PLAYER_NAME: &str = "Player";
 
-pub fn try_move_player(delta_x: i32, delta_y: i32, gs: &mut State) -> RunState {
+pub fn try_move_player(delta_x: i32, delta_y: i32, gs: &State) -> RunState {
     let entities = gs.ecs.entities();
     let mut log = gs.ecs.write_resource::<gamelog::GameLog>();
 
@@ -266,14 +266,14 @@ impl KeyBindings {
                         (VirtualKeyCode::Numpad5, vec![]),
                         (VirtualKeyCode::Space, vec![]),
                     ],
-                    action: Arc::new(|gs| skip_turn(&mut gs.ecs)),
+                    action: Arc::new(|gs| skip_turn(&gs.ecs)),
                 },
             ),
             (
                 PlayerAction::Grab,
                 ActionAndKeys {
                     key_codes: vec![(VirtualKeyCode::G, vec![])],
-                    action: Arc::new(|gs| interact(&mut gs.ecs)),
+                    action: Arc::new(|gs| interact(&gs.ecs)),
                 },
             ),
         ]
@@ -303,7 +303,7 @@ impl KeyBindings {
     }
 }
 
-pub fn player_input(gs: &mut State, ctx: &mut BTerm) -> RunState {
+pub fn player_input(gs: &mut State, ctx: &BTerm) -> RunState {
     let key_map = &KeyBindings::default().action_by_key;
 
     let mut ctxt_keys = vec![];
@@ -320,7 +320,7 @@ pub fn player_input(gs: &mut State, ctx: &mut BTerm) -> RunState {
     }
 }
 
-fn skip_turn(ecs: &mut World) -> RunState {
+fn skip_turn(ecs: &World) -> RunState {
     let player_entity = get_player_unwrap(ecs, PLAYER_NAME);
     let viewsheds = ecs.read_storage::<Viewshed>();
     let monsters = ecs.read_storage::<Monster>();
@@ -406,7 +406,7 @@ pub fn get_player_pos_unwrap(ecs: &World, player_name: impl Into<String>) -> Pos
     })
 }
 
-fn interact(ecs: &mut World) -> RunState {
+fn interact(ecs: &World) -> RunState {
     let player_map_ix = {
         let player_pos = get_player_pos_unwrap(ecs, PLAYER_NAME);
         let map = ecs.fetch::<Map>();
@@ -423,7 +423,7 @@ fn interact(ecs: &mut World) -> RunState {
     }
 }
 
-pub fn get_item(ecs: &mut World) -> RunState {
+pub fn get_item(ecs: &World) -> RunState {
     let entities = ecs.entities();
     let players = ecs.read_storage::<Player>();
     let positions = ecs.read_storage::<Position>();
@@ -461,7 +461,7 @@ pub fn get_item(ecs: &mut World) -> RunState {
     RunState::PlayerTurn
 }
 
-fn try_next_level(ecs: &mut World) -> RunState {
+fn try_next_level(ecs: &World) -> RunState {
     let player_pos = get_player_pos_unwrap(ecs, PLAYER_NAME);
     let map = ecs.fetch::<Map>();
     let player_ix = map.pos_idx(player_pos);

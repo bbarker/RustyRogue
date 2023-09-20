@@ -1,7 +1,5 @@
-#![feature(const_cmp)]
 #![feature(const_trait_impl)]
 #![feature(type_ascription)]
-// #![feature(derive_const)] // need nightly for this
 
 #[macro_use]
 extern crate macro_attr;
@@ -172,12 +170,7 @@ impl State {
     }
 }
 
-fn remove_or_drop(
-    state: &mut State,
-    ctx: &mut BTerm,
-    newrunstate: &mut RunState,
-    mode: InventoryMode,
-) {
+fn remove_or_drop(state: &State, ctx: &mut BTerm, newrunstate: &mut RunState, mode: InventoryMode) {
     let result = gui::show_inventory(state, ctx, mode.clone());
     match result.0 {
         gui::ItemMenuResult::Cancel => *newrunstate = RunState::AwaitingInput,

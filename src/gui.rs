@@ -1,5 +1,4 @@
-use std::cmp::{max, min};
-
+use crate::util::{max_usize, min_usize};
 use bracket_lib::{
     prelude::{BTerm, RGB},
     terminal::{
@@ -27,8 +26,8 @@ use crate::{
 
 const ESCAPE_MSG: &str = "ESCAPE to cancel";
 pub const PANEL_HEIGHT: usize = 7;
-pub const PANEL_HEIGHT_SAFE: usize = max(PANEL_HEIGHT, 1);
-pub const PANEL_HEIGHT_INTERIOR: usize = min(PANEL_HEIGHT, PANEL_HEIGHT - 2);
+pub const PANEL_HEIGHT_SAFE: usize = max_usize(PANEL_HEIGHT, 1);
+pub const PANEL_HEIGHT_INTERIOR: usize = min_usize(PANEL_HEIGHT, PANEL_HEIGHT - 2);
 
 fn panel_top(display_state: &DisplayState) -> PsnU {
     display_state.height - (PANEL_HEIGHT as PsnU)
@@ -210,7 +209,7 @@ fn draw_menu_box(
     num_entries: usize,
     max_line_length: usize,
 ) -> u16 {
-    let box_width = max(max(max_line_length, ESCAPE_MSG.len()), title.len()) + 4;
+    let box_width = max_usize(max_usize(max_line_length, ESCAPE_MSG.len()), title.len()) + 4;
     let y_init = (gs.display.height - num_entries as PsnU) / 2;
     let y_box_init = (y_init - 2).clamp(0, y_init);
     ctx.draw_box(
@@ -392,7 +391,7 @@ pub fn show_inventory(
 }
 
 pub fn ranged_target(
-    gs: &mut State,
+    gs: &State,
     ctx: &mut BTerm,
     range: u16,
 ) -> (ItemMenuResult, Option<Position>) {
@@ -510,7 +509,7 @@ fn draw_main_menu_entry(ctx: &mut BTerm, entry: MainMenuSelection, selection: Ma
         main_menu_entry_string(entry),
     );
 }
-pub fn main_menu(gs: &mut State, ctx: &mut BTerm) -> MainMenuResult {
+pub fn main_menu(gs: &State, ctx: &mut BTerm) -> MainMenuResult {
     let runstate = gs.ecs.fetch::<RunState>();
 
     ctx.print_color_centered(15, RGB::named(YELLOW), RGB::named(BLACK), "Rusty Rogue");

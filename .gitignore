@@ -10,3 +10,4 @@ wasm/*.js
 wasm/*.wasm
 
 .vscode
+.metals
