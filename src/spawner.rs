@@ -197,7 +197,7 @@ pub fn random_shield_material(rng: &mut RandomNumberGenerator, map_depth: i32) -
     mat_table.roll(rng)
 }
 
-fn shield_at_level(map_depth: i32, ecs: &mut World, pos: Position) -> Entity {
+pub fn shield_at_level(map_depth: i32, ecs: &mut World, pos: Position) -> Entity {
     let (shield_material, shield_quality) = {
         let rng = &mut ecs.write_resource::<RandomNumberGenerator>();
         (
@@ -551,14 +551,4 @@ pub fn spawn_in_room(
             entity
         })
         .collect()
-}
-
-#[cfg(test)]
-mod tests {
-    use super::health_potion_tuple_test;
-
-    // compile-time test
-    fn test_cloneable_fn() {
-        let _cloned_health_potion_tuple_test = health_potion_tuple_test.clone();
-    }
 }

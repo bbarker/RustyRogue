@@ -468,11 +468,11 @@ mod tests {
         let player_entity = get_player_unwrap(&gs.ecs, PLAYER_NAME);
         let player_posn = get_player_pos_unwrap(&gs.ecs, PLAYER_NAME);
 
-        spawner::iron_dagger(&mut gs.ecs, player_posn);
+        spawner::dagger_at_level(5, &mut gs.ecs, player_posn);
         get_item(&mut gs.ecs); // pickup an item
         gs.run_systems();
 
-        spawner::iron_shield(&mut gs.ecs, player_posn);
+        spawner::dagger_at_level(5, &mut gs.ecs, player_posn);
         get_item(&mut gs.ecs); // pickup an item
         gs.run_systems();
 
@@ -493,17 +493,17 @@ mod tests {
         let player_entity = get_player_unwrap(&gs.ecs, PLAYER_NAME);
         let player_posn = get_player_pos_unwrap(&gs.ecs, PLAYER_NAME);
 
-        let _dagger1 = spawner::iron_dagger(&mut gs.ecs, player_posn);
+        let _dagger1 = spawner::dagger_at_level(1, &mut gs.ecs, player_posn);
         get_item(&mut gs.ecs); // pickup an item
         gs.run_systems();
         use_first_backpack_item(&mut gs, player_entity);
 
-        let shield = spawner::iron_shield(&mut gs.ecs, player_posn);
+        let shield = spawner::shield_at_level(1, &mut gs.ecs, player_posn);
         get_item(&mut gs.ecs); // pickup an item
         gs.run_systems();
         use_first_backpack_item(&mut gs, player_entity);
 
-        let dagger2 = spawner::iron_dagger(&mut gs.ecs, player_posn);
+        let dagger2 = spawner::dagger_at_level(1, &mut gs.ecs, player_posn);
         get_item(&mut gs.ecs); // pickup an item
         gs.run_systems();
 
