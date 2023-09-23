@@ -1,5 +1,7 @@
+#[cfg(not(target_arch = "wasm32"))]
+use std::fs::File;
 use std::{
-    fs::{self, File},
+    fs::{self},
     path::Path,
 };
 
@@ -10,6 +12,7 @@ use crate::{components::*, delete_state};
 
 const SAVE_FILE: &str = "savegame.json";
 
+#[cfg(not(target_arch = "wasm32"))]
 macro_rules! serialize_individually {
   ($ecs:expr, $ser:expr, $data:expr, $( $type:ty),*, $(,)?) => {
       $(
