@@ -66,6 +66,7 @@ fn cloneable_fn_test_fn() -> () {
         aa + bb
     }
     let _foo2 = foo.clone();
+    #[allow(unused_allocation)]
     let _foo3 = Box::new(foo).clone_box();
 }
 

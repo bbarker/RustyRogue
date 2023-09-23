@@ -1,7 +1,8 @@
 use crate::{
-    components::{Name, Position, Positionable},
+    components::{Name, Player, Position, Positionable},
     gamelog::GameLog,
     map::Map,
+    RunState,
 };
 
 use super::{CombatStats, EventIncomingDamage};
@@ -27,22 +28,28 @@ impl<'a> System<'a> for DamageSystem {
     }
 }
 
-pub fn delete_the_dead(ecs: &mut World) {
+pub fn delete_the_dead(ecs: &mut World) -> Option<RunState> {
     let mut dead: Vec<Entity> = Vec::new();
+    let mut newrunstate_opt = None;
     {
         let entities = ecs.entities();
         let mut log = ecs.write_resource::<GameLog>();
         let combat_stats = ecs.read_storage::<CombatStats>();
         let names = ecs.read_storage::<Name>();
         let positions = ecs.read_storage::<Position>();
+        let players = ecs.read_storage::<Player>();
         (&entities, &combat_stats, &positions)
             .join()
             .for_each(|(ent, stats, pos)| {
                 if stats.hp < 1 {
-                    // TODO: add different handling for player death
                     dead.push(ent);
                     if let Some(victim_name) = names.get(ent) {
                         log.entries.push(format!("{} is dead.", victim_name.name));
+                    }
+                    if let Some(_player) = players.get(ent) {
+                        {
+                            newrunstate_opt = Some(RunState::GameOver);
+                        }
                     }
                     let ix = {
                         let map = ecs.fetch::<Map>();
@@ -57,4 +64,5 @@ pub fn delete_the_dead(ecs: &mut World) {
         ecs.delete_entity(*victim)
             .unwrap_or_else(|er| panic!("Unable to delete entity with id {}: {}", victim.id(), er))
     });
+    newrunstate_opt
 }

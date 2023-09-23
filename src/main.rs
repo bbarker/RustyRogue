@@ -68,6 +68,7 @@ pub enum RunState {
     KeyBindingsMenu,
     SaveGame,
     NextLevel,
+    GameOver,
 }
 
 pub struct State {
@@ -230,15 +231,25 @@ impl GameState for State {
             *runstate
         };
 
+        // FIXME: appears runstate is being possibly set to AwaitingInput before
+        // going into `tick`
+        /*
+        tick runstate: PlayerTurn
+        tick runstate: MonsterTurn
+        tick runstate: AwaitingInput
+        new runstate: GameOver
+        tick runstate: AwaitingInput
+        tick runstate: AwaitingInput
+                */
         ctx.cls();
 
-        match newrunstate {
-            RunState::MainMenu { .. } => {}
+        newrunstate = match newrunstate {
+            RunState::MainMenu { .. } => newrunstate,
             _ => {
                 draw_map(&self.ecs, ctx);
                 draw_ui(&self.ecs, ctx, &self.display);
 
-                delete_the_dead(&mut self.ecs);
+                let game_over_opt = delete_the_dead(&mut self.ecs);
 
                 {
                     // draw renderables
@@ -254,9 +265,9 @@ impl GameState for State {
                             ctx.set(pos.xx, pos.yy, render.fg, render.bg, render.glyph);
                         });
                 }
+                game_over_opt.unwrap_or(newrunstate)
             }
-        }
-
+        };
         match newrunstate {
             RunState::PreRun => {
                 self.run_systems();
@@ -362,6 +373,7 @@ impl GameState for State {
                     }
                     gui::MainMenuStatus::Selected => match result.highlighted {
                         gui::MainMenuSelection::NewGame => {
+                            delete_state(&mut self.ecs);
                             (*self, _) = init_state(false, Some(ctx));
                             newrunstate = RunState::PreRun
                         }
@@ -404,10 +416,31 @@ impl GameState for State {
                 self.goto_next_level();
                 newrunstate = RunState::PreRun;
             }
+            RunState::GameOver => {
+                let result = gui::game_over(ctx);
+                match result {
+                    gui::GameOverResult::NoSelection => {}
+                    gui::GameOverResult::QuitToMenu => {
+                        delete_state(&mut self.ecs);
+                        newrunstate = RunState::MainMenu {
+                            menu_selection: gui::MainMenuSelection::NewGame,
+                        }
+                    }
+                }
+            }
         }
         let mut runstate = self.ecs.fetch_mut::<RunState>();
         *runstate = newrunstate;
     }
+}
+
+pub fn delete_state(ecs: &mut World) {
+    // Delete everything
+    let to_delete: Vec<Entity> = ecs.entities().join().collect();
+    to_delete.iter().for_each(|entity| {
+        ecs.delete_entity(*entity)
+            .unwrap_or_else(|er| panic!("Unable to delete entity with id {}: {}", entity.id(), er))
+    });
 }
 
 pub fn init_state(test_ecs: bool, ctxt_opt: Option<&BTerm>) -> (State, Option<BTerm>) {

@@ -5,8 +5,8 @@ use std::{
 
 use specs::{prelude::*, saveload::*, World, WorldExt};
 
-use crate::components::*;
 use crate::execute_with_type_list;
+use crate::{components::*, delete_state};
 
 const SAVE_FILE: &str = "savegame.json";
 
@@ -78,11 +78,7 @@ macro_rules! deserialize_individually {
 
 pub fn load_game(ecs: &mut World) {
     // Delete everything
-    let to_delete: Vec<Entity> = ecs.entities().join().collect();
-    to_delete.iter().for_each(|entity| {
-        ecs.delete_entity(*entity)
-            .unwrap_or_else(|er| panic!("Unable to delete entity with id {}: {}", entity.id(), er))
-    });
+    delete_state(ecs);
     let save_file_contents = fs::read_to_string(SAVE_FILE)
         .unwrap_or_else(|_| panic!("Unable to read file {}", SAVE_FILE));
     let mut de_ser = serde_json::Deserializer::from_str(&save_file_contents);
