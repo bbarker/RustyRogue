@@ -304,10 +304,10 @@ pub fn new_map_rooms_and_corridors(gs: &State, new_depth: i32) -> Map {
         blocked: vec![false; map_tile_count],
         depth: new_depth,
 
-        /// The map_indexing system already visits each tile in the map to looking for blocking tiles
-        /// so we can instead alter that scan to populate
-        /// which entities are at each tile, preventing us from having to iterate over the join of all
-        /// entities and positions again. We store the result in `tile_content`.
+        // The map_indexing system already visits each tile in the map to looking for blocking tiles
+        // so we can instead alter that scan to populate
+        // which entities are at each tile, preventing us from having to iterate over the join of all
+        // entities and positions again. We store the result in `tile_content`.
         tile_content: vec![Vec::new(); map_tile_count],
     };
 
