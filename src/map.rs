@@ -1,6 +1,6 @@
 use bracket_lib::prelude::{Algorithm2D, BaseMap};
 use bracket_lib::random::RandomNumberGenerator;
-use bracket_lib::terminal::{BTerm, DistanceAlg, Point, RGB};
+use bracket_lib::terminal::{to_cp437, BTerm, DistanceAlg, FontCharType, Point, RGB};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use specs::*;
@@ -67,18 +67,12 @@ pub fn draw_map(ecs: &World, ctx: &mut BTerm) {
         // if viewshed.visible_tiles.contains(&tile_pos.to_point()) {
         if map.revealed_tiles[ix] {
             let (fg, glyph) = match tile {
-                TileType::Floor => (
-                    RGB::from_f32(0.5, 0.5, 0.5),
-                    bracket_lib::prelude::to_cp437('.'),
-                ),
-                TileType::Wall => (
-                    RGB::from_f32(0., 1.0, 0.),
-                    bracket_lib::prelude::to_cp437('#'),
-                ),
-                TileType::DownStairs => (
-                    RGB::from_f32(0.13, 0.40, 0.15),
-                    bracket_lib::prelude::to_cp437('>'),
-                ),
+                TileType::Floor => (RGB::from_f32(0.5, 0.5, 0.5), to_cp437('.')),
+                TileType::Wall => {
+                    let glyph = wall_glyph(&map, tile_pos);
+                    (RGB::from_f32(0., 1.0, 0.), glyph)
+                }
+                TileType::DownStairs => (RGB::from_f32(0.13, 0.40, 0.15), to_cp437('>')),
             };
             let fg = if !map.visible_tiles[ix] {
                 fg.to_greyscale()
@@ -352,23 +346,52 @@ pub fn new_map_rooms_and_corridors(gs: &State, new_depth: i32) -> Map {
 
     map
 }
-// TODO: come back to this in Section 3 (Section 2 stretch goals)
-// TODO: probably should regenerate the below to take into account any refactorings
-/*
-fn _wall_glyph(display: &DisplayState, map: &[TileType], xx: PsnU, yy: PsnU) -> FontCharType {
-    let mut mask = 0;
-    if yy > 0 && map[xy_idx(display, xx, yy - 1)] == TileType::Wall {
-        mask += 1;
+
+fn is_revealed_and_wall(map: &Map, xx_opt: Option<PsnU>, yy_opt: Option<PsnU>) -> bool {
+    let default_return = false; // TODO: or true?
+                                // TODO: use monadic syntax
+    let xx = match xx_opt {
+        Some(xx) => xx,
+        None => return default_return,
+    };
+    let yy = match yy_opt {
+        Some(yy) => yy,
+        None => return default_return,
+    };
+
+    let idx = map.xy_idx(xx, yy);
+    if idx <= map.tile_count {
+        map.tiles[idx] == TileType::Wall && map.revealed_tiles[idx]
+    } else {
+        default_return
     }
-    if yy < display.height - 1 && map[xy_idx(display, xx, yy + 1)] == TileType::Wall {
-        mask += 2;
-    }
-    if xx > 0 && map[xy_idx(display, xx - 1, yy)] == TileType::Wall {
-        mask += 4;
-    }
-    if xx < display.width - 1 && map[xy_idx(display, xx + 1, yy)] == TileType::Wall {
-        mask += 8;
-    }
+}
+
+fn wall_glyph(map: &Map, pos: Position) -> FontCharType {
+    let mask = vec![
+        if is_revealed_and_wall(map, Some(pos.xx), pos.yy.checked_sub(1)) {
+            1
+        } else {
+            0
+        },
+        if is_revealed_and_wall(map, Some(pos.xx), pos.yy.checked_add(1)) {
+            2
+        } else {
+            0
+        },
+        if is_revealed_and_wall(map, pos.xx.checked_sub(1), Some(pos.yy)) {
+            4
+        } else {
+            0
+        },
+        if is_revealed_and_wall(map, pos.xx.checked_add(1), Some(pos.yy)) {
+            8
+        } else {
+            0
+        },
+    ]
+    .into_iter()
+    .sum();
 
     match mask {
         0 => to_cp437(' '),
@@ -387,8 +410,6 @@ fn _wall_glyph(display: &DisplayState, map: &[TileType], xx: PsnU, yy: PsnU) -> 
         13 => to_cp437('┴'),
         14 => to_cp437('┬'),
         15 => to_cp437('┼'),
-        _ => to_cp437('?'),
+        _ => to_cp437('#'),
     }
 }
-
-*/
