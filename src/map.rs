@@ -348,8 +348,9 @@ pub fn new_map_rooms_and_corridors(gs: &State, new_depth: i32) -> Map {
 }
 
 fn is_revealed_and_wall(map: &Map, xx_opt: Option<PsnU>, yy_opt: Option<PsnU>) -> bool {
-    let default_return = false; // TODO: or true?
-                                // TODO: use monadic syntax
+    let default_return = false; // If it is off screen, it isn't revealed
+
+    // TODO: use monadic syntax
     let xx = match xx_opt {
         Some(xx) => xx,
         None => return default_return,
@@ -370,22 +371,22 @@ fn is_revealed_and_wall(map: &Map, xx_opt: Option<PsnU>, yy_opt: Option<PsnU>) -
 fn wall_glyph(map: &Map, pos: Position) -> FontCharType {
     let mask = vec![
         if is_revealed_and_wall(map, Some(pos.xx), pos.yy.checked_sub(1)) {
-            1
+            1 // north
         } else {
             0
         },
         if is_revealed_and_wall(map, Some(pos.xx), pos.yy.checked_add(1)) {
-            2
+            2 // south
         } else {
             0
         },
         if is_revealed_and_wall(map, pos.xx.checked_sub(1), Some(pos.yy)) {
-            4
+            4 // west
         } else {
             0
         },
         if is_revealed_and_wall(map, pos.xx.checked_add(1), Some(pos.yy)) {
-            8
+            8 // east
         } else {
             0
         },
@@ -394,22 +395,22 @@ fn wall_glyph(map: &Map, pos: Position) -> FontCharType {
     .sum();
 
     match mask {
-        0 => to_cp437(' '),
-        1 => to_cp437('╵'),
-        2 => to_cp437('╷'),
-        3 => to_cp437('│'),
-        4 => to_cp437('╴'),
-        5 => to_cp437('┘'),
-        6 => to_cp437('┐'),
-        7 => to_cp437('┤'),
-        8 => to_cp437('╶'),
-        9 => to_cp437('└'),
-        10 => to_cp437('┌'),
-        11 => to_cp437('├'),
-        12 => to_cp437('─'),
-        13 => to_cp437('┴'),
-        14 => to_cp437('┬'),
-        15 => to_cp437('┼'),
-        _ => to_cp437('#'),
+        0 => to_cp437(' '),  // Pillar because we can't see neighbors
+        1 => to_cp437('╵'),  // Wall only to the north
+        2 => to_cp437('╷'),  // Wall only to the south
+        3 => to_cp437('│'),  // Wall to the north and south
+        4 => to_cp437('╴'),  // Wall only to the west
+        5 => to_cp437('┘'),  // Wall to the north and west
+        6 => to_cp437('┐'),  // Wall to the south and west
+        7 => to_cp437('┤'),  // Wall to the north, south and west
+        8 => to_cp437('╶'),  // Wall only to the east
+        9 => to_cp437('└'),  // Wall to the north and east
+        10 => to_cp437('┌'), // Wall to the south and east
+        11 => to_cp437('├'), // Wall to the north, south and east
+        12 => to_cp437('─'), // Wall to the east and west
+        13 => to_cp437('┴'), // Wall to the east, west, and north
+        14 => to_cp437('┬'), // Wall to the east, west, and south
+        15 => to_cp437('┼'), // ╬ Wall on all sides
+        _ => to_cp437('#'),  // We missed one?
     }
 }
