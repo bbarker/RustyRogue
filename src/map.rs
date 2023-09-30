@@ -70,6 +70,7 @@ pub fn draw_map(ecs: &World, ctx: &mut BTerm) {
                 TileType::Floor => (RGB::from_f32(0.5, 0.5, 0.5), to_cp437('.')),
                 TileType::Wall => {
                     let glyph = wall_glyph(&map, tile_pos);
+                    // let glyph = to_cp437('#'); // For debugging wall glyphs
                     (RGB::from_f32(0., 1.0, 0.), glyph)
                 }
                 TileType::DownStairs => (RGB::from_f32(0.13, 0.40, 0.15), to_cp437('>')),
@@ -394,8 +395,30 @@ fn wall_glyph(map: &Map, pos: Position) -> FontCharType {
     .into_iter()
     .sum();
 
+    // DEBUG:
+    if (pos.xx == 32 && pos.yy == 12) {
+        println!("mask at y=12: {}", mask);
+    } else if (pos.xx == 32 && pos.yy == 13) {
+        println!("mask at y=13: {}", mask);
+    } else if (pos.xx == 32 && pos.yy == 14) {
+        println!("mask at y=14: {}", mask);
+    } else {
+    }
+
+    /*
+    ╷ // 2
+    ╵ // 1
+
+    ╷ // 2
+    │ // 3
+    ╵ // 1
+
+    */
+
     match mask {
-        0 => to_cp437(' '),  // Pillar because we can't see neighbors
+        0 => to_cp437('○'), // Pillar because we can't see neighbors
+        // 1 => to_cp437('1'), // Wall only to the north // DEBUG
+        // 2 => to_cp437('2'), // Wall only to the south // DEBUG
         1 => to_cp437('╵'),  // Wall only to the north
         2 => to_cp437('╷'),  // Wall only to the south
         3 => to_cp437('│'),  // Wall to the north and south

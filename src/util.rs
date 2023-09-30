@@ -88,3 +88,27 @@ pub const fn min_usize(aa: usize, bb: usize) -> usize {
         bb
     }
 }
+
+pub fn fmt_list(list: &[String]) -> String {
+    let list_len = list.len();
+    match list_len {
+        0 => String::from(""),
+        1 => list[0].clone(),
+        _ => {
+            let out_pairs = list
+                .iter()
+                .enumerate()
+                .map(|(ii, ss)| {
+                    if ii == list_len - 1 {
+                        format!("and {}", ss)
+                    } else if list_len == 2 {
+                        format!("{} ", ss)
+                    } else {
+                        format!("{}, ", ss)
+                    }
+                })
+                .collect::<Vec<String>>();
+            out_pairs.join("")
+        }
+    }
+}
