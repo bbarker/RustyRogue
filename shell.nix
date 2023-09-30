@@ -1,8 +1,14 @@
-# TODO: pin nixpkgs version
-
 #
 # Adapted from: https://nixos.wiki/wiki/Rust
 #
+# let
+#   nixgl = import (builtins.fetchTarball {
+#     name = "NixGL";
+#     url = https://github.com/guibou/nixGL/tarball/489d6b095ab9d289fe11af0219a9ff00fe87c7c5;
+#     # Hash obtained using `nix-prefetch-url --unpack <url>`
+#     sha256 = "03kwsz8mf0p1v1clz42zx8cmy6hxka0cqfbfasimbj858lyd930k";
+#   }) {}; # TODO: nixGL WIP for this shell, may need to switch to flake
+# in
 { pkgs ? import <nixpkgs> {} }:
   pkgs.mkShell rec {
     buildInputs = with pkgs; [
@@ -12,6 +18,7 @@
       cmake # used by cargo?
       pkg-config
       fontconfig
+      freetype
       rustup
       # xorriso
       # grub2
@@ -31,6 +38,8 @@
       export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${pkgs.xorg.libXrandr}/lib
       export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${pkgs.xorg.libXi}/lib
       export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${pkgs.libGL}/lib
+      export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${pkgs.fontconfig.lib}/lib      
+      export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${pkgs.freetype}/lib
       '';
     # Add libvmi precompiled library to rustc search path
     RUSTFLAGS = (builtins.map (a: ''-L ${a}/lib'') [
