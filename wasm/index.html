@@ -11,6 +11,13 @@
     window.addEventListener("load", async () => {
       await wasm_bindgen("./rusty_rogue_bg.wasm");
     });
+    window.addEventListener("keydown", function(e) {
+        // keys array contains an array of keys you want to prevent default action for
+        var keys = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"];
+        if (keys.indexOf(e.key) > -1) {
+            e.preventDefault();
+        }
+    }, false);  
   </script>
   <ul>
     <li>Saving is currently not supported in the web browser; check
