@@ -395,15 +395,15 @@ fn wall_glyph(map: &Map, pos: Position) -> FontCharType {
     .into_iter()
     .sum();
 
-    // DEBUG:
-    if (pos.xx == 32 && pos.yy == 12) {
-        println!("mask at y=12: {}", mask);
-    } else if (pos.xx == 32 && pos.yy == 13) {
-        println!("mask at y=13: {}", mask);
-    } else if (pos.xx == 32 && pos.yy == 14) {
-        println!("mask at y=14: {}", mask);
-    } else {
-    }
+    // // DEBUG:
+    // if (pos.xx == 32 && pos.yy == 12) {
+    //     println!("mask at y=12: {}", mask);
+    // } else if (pos.xx == 32 && pos.yy == 13) {
+    //     println!("mask at y=13: {}", mask);
+    // } else if (pos.xx == 32 && pos.yy == 14) {
+    //     println!("mask at y=14: {}", mask);
+    // } else {
+    // }
 
     /*
     ╷ // 2

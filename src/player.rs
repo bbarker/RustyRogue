@@ -304,8 +304,8 @@ impl KeyBindings {
 }
 
 pub fn player_input(gs: &mut State, ctx: &BTerm) -> RunState {
-    let player_posn = get_player_pos_unwrap(&gs.ecs, PLAYER_NAME); // DEBUG
-    println!("Player posn: {:?}", player_posn); // DEBUG
+    // let player_posn = get_player_pos_unwrap(&gs.ecs, PLAYER_NAME); // DEBUG
+    // println!("Player posn: {:?}", player_posn); // DEBUG
     let key_map = &KeyBindings::default().action_by_key;
 
     let mut ctxt_keys = vec![];
