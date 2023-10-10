@@ -419,21 +419,21 @@ fn wall_glyph(map: &Map, pos: Position) -> FontCharType {
         0 => to_cp437('○'), // Pillar because we can't see neighbors
         // 1 => to_cp437('1'), // Wall only to the north // DEBUG
         // 2 => to_cp437('2'), // Wall only to the south // DEBUG
-        1 => to_cp437('╵'),  // Wall only to the north
-        2 => to_cp437('╷'),  // Wall only to the south
-        3 => to_cp437('│'),  // Wall to the north and south
-        4 => to_cp437('╴'),  // Wall only to the west
-        5 => to_cp437('┘'),  // Wall to the north and west
-        6 => to_cp437('┐'),  // Wall to the south and west
-        7 => to_cp437('┤'),  // Wall to the north, south and west
-        8 => to_cp437('╶'),  // Wall only to the east
-        9 => to_cp437('└'),  // Wall to the north and east
+        1 => to_cp437('│'), // Wall only to the north  // TODO: add separate handler for char sets supporting '╵'
+        2 => to_cp437('│'), // Wall only to the south // TODO: add separate handler for char sets supporting '╷'
+        3 => to_cp437('│'), // Wall to the north and south
+        4 => to_cp437('╴'), // Wall only to the west
+        5 => to_cp437('┘'), // Wall to the north and west
+        6 => to_cp437('┐'), // Wall to the south and west
+        7 => to_cp437('┤'), // Wall to the north, south and west
+        8 => to_cp437('╶'), // Wall only to the east
+        9 => to_cp437('└'), // Wall to the north and east
         10 => to_cp437('┌'), // Wall to the south and east
         11 => to_cp437('├'), // Wall to the north, south and east
         12 => to_cp437('─'), // Wall to the east and west
         13 => to_cp437('┴'), // Wall to the east, west, and north
         14 => to_cp437('┬'), // Wall to the east, west, and south
         15 => to_cp437('┼'), // ╬ Wall on all sides
-        _ => to_cp437('#'),  // We missed one?
+        _ => to_cp437('#'), // We missed one?
     }
 }
