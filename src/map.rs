@@ -395,30 +395,8 @@ fn wall_glyph(map: &Map, pos: Position) -> FontCharType {
     .into_iter()
     .sum();
 
-    // // DEBUG:
-    // if (pos.xx == 32 && pos.yy == 12) {
-    //     println!("mask at y=12: {}", mask);
-    // } else if (pos.xx == 32 && pos.yy == 13) {
-    //     println!("mask at y=13: {}", mask);
-    // } else if (pos.xx == 32 && pos.yy == 14) {
-    //     println!("mask at y=14: {}", mask);
-    // } else {
-    // }
-
-    /*
-    ╷ // 2
-    ╵ // 1
-
-    ╷ // 2
-    │ // 3
-    ╵ // 1
-
-    */
-
     match mask {
-        0 => to_cp437('○'), // Pillar because we can't see neighbors
-        // 1 => to_cp437('1'), // Wall only to the north // DEBUG
-        // 2 => to_cp437('2'), // Wall only to the south // DEBUG
+        0 => to_cp437('○'),  // Pillar because we can't see neighbors
         1 => to_cp437('│'), // Wall only to the north  // TODO: add separate handler for char sets supporting '╵'
         2 => to_cp437('│'), // Wall only to the south // TODO: add separate handler for char sets supporting '╷'
         3 => to_cp437('│'), // Wall to the north and south
