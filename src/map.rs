@@ -73,7 +73,7 @@ pub fn draw_map(ecs: &World, ctx: &mut BTerm) {
                     // let glyph = to_cp437('#'); // For debugging wall glyphs
                     (RGB::from_f32(0., 1.0, 0.), glyph)
                 }
-                TileType::DownStairs => (RGB::from_f32(0.13, 0.40, 0.15), to_cp437('>')),
+                TileType::DownStairs => (RGB::from_f32(0.33, 0.60, 0.35), to_cp437('>')),
             };
             let fg = if !map.visible_tiles[ix] {
                 fg.to_greyscale()

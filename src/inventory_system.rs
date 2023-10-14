@@ -542,4 +542,30 @@ mod tests {
         assert_eq!(bpack_items.len(), 1);
         assert_eq!(bpack_items[0].0, shield);
     }
+
+    #[test]
+    fn equip_shield_gives_nonempty_shield_name() {
+        let (mut gs, _) = init_state(true, None);
+        let player_entity = get_player_unwrap(&gs.ecs, PLAYER_NAME);
+        let player_posn = get_player_pos_unwrap(&gs.ecs, PLAYER_NAME);
+
+        let shield = spawner::shield_at_level(1, &mut gs.ecs, player_posn);
+        get_item(&mut gs.ecs); // pickup an item
+        gs.run_systems();
+        use_first_backpack_item(&mut gs, player_entity);
+        let bpack_items = backpack_items(&gs.ecs, player_entity);
+        assert_eq!(bpack_items.len(), 0);
+
+        let names = gs.ecs.read_storage::<Name>();
+        let shield_name = names.get(shield).unwrap();
+        let expected_pickup_msg = format!("You pick up the {}.", shield_name.name);
+        let expected_equip_submsg = format!(" equip {}", shield_name.name);
+        let log = gs.ecs.fetch::<GameLog>();
+        log.entries.iter().for_each(|e| println!("{}", e));
+        assert!(log.entries.iter().any(|e| e == &expected_pickup_msg));
+        assert!(log
+            .entries
+            .iter()
+            .any(|e| e.contains(&expected_equip_submsg)));
+    }
 }
