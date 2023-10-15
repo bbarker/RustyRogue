@@ -88,9 +88,55 @@ type EquipData<'a, 'b, I> = (
     &'a ReadStorage<'b, Name>,
 );
 
+#[derive(Clone, Debug)]
 struct EquipChanges {
+    init_equipped: HashSet<(Entity, Item)>,
     equipped: HashSet<(Entity, Item)>,
     unequipped: HashSet<(Entity, Item)>,
+}
+
+impl EquipChanges {
+    fn new(init_equipped: HashSet<(Entity, Item)>) -> Self {
+        Self {
+            init_equipped,
+            equipped: HashSet::new(),
+            unequipped: HashSet::new(),
+        }
+    }
+
+    fn unequip(self, entity: Entity, item: Item) -> Self {
+        let unequipped = {
+            let mut uneq_cloned = self.unequipped.clone();
+            uneq_cloned.insert((entity, item));
+            uneq_cloned
+        };
+        EquipChanges {
+            init_equipped: self.init_equipped,
+            equipped: self.equipped,
+            unequipped,
+        }
+    }
+
+    fn equip(self, entity: Entity, item: Item) -> Self {
+        let unequipped = {
+            let mut uneq_cloned = self.unequipped.clone();
+            uneq_cloned.remove(&(entity, item.clone()));
+            uneq_cloned
+        };
+        let equip_entry = (entity, item);
+        let equipped = if !self.init_equipped.contains(&equip_entry) {
+            let mut eq_cloned = self.equipped.clone();
+            eq_cloned.insert(equip_entry);
+            eq_cloned
+        } else {
+            self.equipped
+        };
+        EquipChanges {
+            init_equipped: self.init_equipped,
+            equipped,
+            unequipped,
+        }
+    }
 }
 
 pub struct ItemUseSystem {}
@@ -162,21 +208,20 @@ impl<'a> System<'a> for ItemUseSystem {
                     }
                 };
                 if let Some(Item::Equippable(equip)) = items.get(useitem.item) {
-                    let player_equip = get_equipped_items(&items, &equipped, player_entity);
                     targets.first().iter().for_each(|target| {
+                        let player_equip = get_equipped_items(&entities, &items, &equipped, player_entity);
+                        let equipped_items: HashSet<(Entity, Item)> = player_equip.iter().map(|kv| (kv.1.1, Item::Equippable(kv.1.0.clone()))).collect();
                         let new_equip = Equipped::new(**target, &player_equip, &equip.allowed_slots);
-                        // TODO: warn on non-unit discard?:
                         let equip_changes = equip_slot(
-                          (&entities, &mut backpack, &items, &mut equipped, &names)
-                          , new_equip, useitem.item,  HashSet::new()
+                            (&entities, &mut backpack, &items, &mut equipped, &names)
+                            , new_equip, useitem.item,  EquipChanges::new( equipped_items)
                         );
                         let equip_names = equip_changes.equipped.into_iter()
-                          .map(|ei| names.get(ei.0).unwrap().name.clone()).collect::<Vec<String>>();
+                            .map(|ei| names.get(ei.0).unwrap().name.clone()).collect::<Vec<String>>();
                         let unequip_names = equip_changes.unequipped.into_iter()
-                          .map(|ei| names.get(ei.0).unwrap().name.clone()).collect::<Vec<String>>();
+                            .map(|ei| names.get(ei.0).unwrap().name.clone()).collect::<Vec<String>>();
                         log.entries.push(format!("You unequip {} and equip {}.", fmt_list(&unequip_names), fmt_list(&equip_names)));
-
-                     });
+                        });
                 };
                 let item_heals = healing.get(useitem.item);
                 match item_heals {
@@ -261,7 +306,7 @@ fn equip_slot<I: Join + Copy>(
     equip_data: EquipData<I>,
     new_equip: Equipped,
     new_equip_ent: Entity,
-    successfully_equipped: HashSet<(Entity, Item)>,
+    equip_changes: EquipChanges,
 ) -> EquipChanges
 where
     I::Type: IsItem,
@@ -287,7 +332,7 @@ where
     }))
     .collect_vec();
 
-    let unequipped = HashSet::from_iter(
+    let unequipped: HashSet<(Entity, Item)> = HashSet::from_iter(
         to_unequip
             .clone()
             .into_iter()
@@ -305,20 +350,29 @@ where
             })
             .collect_vec(),
     );
+    let equip_changes = unequipped.iter().fold(equip_changes, |acc, (ent, itm)| {
+        acc.unequip(*ent, itm.clone())
+    });
     backpack.remove(new_equip_ent);
 
     equipped_items
         .insert(new_equip_ent, new_equip.clone())
         .unwrap();
+    let newly_equipped = (entities, items)
+        .join()
+        .filter(|(ent, _itm)| new_equip_ent == *ent)
+        .map(|(ent, item)| (ent, item.from()))
+        .collect::<HashSet<(Entity, Item)>>();
+    let equip_changes = newly_equipped
+        .iter()
+        .fold(equip_changes, |acc, (ent, itm)| {
+            acc.equip(*ent, itm.clone())
+        });
 
     // If unequipped was in the main hand, and it and the newly equipped are both 1-handed items,
     // we perform a second recursive call to equip unequipped item in the off-hand slot:
-
     match unequipped.iter().next() {
-        None => EquipChanges {
-            equipped: successfully_equipped,
-            unequipped,
-        },
+        None => equip_changes,
         Some((uneq_ent, uneq_item)) => {
             let was_in_mh = to_unequip
                 .iter()
@@ -338,14 +392,7 @@ where
                     .map(|new_item| !new_item.equip_opt().map_or_else(|| false, |eq| eq.is_2h()))
                     .unwrap_or(false)
             };
-
             if was_in_mh && old_eq_can_oh() && new_eq_is_1h() {
-                let newly_equipped = (entities, items)
-                    .join()
-                    .filter(|(ent, _itm)| new_equip_ent == *ent)
-                    .map(|(ent, item)| (ent, item.from()))
-                    .collect::<HashSet<(Entity, Item)>>();
-
                 equip_slot(
                     (entities, backpack, items, equipped_items, names),
                     Equipped {
@@ -354,16 +401,10 @@ where
                         slot_extra: None,
                     },
                     *uneq_ent,
-                    successfully_equipped
-                        .union(&newly_equipped)
-                        .cloned()
-                        .collect(),
+                    equip_changes,
                 )
             } else {
-                EquipChanges {
-                    equipped: successfully_equipped,
-                    unequipped,
-                }
+                equip_changes
             }
         }
     }
@@ -544,7 +585,7 @@ mod tests {
     }
 
     #[test]
-    fn equip_shield_gives_nonempty_shield_name() {
+    fn equip_item_gives_nonempty_item_name() {
         let (mut gs, _) = init_state(true, None);
         let player_entity = get_player_unwrap(&gs.ecs, PLAYER_NAME);
         let player_posn = get_player_pos_unwrap(&gs.ecs, PLAYER_NAME);

@@ -336,12 +336,13 @@ impl Equipment {
     }
 }
 
-pub type EntityEquipmentMap = HashMap<EquipSlot, Equipment>;
+pub type EntityEquipmentMap = HashMap<EquipSlot, (Equipment, Entity)>;
 
 pub fn get_equipped_items<I: Join, E: Join>(
+    entities: &Entities,
     items: I,
     equipped: E,
-    entity: Entity,
+    owner: Entity,
 ) -> EntityEquipmentMap
 where
     I::Type: IsItem,
@@ -349,12 +350,12 @@ where
 {
     let mut equipped_items = HashMap::new();
     // Get all Equipped items and join with Items and filter those by the owner
-    (items, equipped)
+    (entities, items, equipped)
         .join()
-        .map(|(item, eqpd)| (item.from(), eqpd.from()))
-        .filter(|(_, eqpd)| eqpd.owner == entity)
-        .filter_map(|(item, eqpd)| match item {
-            Item::Equippable(equipment) => Some((equipment, eqpd)),
+        .map(|(ent, item, eqpd)| (ent, item.from(), eqpd.from()))
+        .filter(|(_, _, eqpd)| eqpd.owner == owner)
+        .filter_map(|(ent, item, eqpd)| match item {
+            Item::Equippable(equipment) => Some(((equipment, ent), eqpd)),
             _ => None,
         })
         .for_each(|(item, eqpd)| {
