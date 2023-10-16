@@ -428,6 +428,33 @@ where
         .collect()
 }
 
+fn equip_message(
+    equip_changes: EquipChanges,
+    onwer: Entity,
+    names: &ReadStorage<Name>,
+) -> Option<String> {
+    let equip_names = equip_changes
+        .equipped
+        .into_iter()
+        .map(|ei| names.get(ei.0).unwrap().name.clone())
+        .collect::<Vec<String>>();
+    let unequip_names = equip_changes
+        .unequipped
+        .into_iter()
+        .map(|ei| names.get(ei.0).unwrap().name.clone())
+        .collect::<Vec<String>>();
+    match (equip_names.is_empty(), unequip_names.is_empty()) {
+        (true, true) => None,
+        (true, false) => Some(format!("You unequip {}.", fmt_list(&unequip_names))),
+        (false, true) => Some(format!("You equip {}.", fmt_list(&equip_names))),
+        (false, false) => Some(format!(
+            "You unequip {} and equip {}.",
+            fmt_list(&unequip_names),
+            fmt_list(&equip_names)
+        )),
+    }
+}
+
 pub struct ItemDropSystem {}
 
 impl<'a> System<'a> for ItemDropSystem {
