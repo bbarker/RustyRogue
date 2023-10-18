@@ -358,6 +358,16 @@ where
         .collect::<Vec<_>>()
 }
 
+pub fn is_player<P: Join>(entities: &Read<EntitiesRes>, players: P, entity: Entity) -> bool
+where
+    P::Type: IsPlayer,
+{
+    (entities, players)
+        .join()
+        .find(|(ent, _)| *ent == entity)
+        .is_some()
+}
+
 pub fn get_player_no_ecs<P: Join>(
     entities: &Read<EntitiesRes>,
     names: &ReadStorage<Name>,

@@ -1,5 +1,5 @@
 use crate::{
-    components::{Equipped, Item},
+    components::{debug_name, Equipped, Item},
     gamelog::GameLog,
 };
 
@@ -32,13 +32,11 @@ impl<'a> System<'a> for MeleeCombatSystem {
             items,
         ) = data;
 
-        let debug_name = Name {
-            name: "<no name for entity>".to_string(),
-        };
         (&entities, &names, &combat_stats, &mut wants_melee)
             .join()
             .for_each(|(entity, name, stats, wants_melee)| {
                 let target = wants_melee.target;
+                let debug_name = debug_name();
                 let target_name = names.get(target).unwrap_or(&debug_name);
                 let target_stats_opt = combat_stats.get(target);
                 let offensive_bonus = if stats.hp > 0 {
