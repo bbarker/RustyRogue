@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::utils_ecs::EcsActionMsgData;
+use crate::util_ecs::EcsActionMsgData;
 use crate::{
     components::{
         AreaOfEffect, CombatStats, Confusion, Consumable, Equipped, EventIncomingDamage,

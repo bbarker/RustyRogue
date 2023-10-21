@@ -35,7 +35,7 @@ mod rect;
 mod saveload_system;
 mod spawner;
 mod util;
-mod utils_ecs;
+mod util_ecs;
 mod visibility_system;
 
 use components::*;

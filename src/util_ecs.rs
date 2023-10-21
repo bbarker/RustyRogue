@@ -71,7 +71,7 @@ macro_rules! entity_action_msg {
         let entities = $ecs.entities();
         let players = $ecs.read_storage::<Player>();
         let names = $ecs.read_storage::<Name>();
-        let ecs_data = $crate::utils_ecs::EcsActionMsgData::new(&entities, &players, &names);
+        let ecs_data = $crate::util_ecs::EcsActionMsgData::new(&entities, &players, &names);
         $crate::entity_action_msg_no_ecs!(ecs_data, $format, $entity $(, $word)+)
     }};
 }
@@ -83,7 +83,7 @@ mod tests {
         init_state,
         player::{get_player_unwrap, PLAYER_NAME},
         util::pluralize_verb,
-        utils_ecs::EcsActionMsgData,
+        util_ecs::EcsActionMsgData,
     };
     use specs::WorldExt;
     #[test]
