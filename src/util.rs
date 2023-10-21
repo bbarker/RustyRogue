@@ -112,3 +112,15 @@ pub fn fmt_list(list: &[String]) -> String {
         }
     }
 }
+
+pub fn pluralize_verb<S: ToString>(word: S) -> String {
+    word.to_string() + "s"
+}
+
+pub fn pluralize_verb_if(pred: bool) -> fn(&str) -> String {
+    if pred {
+        |word: &str| word.to_string()
+    } else {
+        |word: &str| pluralize_verb(word)
+    }
+}

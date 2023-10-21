@@ -20,6 +20,8 @@ use super::{gamelog::GameLog, EventWantsToPickupItem, InBackpack, Name, Player, 
 
 pub struct ItemCollectionSystem {}
 
+use crate::entity_action_msg_no_ecs;
+
 impl<'a> System<'a> for ItemCollectionSystem {
     type SystemData = (
         Entities<'a>,
@@ -216,11 +218,10 @@ impl<'a> System<'a> for ItemUseSystem {
                             (&entities, &mut backpack, &items, &mut equipped, &names)
                             , new_equip, useitem.item,  EquipChanges::new( equipped_items)
                         );
-                        let equip_names = equip_changes.equipped.into_iter()
-                            .map(|ei| names.get(ei.0).unwrap().name.clone()).collect::<Vec<String>>();
-                        let unequip_names = equip_changes.unequipped.into_iter()
-                            .map(|ei| names.get(ei.0).unwrap().name.clone()).collect::<Vec<String>>();
-                        log.entries.push(format!("You unequip {} and equip {}.", fmt_list(&unequip_names), fmt_list(&equip_names)));
+                        let ecs_data = (&entities, &players, &names);
+                        if let Some(equip_msg) = equip_message(ecs_data, equip_changes, player_entity) {
+                            log.entries.push(equip_msg);
+                        }
                         });
                 };
                 let item_heals = healing.get(useitem.item);
@@ -429,10 +430,11 @@ where
 }
 
 fn equip_message(
+    ecs_data: (&Read<EntitiesRes>, &ReadStorage<Player>, &ReadStorage<Name>),
     equip_changes: EquipChanges,
-    onwer: Entity,
-    names: &ReadStorage<Name>,
+    owner: Entity,
 ) -> Option<String> {
+    let (entities, players, names) = ecs_data;
     let equip_names = equip_changes
         .equipped
         .into_iter()
@@ -443,14 +445,34 @@ fn equip_message(
         .into_iter()
         .map(|ei| names.get(ei.0).unwrap().name.clone())
         .collect::<Vec<String>>();
+    let fmt_unequip_names = fmt_list(&unequip_names);
+    let fmt_equip_names = fmt_list(&equip_names);
     match (equip_names.is_empty(), unequip_names.is_empty()) {
         (true, true) => None,
-        (true, false) => Some(format!("You unequip {}.", fmt_list(&unequip_names))),
-        (false, true) => Some(format!("You equip {}.", fmt_list(&equip_names))),
-        (false, false) => Some(format!(
-            "You unequip {} and equip {}.",
-            fmt_list(&unequip_names),
-            fmt_list(&equip_names)
+        (true, false) => Some(entity_action_msg_no_ecs!(
+            entities,
+            players,
+            names,
+            "<SUBJ> {} {fmt_unequip_names}.",
+            owner,
+            "unequip"
+        )),
+        (false, true) => Some(entity_action_msg_no_ecs!(
+            entities,
+            players,
+            names,
+            "<SUBJ> {} {fmt_equip_names}.",
+            owner,
+            "equip"
+        )),
+        (false, false) => Some(entity_action_msg_no_ecs!(
+            entities,
+            players,
+            names,
+            "<SUBJ> {} {fmt_unequip_names} and {} {fmt_equip_names}.",
+            owner,
+            "unequip",
+            "equip"
         )),
     }
 }
