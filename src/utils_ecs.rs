@@ -47,15 +47,15 @@
 #[macro_export]
 macro_rules! entity_action_msg_no_ecs {
     ($entities:expr, $players:expr, $names:expr, $format:literal, $entity:expr $(, $word:tt)+) => {{
-        let is_plural = crate::player::is_player($entities, $players, $entity);
-        let debug_name = crate::components::debug_name();
+        let is_plural = $crate::player::is_player($entities, $players, $entity);
+        let debug_name = $crate::components::debug_name();
         let subject = $names.get($entity).unwrap_or(&debug_name);
         let subject_str = if (subject.name == PLAYER_NAME) {
             "You".to_string()
         } else {
             format!("The {}", &subject.name)
         };
-        let pluralizer: fn(&str) -> String = crate::util::pluralize_verb_if(is_plural);
+        let pluralizer: fn(&str) -> String = $crate::util::pluralize_verb_if(is_plural);
         // FIXME: we don't do a compile-time check on <SUBJ> currently;
         // see end of chat here: https://chat.openai.com/c/e771feb8-8c4e-4dd2-8fc0-5a002e204225
         format!($format, $(pluralizer($word)),+).replace("<SUBJ>", &subject_str)
@@ -75,6 +75,7 @@ macro_rules! entity_action_msg {
     }};
 }
 
+#[cfg(test)]
 mod tests {
     use crate::{
         components::{Name, Player},

@@ -362,10 +362,7 @@ pub fn is_player<P: Join>(entities: &Read<EntitiesRes>, players: P, entity: Enti
 where
     P::Type: IsPlayer,
 {
-    (entities, players)
-        .join()
-        .find(|(ent, _)| *ent == entity)
-        .is_some()
+    (entities, players).join().any(|(ent, _)| ent == entity)
 }
 
 pub fn get_player_no_ecs<P: Join>(
