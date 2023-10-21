@@ -113,8 +113,11 @@ pub fn fmt_list(list: &[String]) -> String {
     }
 }
 
-pub fn pluralize_verb<S: ToString>(word: S) -> String {
-    word.to_string() + "s"
+pub fn pluralize_verb(word: &str) -> String {
+    match word {
+        "are" => "is".to_string(),
+        _ => word.to_string() + "s",
+    }
 }
 
 pub fn pluralize_verb_if(pred: bool) -> fn(&str) -> String {

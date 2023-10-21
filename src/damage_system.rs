@@ -1,5 +1,6 @@
 use crate::{
     components::{Name, Player, Position, Positionable},
+    entity_action_msg,
     gamelog::GameLog,
     map::Map,
     RunState,
@@ -35,7 +36,6 @@ pub fn delete_the_dead(ecs: &mut World) -> Option<RunState> {
         let entities = ecs.entities();
         let mut log = ecs.write_resource::<GameLog>();
         let combat_stats = ecs.read_storage::<CombatStats>();
-        let names = ecs.read_storage::<Name>();
         let positions = ecs.read_storage::<Position>();
         let players = ecs.read_storage::<Player>();
         (&entities, &combat_stats, &positions)
@@ -43,9 +43,9 @@ pub fn delete_the_dead(ecs: &mut World) -> Option<RunState> {
             .for_each(|(ent, stats, pos)| {
                 if stats.hp < 1 {
                     dead.push(ent);
-                    if let Some(victim_name) = names.get(ent) {
-                        log.entries.push(format!("{} is dead.", victim_name.name));
-                    }
+                    log.entries
+                        .push(entity_action_msg!(ecs, "<SUBJ> {} dead.", ent, "are"));
+
                     if let Some(_player) = players.get(ent) {
                         {
                             newrunstate_opt = Some(RunState::GameOver);

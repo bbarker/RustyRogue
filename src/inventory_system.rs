@@ -1,9 +1,6 @@
 use std::collections::HashSet;
 
-use bracket_lib::prelude::field_of_view;
-use itertools::Itertools;
-use specs::{prelude::*, world::EntitiesRes};
-
+use crate::utils_ecs::EcsActionMsgData;
 use crate::{
     components::{
         AreaOfEffect, CombatStats, Confusion, Consumable, Equipped, EventIncomingDamage,
@@ -15,6 +12,9 @@ use crate::{
     player::PLAYER_NAME,
     util::fmt_list,
 };
+use bracket_lib::prelude::field_of_view;
+use itertools::Itertools;
+use specs::{prelude::*, world::EntitiesRes};
 
 use super::{gamelog::GameLog, EventWantsToPickupItem, InBackpack, Name, Player, Position};
 
@@ -218,7 +218,7 @@ impl<'a> System<'a> for ItemUseSystem {
                             (&entities, &mut backpack, &items, &mut equipped, &names)
                             , new_equip, useitem.item,  EquipChanges::new( equipped_items)
                         );
-                        let ecs_data = (&entities, &players, &names);
+                        let ecs_data = EcsActionMsgData::new(&entities, &players, &names);
                         if let Some(equip_msg) = equip_message(ecs_data, equip_changes, player_entity) {
                             log.entries.push(equip_msg);
                         }
@@ -430,45 +430,38 @@ where
 }
 
 fn equip_message(
-    ecs_data: (&Read<EntitiesRes>, &ReadStorage<Player>, &ReadStorage<Name>),
+    ecs_data: EcsActionMsgData,
     equip_changes: EquipChanges,
     owner: Entity,
 ) -> Option<String> {
-    let (entities, players, names) = ecs_data;
     let equip_names = equip_changes
         .equipped
         .into_iter()
-        .map(|ei| names.get(ei.0).unwrap().name.clone())
+        .map(|ei| ecs_data.names.get(ei.0).unwrap().name.clone())
         .collect::<Vec<String>>();
     let unequip_names = equip_changes
         .unequipped
         .into_iter()
-        .map(|ei| names.get(ei.0).unwrap().name.clone())
+        .map(|ei| ecs_data.names.get(ei.0).unwrap().name.clone())
         .collect::<Vec<String>>();
     let fmt_unequip_names = fmt_list(&unequip_names);
     let fmt_equip_names = fmt_list(&equip_names);
     match (equip_names.is_empty(), unequip_names.is_empty()) {
         (true, true) => None,
         (true, false) => Some(entity_action_msg_no_ecs!(
-            entities,
-            players,
-            names,
+            ecs_data,
             "<SUBJ> {} {fmt_unequip_names}.",
             owner,
             "unequip"
         )),
         (false, true) => Some(entity_action_msg_no_ecs!(
-            entities,
-            players,
-            names,
+            ecs_data,
             "<SUBJ> {} {fmt_equip_names}.",
             owner,
             "equip"
         )),
         (false, false) => Some(entity_action_msg_no_ecs!(
-            entities,
-            players,
-            names,
+            ecs_data,
             "<SUBJ> {} {fmt_unequip_names} and {} {fmt_equip_names}.",
             owner,
             "unequip",
