@@ -213,11 +213,6 @@ fn remove_or_drop(state: &State, ctx: &mut BTerm, newrunstate: &mut RunState, mo
                 }
                 InventoryMode::Use => panic!("mode is Use for removeOrDropItem"),
             };
-
-            let mut gamelog = state.ecs.fetch_mut::<gamelog::GameLog>();
-            gamelog
-                .entries
-                .push(format!("You remove the {}.", item_name));
             *newrunstate = RunState::PlayerTurn;
         }
     }

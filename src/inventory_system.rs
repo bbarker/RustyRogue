@@ -514,13 +514,15 @@ impl<'a> System<'a> for ItemRemoveSystem {
         Entities<'a>,
         WriteStorage<'a, EventWantsToRemoveItem>,
         ReadStorage<'a, Name>,
+        ReadStorage<'a, Player>,
         WriteStorage<'a, InBackpack>,
         WriteStorage<'a, Equipped>,
         WriteExpect<'a, GameLog>,
     );
 
     fn run(&mut self, data: Self::SystemData) {
-        let (entities, mut wants_remove, names, mut backpack, mut equipped, mut log) = data;
+        let (entities, mut wants_remove, names, players, mut backpack, mut equipped, mut log) =
+            data;
         (&entities, &wants_remove)
             .join()
             .for_each(|(entity, to_remove)| {
@@ -532,12 +534,13 @@ impl<'a> System<'a> for ItemRemoveSystem {
                     .get(to_remove.item)
                     .map(|n| n.name.clone())
                     .unwrap_or_else(|| format!("item {}", to_remove.item.id()));
-                let remover_name = names
-                    .get(entity)
-                    .map(|n| n.name.clone())
-                    .unwrap_or_else(|| format!("Entity {}", entity.id()));
-                log.entries
-                    .push(format!("{} unequips the {}.", remover_name, item_name));
+                let ecs_data = EcsActionMsgData::new(&entities, &players, &names);
+                log.entries.push(entity_action_msg_no_ecs!(
+                    ecs_data,
+                    "<SUBJ> {} {item_name}.",
+                    entity,
+                    "unequip"
+                ));
             });
         wants_remove.clear();
     }
