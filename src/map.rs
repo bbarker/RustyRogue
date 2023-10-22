@@ -371,28 +371,13 @@ fn is_revealed_and_wall(map: &Map, xx_opt: Option<PsnU>, yy_opt: Option<PsnU>) -
 
 fn wall_glyph(map: &Map, pos: Position) -> FontCharType {
     let mask = vec![
-        if is_revealed_and_wall(map, Some(pos.xx), pos.yy.checked_sub(1)) {
-            1 // north
-        } else {
-            0
-        },
-        if is_revealed_and_wall(map, Some(pos.xx), pos.yy.checked_add(1)) {
-            2 // south
-        } else {
-            0
-        },
-        if is_revealed_and_wall(map, pos.xx.checked_sub(1), Some(pos.yy)) {
-            4 // west
-        } else {
-            0
-        },
-        if is_revealed_and_wall(map, pos.xx.checked_add(1), Some(pos.yy)) {
-            8 // east
-        } else {
-            0
-        },
+        is_revealed_and_wall(map, Some(pos.xx), pos.yy.checked_sub(1)).then_some(1), // north
+        is_revealed_and_wall(map, Some(pos.xx), pos.yy.checked_add(1)).then_some(2), // south
+        is_revealed_and_wall(map, pos.xx.checked_sub(1), Some(pos.yy)).then_some(4), // west
+        is_revealed_and_wall(map, pos.xx.checked_add(1), Some(pos.yy)).then_some(8), // east
     ]
     .into_iter()
+    .map(|bitpos| bitpos.unwrap_or(0))
     .sum();
 
     match mask {

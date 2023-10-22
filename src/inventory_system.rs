@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::fmt::{Display, Formatter};
 
 use crate::util_ecs::EcsActionMsgData;
 use crate::{
@@ -13,6 +14,7 @@ use crate::{
     util::fmt_list,
 };
 use bracket_lib::prelude::field_of_view;
+use frunk::Monoid;
 use itertools::Itertools;
 use specs::{prelude::*, world::EntitiesRes};
 
@@ -91,6 +93,49 @@ type EquipData<'a, 'b, I> = (
 );
 
 #[derive(Clone, Debug)]
+struct EquipBonusChanges {
+    defense: i16,
+    power: i16,
+}
+
+impl EquipBonusChanges {
+    fn unequip(item: &Item) -> Self {
+        match item {
+            Item::Equippable(equip) => Self {
+                defense: -equip.defense_bonus(),
+                power: -equip.power_bonus(),
+            },
+            _ => Self {
+                defense: 0,
+                power: 0,
+            },
+        }
+    }
+}
+
+impl Display for EquipBonusChanges {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
+        let def_signed = (self.defense > 0)
+            .then(|| "+".to_string())
+            .unwrap_or(String::empty());
+        let pow_signed = (self.power > 0)
+            .then(|| "+".to_string())
+            .unwrap_or(String::empty());
+        let def_str = (self.defense != 0)
+            .then(|| format!("DEF: {def_signed}{} ", self.defense))
+            .unwrap_or(String::empty());
+        let pow_str = (self.power != 0)
+            .then(|| format!("POW: {pow_signed}{} ", self.power))
+            .unwrap_or(String::empty());
+        let result = vec![def_str, pow_str]
+            .into_iter()
+            .filter(|s| !s.is_empty())
+            .join("; ");
+        write!(formatter, "{}", result)
+    }
+}
+
+#[derive(Clone, Debug)]
 struct EquipChanges {
     init_equipped: HashSet<(Entity, Item)>,
     equipped: HashSet<(Entity, Item)>,
@@ -138,6 +183,31 @@ impl EquipChanges {
             equipped,
             unequipped,
         }
+    }
+
+    fn bonus_changes(&self) -> EquipBonusChanges {
+        let defense = self
+            .equipped
+            .iter()
+            .filter_map(|(_, item)| item.equip_opt().map(|eq| eq.defense_bonus()))
+            .sum::<i16>()
+            - self
+                .unequipped
+                .iter()
+                .filter_map(|(_, item)| item.equip_opt().map(|eq| eq.defense_bonus()))
+                .sum::<i16>();
+        let power = self
+            .equipped
+            .iter()
+            .filter_map(|(_, item)| item.equip_opt().map(|eq| eq.power_bonus()))
+            .sum::<i16>()
+            - self
+                .unequipped
+                .iter()
+                .filter_map(|(_, item)| item.equip_opt().map(|eq| eq.power_bonus()))
+                .sum::<i16>();
+
+        EquipBonusChanges { defense, power }
     }
 }
 
@@ -434,6 +504,7 @@ fn equip_message(
     equip_changes: EquipChanges,
     owner: Entity,
 ) -> Option<String> {
+    let bonus_changes = equip_changes.clone().bonus_changes();
     let equip_names = equip_changes
         .equipped
         .into_iter()
@@ -450,19 +521,19 @@ fn equip_message(
         (true, true) => None,
         (true, false) => Some(entity_action_msg_no_ecs!(
             ecs_data,
-            "<SUBJ> {} {fmt_unequip_names}.",
+            "<SUBJ> {} {fmt_unequip_names} ({bonus_changes}).",
             owner,
             "unequip"
         )),
         (false, true) => Some(entity_action_msg_no_ecs!(
             ecs_data,
-            "<SUBJ> {} {fmt_equip_names}.",
+            "<SUBJ> {} {fmt_equip_names} ({bonus_changes}).",
             owner,
             "equip"
         )),
         (false, false) => Some(entity_action_msg_no_ecs!(
             ecs_data,
-            "<SUBJ> {} {fmt_unequip_names} and {} {fmt_equip_names}.",
+            "<SUBJ> {} {fmt_unequip_names} and {} {fmt_equip_names} ({bonus_changes}).",
             owner,
             "unequip",
             "equip"
@@ -515,14 +586,23 @@ impl<'a> System<'a> for ItemRemoveSystem {
         WriteStorage<'a, EventWantsToRemoveItem>,
         ReadStorage<'a, Name>,
         ReadStorage<'a, Player>,
+        ReadStorage<'a, Item>,
         WriteStorage<'a, InBackpack>,
         WriteStorage<'a, Equipped>,
         WriteExpect<'a, GameLog>,
     );
 
     fn run(&mut self, data: Self::SystemData) {
-        let (entities, mut wants_remove, names, players, mut backpack, mut equipped, mut log) =
-            data;
+        let (
+            entities,
+            mut wants_remove,
+            names,
+            players,
+            items,
+            mut backpack,
+            mut equipped,
+            mut log,
+        ) = data;
         (&entities, &wants_remove)
             .join()
             .for_each(|(entity, to_remove)| {
@@ -535,9 +615,14 @@ impl<'a> System<'a> for ItemRemoveSystem {
                     .map(|n| n.name.clone())
                     .unwrap_or_else(|| format!("item {}", to_remove.item.id()));
                 let ecs_data = EcsActionMsgData::new(&entities, &players, &names);
+                let unequipped_item = items.get(to_remove.item).expect(&format!(
+                    "No item found for entity {}!",
+                    to_remove.item.id()
+                ));
+                let bonus_changes = EquipBonusChanges::unequip(unequipped_item);
                 log.entries.push(entity_action_msg_no_ecs!(
                     ecs_data,
-                    "<SUBJ> {} {item_name}.",
+                    "<SUBJ> {} {item_name} ({bonus_changes}).",
                     entity,
                     "unequip"
                 ));

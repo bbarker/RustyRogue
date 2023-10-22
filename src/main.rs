@@ -226,17 +226,6 @@ impl GameState for State {
             let runstate = self.ecs.fetch::<RunState>();
             *runstate
         };
-
-        // FIXME: appears runstate is being possibly set to AwaitingInput before
-        // going into `tick`
-        /*
-        tick runstate: PlayerTurn
-        tick runstate: MonsterTurn
-        tick runstate: AwaitingInput
-        new runstate: GameOver
-        tick runstate: AwaitingInput
-        tick runstate: AwaitingInput
-                */
         ctx.cls();
 
         newrunstate = match newrunstate {

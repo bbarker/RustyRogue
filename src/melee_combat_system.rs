@@ -43,7 +43,7 @@ impl<'a> System<'a> for MeleeCombatSystem {
                     (&entities, &items, &equipped)
                         .join()
                         .filter(|(_e, _itm, eq)| eq.owner == entity)
-                        .filter_map(|(_e, item, _eq)| item.equip_opt().map(|et| et.melee_bonus()))
+                        .filter_map(|(_e, item, _eq)| item.equip_opt().map(|et| et.power_bonus()))
                         .sum::<i16>()
                 } else {
                     0

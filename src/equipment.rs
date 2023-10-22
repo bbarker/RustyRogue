@@ -241,7 +241,7 @@ pub struct Equipment {
     pub allowed_slots: EquipSlotAllowed,
     pub material: Material,
     pub quality: u8,
-    pub special_melee_modifier: i16,
+    pub special_power_modifier: i16,
     pub special_defense_modifier: i16,
 }
 
@@ -257,7 +257,7 @@ impl Equipment {
             equipment_type,
             material,
             quality,
-            special_melee_modifier: 0,
+            special_power_modifier: 0,
             special_defense_modifier: 0,
         }
     }
@@ -304,12 +304,12 @@ impl Equipment {
         format!("{}{}{}", self.material, infix, self.equipment_type)
     }
 
-    pub fn melee_bonus(&self) -> i16 {
+    pub fn power_bonus(&self) -> i16 {
         let derived_bonus = match self.equipment_type {
             EquipmentType::Weapon(_) => self.equipment_type.bonus() + self.material.bonus(),
             _ => 0,
         };
-        derived_bonus + self.special_melee_modifier
+        derived_bonus + self.special_power_modifier
     }
 
     pub fn defense_bonus(&self) -> i16 {
