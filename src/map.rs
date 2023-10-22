@@ -70,9 +70,10 @@ pub fn draw_map(ecs: &World, ctx: &mut BTerm) {
                 TileType::Floor => (RGB::from_f32(0.5, 0.5, 0.5), to_cp437('.')),
                 TileType::Wall => {
                     let glyph = wall_glyph(&map, tile_pos);
+                    // let glyph = to_cp437('#'); // For debugging wall glyphs
                     (RGB::from_f32(0., 1.0, 0.), glyph)
                 }
-                TileType::DownStairs => (RGB::from_f32(0.13, 0.40, 0.15), to_cp437('>')),
+                TileType::DownStairs => (RGB::from_f32(0.33, 0.60, 0.35), to_cp437('>')),
             };
             let fg = if !map.visible_tiles[ix] {
                 fg.to_greyscale()
@@ -370,47 +371,32 @@ fn is_revealed_and_wall(map: &Map, xx_opt: Option<PsnU>, yy_opt: Option<PsnU>) -
 
 fn wall_glyph(map: &Map, pos: Position) -> FontCharType {
     let mask = vec![
-        if is_revealed_and_wall(map, Some(pos.xx), pos.yy.checked_sub(1)) {
-            1 // north
-        } else {
-            0
-        },
-        if is_revealed_and_wall(map, Some(pos.xx), pos.yy.checked_add(1)) {
-            2 // south
-        } else {
-            0
-        },
-        if is_revealed_and_wall(map, pos.xx.checked_sub(1), Some(pos.yy)) {
-            4 // west
-        } else {
-            0
-        },
-        if is_revealed_and_wall(map, pos.xx.checked_add(1), Some(pos.yy)) {
-            8 // east
-        } else {
-            0
-        },
+        is_revealed_and_wall(map, Some(pos.xx), pos.yy.checked_sub(1)).then_some(1), // north
+        is_revealed_and_wall(map, Some(pos.xx), pos.yy.checked_add(1)).then_some(2), // south
+        is_revealed_and_wall(map, pos.xx.checked_sub(1), Some(pos.yy)).then_some(4), // west
+        is_revealed_and_wall(map, pos.xx.checked_add(1), Some(pos.yy)).then_some(8), // east
     ]
     .into_iter()
+    .map(|bitpos| bitpos.unwrap_or(0))
     .sum();
 
     match mask {
-        0 => to_cp437(' '),  // Pillar because we can't see neighbors
-        1 => to_cp437('╵'),  // Wall only to the north
-        2 => to_cp437('╷'),  // Wall only to the south
-        3 => to_cp437('│'),  // Wall to the north and south
-        4 => to_cp437('╴'),  // Wall only to the west
-        5 => to_cp437('┘'),  // Wall to the north and west
-        6 => to_cp437('┐'),  // Wall to the south and west
-        7 => to_cp437('┤'),  // Wall to the north, south and west
-        8 => to_cp437('╶'),  // Wall only to the east
-        9 => to_cp437('└'),  // Wall to the north and east
+        0 => to_cp437('○'),  // Pillar because we can't see neighbors
+        1 => to_cp437('│'), // Wall only to the north  // TODO: add separate handler for char sets supporting '╵'
+        2 => to_cp437('│'), // Wall only to the south // TODO: add separate handler for char sets supporting '╷'
+        3 => to_cp437('│'), // Wall to the north and south
+        4 => to_cp437('╴'), // Wall only to the west
+        5 => to_cp437('┘'), // Wall to the north and west
+        6 => to_cp437('┐'), // Wall to the south and west
+        7 => to_cp437('┤'), // Wall to the north, south and west
+        8 => to_cp437('╶'), // Wall only to the east
+        9 => to_cp437('└'), // Wall to the north and east
         10 => to_cp437('┌'), // Wall to the south and east
         11 => to_cp437('├'), // Wall to the north, south and east
         12 => to_cp437('─'), // Wall to the east and west
         13 => to_cp437('┴'), // Wall to the east, west, and north
         14 => to_cp437('┬'), // Wall to the east, west, and south
         15 => to_cp437('┼'), // ╬ Wall on all sides
-        _ => to_cp437('#'),  // We missed one?
+        _ => to_cp437('#'), // We missed one?
     }
 }

@@ -25,7 +25,12 @@
       # qemu
       llvmPackages_latest.lld
       python3
+      # Only for building bracket-lib, I think:
+      alsa-lib
+      systemd
     ];
+     # Only for building bracket-lib, I think:
+    nativeBuildInputs = [ pkgs.pkg-config ];
     RUSTC_VERSION = pkgs.lib.readFile ./rust-toolchain;
     # https://github.com/rust-lang/rust-bindgen#environment-variables
     LIBCLANG_PATH = pkgs.lib.makeLibraryPath [ pkgs.llvmPackages_latest.libclang.lib ];

@@ -1,9 +1,7 @@
 use std::collections::HashSet;
+use std::fmt::{Display, Formatter};
 
-use bracket_lib::prelude::field_of_view;
-use itertools::Itertools;
-use specs::{prelude::*, world::EntitiesRes};
-
+use crate::util_ecs::EcsActionMsgData;
 use crate::{
     components::{
         AreaOfEffect, CombatStats, Confusion, Consumable, Equipped, EventIncomingDamage,
@@ -13,11 +11,18 @@ use crate::{
     equipment::{get_equipped_items, EquipSlot},
     map::Map,
     player::PLAYER_NAME,
+    util::fmt_list,
 };
+use bracket_lib::prelude::field_of_view;
+use frunk::Monoid;
+use itertools::Itertools;
+use specs::{prelude::*, world::EntitiesRes};
 
 use super::{gamelog::GameLog, EventWantsToPickupItem, InBackpack, Name, Player, Position};
 
 pub struct ItemCollectionSystem {}
+
+use crate::entity_action_msg_no_ecs;
 
 impl<'a> System<'a> for ItemCollectionSystem {
     type SystemData = (
@@ -81,12 +86,130 @@ type ItemUseSystemData<'a> = (
 
 type EquipData<'a, 'b, I> = (
     &'a Read<'b, EntitiesRes>,
-    &'a mut WriteExpect<'b, GameLog>,
     &'a mut WriteStorage<'b, InBackpack>,
     I,
     &'a mut WriteStorage<'b, Equipped>,
     &'a ReadStorage<'b, Name>,
 );
+
+#[derive(Clone, Debug)]
+struct EquipBonusChanges {
+    defense: i16,
+    power: i16,
+}
+
+impl EquipBonusChanges {
+    fn unequip(item: &Item) -> Self {
+        match item {
+            Item::Equippable(equip) => Self {
+                defense: -equip.defense_bonus(),
+                power: -equip.power_bonus(),
+            },
+            _ => Self {
+                defense: 0,
+                power: 0,
+            },
+        }
+    }
+}
+
+impl Display for EquipBonusChanges {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
+        let def_signed = (self.defense > 0)
+            .then(|| "+".to_string())
+            .unwrap_or(String::empty());
+        let pow_signed = (self.power > 0)
+            .then(|| "+".to_string())
+            .unwrap_or(String::empty());
+        let def_str = (self.defense != 0)
+            .then(|| format!("DEF: {def_signed}{} ", self.defense))
+            .unwrap_or(String::empty());
+        let pow_str = (self.power != 0)
+            .then(|| format!("POW: {pow_signed}{} ", self.power))
+            .unwrap_or(String::empty());
+        let result = vec![def_str, pow_str]
+            .into_iter()
+            .filter(|s| !s.is_empty())
+            .join("; ");
+        write!(formatter, "{}", result)
+    }
+}
+
+#[derive(Clone, Debug)]
+struct EquipChanges {
+    init_equipped: HashSet<(Entity, Item)>,
+    equipped: HashSet<(Entity, Item)>,
+    unequipped: HashSet<(Entity, Item)>,
+}
+
+impl EquipChanges {
+    fn new(init_equipped: HashSet<(Entity, Item)>) -> Self {
+        Self {
+            init_equipped,
+            equipped: HashSet::new(),
+            unequipped: HashSet::new(),
+        }
+    }
+
+    fn unequip(self, entity: Entity, item: Item) -> Self {
+        let unequipped = {
+            let mut uneq_cloned = self.unequipped.clone();
+            uneq_cloned.insert((entity, item));
+            uneq_cloned
+        };
+        EquipChanges {
+            init_equipped: self.init_equipped,
+            equipped: self.equipped,
+            unequipped,
+        }
+    }
+
+    fn equip(self, entity: Entity, item: Item) -> Self {
+        let unequipped = {
+            let mut uneq_cloned = self.unequipped.clone();
+            uneq_cloned.remove(&(entity, item.clone()));
+            uneq_cloned
+        };
+        let equip_entry = (entity, item);
+        let equipped = if !self.init_equipped.contains(&equip_entry) {
+            let mut eq_cloned = self.equipped.clone();
+            eq_cloned.insert(equip_entry);
+            eq_cloned
+        } else {
+            self.equipped
+        };
+        EquipChanges {
+            init_equipped: self.init_equipped,
+            equipped,
+            unequipped,
+        }
+    }
+
+    fn bonus_changes(&self) -> EquipBonusChanges {
+        let defense = self
+            .equipped
+            .iter()
+            .filter_map(|(_, item)| item.equip_opt().map(|eq| eq.defense_bonus()))
+            .sum::<i16>()
+            - self
+                .unequipped
+                .iter()
+                .filter_map(|(_, item)| item.equip_opt().map(|eq| eq.defense_bonus()))
+                .sum::<i16>();
+        let power = self
+            .equipped
+            .iter()
+            .filter_map(|(_, item)| item.equip_opt().map(|eq| eq.power_bonus()))
+            .sum::<i16>()
+            - self
+                .unequipped
+                .iter()
+                .filter_map(|(_, item)| item.equip_opt().map(|eq| eq.power_bonus()))
+                .sum::<i16>();
+
+        EquipBonusChanges { defense, power }
+    }
+}
 
 pub struct ItemUseSystem {}
 
@@ -157,12 +280,19 @@ impl<'a> System<'a> for ItemUseSystem {
                     }
                 };
                 if let Some(Item::Equippable(equip)) = items.get(useitem.item) {
-                    let player_equip = get_equipped_items(&items, &equipped, player_entity);
                     targets.first().iter().for_each(|target| {
+                        let player_equip = get_equipped_items(&entities, &items, &equipped, player_entity);
+                        let equipped_items: HashSet<(Entity, Item)> = player_equip.iter().map(|kv| (kv.1.1, Item::Equippable(kv.1.0.clone()))).collect();
                         let new_equip = Equipped::new(**target, &player_equip, &equip.allowed_slots);
-                        // TODO: warn on non-unit discard?:
-                        equip_slot((&entities, &mut log, &mut backpack, &items, &mut equipped, &names), new_equip, useitem.item);
-                     });
+                        let equip_changes = equip_slot(
+                            (&entities, &mut backpack, &items, &mut equipped, &names)
+                            , new_equip, useitem.item,  EquipChanges::new( equipped_items)
+                        );
+                        let ecs_data = EcsActionMsgData::new(&entities, &players, &names);
+                        if let Some(equip_msg) = equip_message(ecs_data, equip_changes, player_entity) {
+                            log.entries.push(equip_msg);
+                        }
+                        });
                 };
                 let item_heals = healing.get(useitem.item);
                 match item_heals {
@@ -247,11 +377,12 @@ fn equip_slot<I: Join + Copy>(
     equip_data: EquipData<I>,
     new_equip: Equipped,
     new_equip_ent: Entity,
-) -> HashSet<(Entity, Item)>
+    equip_changes: EquipChanges,
+) -> EquipChanges
 where
     I::Type: IsItem,
 {
-    let (entities, log, backpack, items, equipped_items, names) = equip_data;
+    let (entities, backpack, items, equipped_items, names) = equip_data;
 
     let to_unequip = calculate_unequip(
         entities,
@@ -272,15 +403,12 @@ where
     }))
     .collect_vec();
 
-    let unequipped = HashSet::from_iter(
+    let unequipped: HashSet<(Entity, Item)> = HashSet::from_iter(
         to_unequip
             .clone()
             .into_iter()
             .map(|(item_ent, _, itm)| {
                 equipped_items.remove(item_ent);
-                let unequip_name = names.get(item_ent).unwrap();
-                log.entries
-                    .push(format!("You unequip {}.", unequip_name.name));
                 backpack
                     .insert(
                         item_ent,
@@ -293,19 +421,29 @@ where
             })
             .collect_vec(),
     );
+    let equip_changes = unequipped.iter().fold(equip_changes, |acc, (ent, itm)| {
+        acc.unequip(*ent, itm.clone())
+    });
     backpack.remove(new_equip_ent);
 
     equipped_items
         .insert(new_equip_ent, new_equip.clone())
         .unwrap();
-    let equip_name = names.get(new_equip_ent).unwrap();
-    log.entries.push(format!("You equip {}.", equip_name.name));
+    let newly_equipped = (entities, items)
+        .join()
+        .filter(|(ent, _itm)| new_equip_ent == *ent)
+        .map(|(ent, item)| (ent, item.from()))
+        .collect::<HashSet<(Entity, Item)>>();
+    let equip_changes = newly_equipped
+        .iter()
+        .fold(equip_changes, |acc, (ent, itm)| {
+            acc.equip(*ent, itm.clone())
+        });
 
     // If unequipped was in the main hand, and it and the newly equipped are both 1-handed items,
     // we perform a second recursive call to equip unequipped item in the off-hand slot:
-
     match unequipped.iter().next() {
-        None => unequipped,
+        None => equip_changes,
         Some((uneq_ent, uneq_item)) => {
             let was_in_mh = to_unequip
                 .iter()
@@ -325,19 +463,19 @@ where
                     .map(|new_item| !new_item.equip_opt().map_or_else(|| false, |eq| eq.is_2h()))
                     .unwrap_or(false)
             };
-
             if was_in_mh && old_eq_can_oh() && new_eq_is_1h() {
                 equip_slot(
-                    (entities, log, backpack, items, equipped_items, names),
+                    (entities, backpack, items, equipped_items, names),
                     Equipped {
                         owner: new_equip.owner,
                         slot: EquipSlot::OffHand,
                         slot_extra: None,
                     },
                     *uneq_ent,
+                    equip_changes,
                 )
             } else {
-                unequipped
+                equip_changes
             }
         }
     }
@@ -359,6 +497,48 @@ where
         .filter(|(_, eq, _)| eq.owner == owner && eq.slot == slot)
         .map(|(ent, eq, item)| (ent, eq.clone(), item.from()))
         .collect()
+}
+
+fn equip_message(
+    ecs_data: EcsActionMsgData,
+    equip_changes: EquipChanges,
+    owner: Entity,
+) -> Option<String> {
+    let bonus_changes = equip_changes.clone().bonus_changes();
+    let equip_names = equip_changes
+        .equipped
+        .into_iter()
+        .map(|ei| ecs_data.names.get(ei.0).unwrap().name.clone())
+        .collect::<Vec<String>>();
+    let unequip_names = equip_changes
+        .unequipped
+        .into_iter()
+        .map(|ei| ecs_data.names.get(ei.0).unwrap().name.clone())
+        .collect::<Vec<String>>();
+    let fmt_unequip_names = fmt_list(&unequip_names);
+    let fmt_equip_names = fmt_list(&equip_names);
+    match (equip_names.is_empty(), unequip_names.is_empty()) {
+        (true, true) => None,
+        (true, false) => Some(entity_action_msg_no_ecs!(
+            ecs_data,
+            "<SUBJ> {} {fmt_unequip_names} ({bonus_changes}).",
+            owner,
+            "unequip"
+        )),
+        (false, true) => Some(entity_action_msg_no_ecs!(
+            ecs_data,
+            "<SUBJ> {} {fmt_equip_names} ({bonus_changes}).",
+            owner,
+            "equip"
+        )),
+        (false, false) => Some(entity_action_msg_no_ecs!(
+            ecs_data,
+            "<SUBJ> {} {fmt_unequip_names} and {} {fmt_equip_names} ({bonus_changes}).",
+            owner,
+            "unequip",
+            "equip"
+        )),
+    }
 }
 
 pub struct ItemDropSystem {}
@@ -405,13 +585,24 @@ impl<'a> System<'a> for ItemRemoveSystem {
         Entities<'a>,
         WriteStorage<'a, EventWantsToRemoveItem>,
         ReadStorage<'a, Name>,
+        ReadStorage<'a, Player>,
+        ReadStorage<'a, Item>,
         WriteStorage<'a, InBackpack>,
         WriteStorage<'a, Equipped>,
         WriteExpect<'a, GameLog>,
     );
 
     fn run(&mut self, data: Self::SystemData) {
-        let (entities, mut wants_remove, names, mut backpack, mut equipped, mut log) = data;
+        let (
+            entities,
+            mut wants_remove,
+            names,
+            players,
+            items,
+            mut backpack,
+            mut equipped,
+            mut log,
+        ) = data;
         (&entities, &wants_remove)
             .join()
             .for_each(|(entity, to_remove)| {
@@ -423,12 +614,18 @@ impl<'a> System<'a> for ItemRemoveSystem {
                     .get(to_remove.item)
                     .map(|n| n.name.clone())
                     .unwrap_or_else(|| format!("item {}", to_remove.item.id()));
-                let remover_name = names
-                    .get(entity)
-                    .map(|n| n.name.clone())
-                    .unwrap_or_else(|| format!("Entity {}", entity.id()));
-                log.entries
-                    .push(format!("{} unequips the {}.", remover_name, item_name));
+                let ecs_data = EcsActionMsgData::new(&entities, &players, &names);
+                let unequipped_item = items.get(to_remove.item).expect(&format!(
+                    "No item found for entity {}!",
+                    to_remove.item.id()
+                ));
+                let bonus_changes = EquipBonusChanges::unequip(unequipped_item);
+                log.entries.push(entity_action_msg_no_ecs!(
+                    ecs_data,
+                    "<SUBJ> {} {item_name} ({bonus_changes}).",
+                    entity,
+                    "unequip"
+                ));
             });
         wants_remove.clear();
     }
@@ -515,5 +712,31 @@ mod tests {
         let bpack_items = backpack_items(&gs.ecs, player_entity);
         assert_eq!(bpack_items.len(), 1);
         assert_eq!(bpack_items[0].0, shield);
+    }
+
+    #[test]
+    fn equip_item_gives_nonempty_item_name() {
+        let (mut gs, _) = init_state(true, None);
+        let player_entity = get_player_unwrap(&gs.ecs, PLAYER_NAME);
+        let player_posn = get_player_pos_unwrap(&gs.ecs, PLAYER_NAME);
+
+        let shield = spawner::shield_at_level(1, &mut gs.ecs, player_posn);
+        get_item(&mut gs.ecs); // pickup an item
+        gs.run_systems();
+        use_first_backpack_item(&mut gs, player_entity);
+        let bpack_items = backpack_items(&gs.ecs, player_entity);
+        assert_eq!(bpack_items.len(), 0);
+
+        let names = gs.ecs.read_storage::<Name>();
+        let shield_name = names.get(shield).unwrap();
+        let expected_pickup_msg = format!("You pick up the {}.", shield_name.name);
+        let expected_equip_submsg = format!(" equip {}", shield_name.name);
+        let log = gs.ecs.fetch::<GameLog>();
+        log.entries.iter().for_each(|e| println!("{}", e));
+        assert!(log.entries.iter().any(|e| e == &expected_pickup_msg));
+        assert!(log
+            .entries
+            .iter()
+            .any(|e| e.contains(&expected_equip_submsg)));
     }
 }

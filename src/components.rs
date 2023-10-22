@@ -254,6 +254,14 @@ pub struct Name {
     pub name: String,
 }
 
+const DEBUG_NAME: &str = "<no name for entity>";
+
+pub fn debug_name() -> Name {
+    Name {
+        name: DEBUG_NAME.to_string(),
+    }
+}
+
 #[derive(Component, Deserialize, Serialize, Clone, Debug)]
 pub struct Player {}
 

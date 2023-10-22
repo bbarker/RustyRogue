@@ -1,0 +1,18 @@
+:: Start {"position":"150,25"}
+The hero receives a call to adventure.
+[[Accept the call->FirstChallenge]]
+
+:: FirstChallenge {"position":"425,25"}
+The hero faces their first challenge.
+[[Overcome the challenge->MentorMeeting]]
+
+:: MentorMeeting {"position":"550,250"}
+The hero meets a mentor who provides guidance.
+[[Learn from the mentor->Climax]]
+
+:: Climax {"position":"300,450"}
+The hero faces the ultimate challenge.
+[[Defeat the villain->Resolution]]
+
+:: Resolution {"position":"50,250"}
+The hero returns, transformed by the journey.

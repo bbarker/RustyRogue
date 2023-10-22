@@ -241,7 +241,7 @@ pub struct Equipment {
     pub allowed_slots: EquipSlotAllowed,
     pub material: Material,
     pub quality: u8,
-    pub special_melee_modifier: i16,
+    pub special_power_modifier: i16,
     pub special_defense_modifier: i16,
 }
 
@@ -257,7 +257,7 @@ impl Equipment {
             equipment_type,
             material,
             quality,
-            special_melee_modifier: 0,
+            special_power_modifier: 0,
             special_defense_modifier: 0,
         }
     }
@@ -304,12 +304,12 @@ impl Equipment {
         format!("{}{}{}", self.material, infix, self.equipment_type)
     }
 
-    pub fn melee_bonus(&self) -> i16 {
+    pub fn power_bonus(&self) -> i16 {
         let derived_bonus = match self.equipment_type {
             EquipmentType::Weapon(_) => self.equipment_type.bonus() + self.material.bonus(),
             _ => 0,
         };
-        derived_bonus + self.special_melee_modifier
+        derived_bonus + self.special_power_modifier
     }
 
     pub fn defense_bonus(&self) -> i16 {
@@ -336,12 +336,13 @@ impl Equipment {
     }
 }
 
-pub type EntityEquipmentMap = HashMap<EquipSlot, Equipment>;
+pub type EntityEquipmentMap = HashMap<EquipSlot, (Equipment, Entity)>;
 
 pub fn get_equipped_items<I: Join, E: Join>(
+    entities: &Entities,
     items: I,
     equipped: E,
-    entity: Entity,
+    owner: Entity,
 ) -> EntityEquipmentMap
 where
     I::Type: IsItem,
@@ -349,12 +350,12 @@ where
 {
     let mut equipped_items = HashMap::new();
     // Get all Equipped items and join with Items and filter those by the owner
-    (items, equipped)
+    (entities, items, equipped)
         .join()
-        .map(|(item, eqpd)| (item.from(), eqpd.from()))
-        .filter(|(_, eqpd)| eqpd.owner == entity)
-        .filter_map(|(item, eqpd)| match item {
-            Item::Equippable(equipment) => Some((equipment, eqpd)),
+        .map(|(ent, item, eqpd)| (ent, item.from(), eqpd.from()))
+        .filter(|(_, _, eqpd)| eqpd.owner == owner)
+        .filter_map(|(ent, item, eqpd)| match item {
+            Item::Equippable(equipment) => Some(((equipment, ent), eqpd)),
             _ => None,
         })
         .for_each(|(item, eqpd)| {

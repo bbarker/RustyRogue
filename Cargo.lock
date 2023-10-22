@@ -79,7 +79,7 @@ checksum = "0d8c1fef690941d3e7788d328517591fecc684c084084702d6ff1641e993699a"
 [[package]]
 name = "bracket-algorithm-traits"
 version = "0.8.7"
-source = "git+https://github.com/amethyst/bracket-lib.git?rev=851f6f08675444fb6fa088b9e67bee9fd75554c6#851f6f08675444fb6fa088b9e67bee9fd75554c6"
+source = "git+https://github.com/bbarker/bracket-lib.git?rev=d85c17ac21ab1dc6f10e01cc4a7fd711e16fe7be#d85c17ac21ab1dc6f10e01cc4a7fd711e16fe7be"
 dependencies = [
  "bracket-geometry",
  "smallvec",
@@ -88,7 +88,7 @@ dependencies = [
 [[package]]
 name = "bracket-color"
 version = "0.8.7"
-source = "git+https://github.com/amethyst/bracket-lib.git?rev=851f6f08675444fb6fa088b9e67bee9fd75554c6#851f6f08675444fb6fa088b9e67bee9fd75554c6"
+source = "git+https://github.com/bbarker/bracket-lib.git?rev=d85c17ac21ab1dc6f10e01cc4a7fd711e16fe7be#d85c17ac21ab1dc6f10e01cc4a7fd711e16fe7be"
 dependencies = [
  "lazy_static",
  "parking_lot 0.12.1",
@@ -98,7 +98,7 @@ dependencies = [
 [[package]]
 name = "bracket-embedding"
 version = "0.8.7"
-source = "git+https://github.com/amethyst/bracket-lib.git?rev=851f6f08675444fb6fa088b9e67bee9fd75554c6#851f6f08675444fb6fa088b9e67bee9fd75554c6"
+source = "git+https://github.com/bbarker/bracket-lib.git?rev=d85c17ac21ab1dc6f10e01cc4a7fd711e16fe7be#d85c17ac21ab1dc6f10e01cc4a7fd711e16fe7be"
 dependencies = [
  "lazy_static",
  "parking_lot 0.12.1",
@@ -107,7 +107,7 @@ dependencies = [
 [[package]]
 name = "bracket-geometry"
 version = "0.8.7"
-source = "git+https://github.com/amethyst/bracket-lib.git?rev=851f6f08675444fb6fa088b9e67bee9fd75554c6#851f6f08675444fb6fa088b9e67bee9fd75554c6"
+source = "git+https://github.com/bbarker/bracket-lib.git?rev=d85c17ac21ab1dc6f10e01cc4a7fd711e16fe7be#d85c17ac21ab1dc6f10e01cc4a7fd711e16fe7be"
 dependencies = [
  "serde",
  "ultraviolet",
@@ -116,7 +116,7 @@ dependencies = [
 [[package]]
 name = "bracket-lib"
 version = "0.8.7"
-source = "git+https://github.com/amethyst/bracket-lib.git?rev=851f6f08675444fb6fa088b9e67bee9fd75554c6#851f6f08675444fb6fa088b9e67bee9fd75554c6"
+source = "git+https://github.com/bbarker/bracket-lib.git?rev=d85c17ac21ab1dc6f10e01cc4a7fd711e16fe7be#d85c17ac21ab1dc6f10e01cc4a7fd711e16fe7be"
 dependencies = [
  "bracket-algorithm-traits",
  "bracket-color",
@@ -130,7 +130,7 @@ dependencies = [
 [[package]]
 name = "bracket-noise"
 version = "0.8.7"
-source = "git+https://github.com/amethyst/bracket-lib.git?rev=851f6f08675444fb6fa088b9e67bee9fd75554c6#851f6f08675444fb6fa088b9e67bee9fd75554c6"
+source = "git+https://github.com/bbarker/bracket-lib.git?rev=d85c17ac21ab1dc6f10e01cc4a7fd711e16fe7be#d85c17ac21ab1dc6f10e01cc4a7fd711e16fe7be"
 dependencies = [
  "bracket-random",
 ]
@@ -138,7 +138,7 @@ dependencies = [
 [[package]]
 name = "bracket-pathfinding"
 version = "0.8.7"
-source = "git+https://github.com/amethyst/bracket-lib.git?rev=851f6f08675444fb6fa088b9e67bee9fd75554c6#851f6f08675444fb6fa088b9e67bee9fd75554c6"
+source = "git+https://github.com/bbarker/bracket-lib.git?rev=d85c17ac21ab1dc6f10e01cc4a7fd711e16fe7be#d85c17ac21ab1dc6f10e01cc4a7fd711e16fe7be"
 dependencies = [
  "bracket-algorithm-traits",
  "bracket-geometry",
@@ -149,7 +149,7 @@ dependencies = [
 [[package]]
 name = "bracket-random"
 version = "0.8.7"
-source = "git+https://github.com/amethyst/bracket-lib.git?rev=851f6f08675444fb6fa088b9e67bee9fd75554c6#851f6f08675444fb6fa088b9e67bee9fd75554c6"
+source = "git+https://github.com/bbarker/bracket-lib.git?rev=d85c17ac21ab1dc6f10e01cc4a7fd711e16fe7be#d85c17ac21ab1dc6f10e01cc4a7fd711e16fe7be"
 dependencies = [
  "getrandom",
  "js-sys",
@@ -164,7 +164,7 @@ dependencies = [
 [[package]]
 name = "bracket-rex"
 version = "0.8.7"
-source = "git+https://github.com/amethyst/bracket-lib.git?rev=851f6f08675444fb6fa088b9e67bee9fd75554c6#851f6f08675444fb6fa088b9e67bee9fd75554c6"
+source = "git+https://github.com/bbarker/bracket-lib.git?rev=d85c17ac21ab1dc6f10e01cc4a7fd711e16fe7be#d85c17ac21ab1dc6f10e01cc4a7fd711e16fe7be"
 dependencies = [
  "bracket-color",
  "bracket-embedding",
@@ -175,7 +175,7 @@ dependencies = [
 [[package]]
 name = "bracket-terminal"
 version = "0.8.7"
-source = "git+https://github.com/amethyst/bracket-lib.git?rev=851f6f08675444fb6fa088b9e67bee9fd75554c6#851f6f08675444fb6fa088b9e67bee9fd75554c6"
+source = "git+https://github.com/bbarker/bracket-lib.git?rev=d85c17ac21ab1dc6f10e01cc4a7fd711e16fe7be#d85c17ac21ab1dc6f10e01cc4a7fd711e16fe7be"
 dependencies = [
  "anyhow",
  "bracket-color",
