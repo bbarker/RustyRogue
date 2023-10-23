@@ -25,6 +25,8 @@
       # qemu
       llvmPackages_latest.lld
       python3
+      # for wasm
+      openssl
       # Only for building bracket-lib, I think:
       alsa-lib
       systemd
