@@ -11,3 +11,5 @@ wasm/*.wasm
 
 .vscode
 .metals
+
+tmp.txt

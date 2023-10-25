@@ -30,6 +30,9 @@
       # Only for building bracket-lib, I think:
       alsa-lib
       systemd
+      # To enable faster linking in Rust projects
+      clang
+      mold
     ];
      # Only for building bracket-lib, I think:
     nativeBuildInputs = [ pkgs.pkg-config ];
