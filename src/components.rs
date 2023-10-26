@@ -1,11 +1,7 @@
+use bevy::prelude::*;
 use bracket_lib::{
     prelude::{FontCharType, RGB},
     terminal::Point,
-};
-use specs::{
-    prelude::*,
-    saveload::{ConvertSaveload, Marker},
-    Entity,
 };
 
 use crate::{
@@ -14,14 +10,13 @@ use crate::{
     PsnU,
 };
 use serde::{Deserialize, Serialize};
-use specs_derive::*;
 
 use std::convert::Infallible;
 
 // `NoError` alias is deprecated in specs ... but specs_derive needs it
 pub type NoError = Infallible;
 
-#[derive(Component, ConvertSaveload, Clone, Debug)]
+#[derive(Component, /* ConvertSaveLoad, */ Clone, Debug)]
 pub struct AreaOfEffect {
     pub radius: u16,
 }
@@ -29,7 +24,7 @@ pub struct AreaOfEffect {
 #[derive(Component, Deserialize, Serialize, Clone, Debug)]
 pub struct BlocksTile {}
 
-#[derive(Component, ConvertSaveload, Clone, Debug)]
+#[derive(Component, /* ConvertSaveLoad, */ Clone, Debug)]
 pub struct CombatStats {
     pub max_hp: u16,
     pub hp: u16,
@@ -37,7 +32,7 @@ pub struct CombatStats {
     pub power: u16,
 }
 
-#[derive(Component, ConvertSaveload, Debug, Clone)]
+#[derive(Component, /* ConvertSaveLoad, */ Debug, Clone)]
 pub struct Confusion {
     pub step_sequence: Vec<(i8, i8)>,
 }
@@ -45,7 +40,7 @@ pub struct Confusion {
 #[derive(Component, Deserialize, Serialize, Clone, Debug)]
 pub struct Consumable {}
 
-#[derive(Eq, PartialEq, Hash, Clone, Component, ConvertSaveload, Debug)]
+#[derive(Eq, PartialEq, Hash, Clone, Component, /* ConvertSaveLoad, */ Debug)]
 pub struct Equipped {
     pub owner: Entity,
     pub slot: EquipSlot,
@@ -134,17 +129,17 @@ impl HasOwner for Equipped {
     }
 }
 
-#[derive(Component, ConvertSaveload, Clone, Debug)]
+#[derive(Component, /* ConvertSaveLoad, */ Clone, Debug)]
 pub struct EventIncomingDamage {
     pub amount: Vec<u16>,
 }
 
 impl EventIncomingDamage {
-    pub fn new_damage(store: &mut WriteStorage<EventIncomingDamage>, victim: Entity, amount: u16) {
-        if let Some(dmg) = store.get_mut(victim) {
+    pub fn new_damage(query: Query<&mut EventIncomingDamage>, victim: Entity, amount: u16) {
+        if let Some(dmg) = query.get_mut(victim) {
             dmg.amount.push(amount);
         } else {
-            store
+            query
                 .insert(
                     victim,
                     EventIncomingDamage {
@@ -156,34 +151,34 @@ impl EventIncomingDamage {
     }
 }
 
-#[derive(Component, ConvertSaveload, Clone, Debug)]
+#[derive(Component, /* ConvertSaveLoad, */ Clone, Debug)]
 pub struct EventWantsToUseItem {
     pub item: Entity,
     pub target: Option<Point>,
 }
 
-#[derive(Component, ConvertSaveload, Debug, Clone)]
+#[derive(Component, /* ConvertSaveLoad, */ Debug, Clone)]
 pub struct EventWantsToDropItem {
     pub item: Entity,
 }
 
-#[derive(Component, ConvertSaveload, Debug, Clone)]
+#[derive(Component, /* ConvertSaveLoad, */ Debug, Clone)]
 pub struct EventWantsToMelee {
     pub target: Entity,
 }
 
-#[derive(Component, ConvertSaveload, Clone, Debug)]
+#[derive(Component, /* ConvertSaveLoad, */ Clone, Debug)]
 pub struct EventWantsToPickupItem {
     pub collected_by: Entity,
     pub item: Entity,
 }
 
-#[derive(Component, ConvertSaveload, Debug, Clone)]
+#[derive(Component, /* ConvertSaveLoad, */ Debug, Clone)]
 pub struct EventWantsToRemoveItem {
     pub item: Entity,
 }
 
-#[derive(Clone, Component, ConvertSaveload, Debug)]
+#[derive(Clone, Component, /* ConvertSaveLoad, */ Debug)]
 pub struct InBackpack {
     pub owner: Entity,
 }
@@ -207,12 +202,12 @@ impl IsInBackpack for InBackpack {
     }
 }
 
-#[derive(Component, ConvertSaveload, Debug)]
+#[derive(Component, /* ConvertSaveLoad, */ Debug)]
 pub struct InflictsDamage {
     pub damage: u16,
 }
 
-#[derive(Eq, PartialEq, Hash, Component, ConvertSaveload, Clone, Debug)]
+#[derive(Eq, PartialEq, Hash, Component, /* ConvertSaveLoad, */ Clone, Debug)]
 pub enum Item {
     Consumable,
     Equippable(Equipment), // Note: In book this is a component
@@ -249,7 +244,7 @@ impl IsItem for Item {
 #[derive(Component, Deserialize, Serialize, Clone, Debug)]
 pub struct Monster {}
 
-#[derive(Component, ConvertSaveload, Clone, Debug)]
+#[derive(Component, /* ConvertSaveLoad, */ Clone, Debug)]
 pub struct Name {
     pub name: String,
 }
@@ -285,7 +280,7 @@ impl IsPlayer for Player {
 }
 
 // FIXME: ConvertSaveload is not working here; maybe check newer releases of the tutorial
-#[derive(Component, Clone, Copy, ConvertSaveload, Debug, PartialEq)]
+#[derive(Component, Clone, Copy, /* ConvertSaveLoad, */ Debug, PartialEq)]
 pub struct Position {
     pub xx: PsnU,
     pub yy: PsnU,
@@ -346,15 +341,15 @@ impl Positionable for (i32, i32) {
     }
 }
 
-#[derive(Component, Clone, ConvertSaveload, Debug)]
+#[derive(Component, Clone, /* ConvertSaveLoad, */ Debug)]
 pub struct ProvidesHealing {
     pub heal_amount: u16,
 }
 
-#[derive(Eq, PartialEq, Hash, Copy, Clone, ConvertSaveload, Debug)]
+#[derive(Eq, PartialEq, Hash, Copy, Clone, /* ConvertSaveLoad, */ Debug)]
 pub struct AbilityRange(pub u16);
 
-#[derive(Eq, PartialEq, Hash, Component, Clone, ConvertSaveload, Debug)]
+#[derive(Eq, PartialEq, Hash, Component, Clone, /* ConvertSaveLoad, */ Debug)]
 pub struct Range {
     pub range: AbilityRange,
 }
@@ -366,7 +361,7 @@ pub enum RenderOrder {
     Last,
 }
 
-#[derive(Component, ConvertSaveload, Clone)]
+#[derive(Component, /* ConvertSaveLoad, */ Clone)]
 pub struct Renderable {
     pub glyph: FontCharType,
     pub fg: RGB,
@@ -374,27 +369,28 @@ pub struct Renderable {
     pub render_order: RenderOrder,
 }
 
-#[derive(Component, ConvertSaveload, Clone)]
+#[derive(Component, /* ConvertSaveLoad, */ Clone)]
 pub struct SerializationHelper {
     pub map: Map,
 }
 
 pub struct SerializeMe;
 
-#[derive(Copy, Clone, ConvertSaveload, Debug)]
+#[derive(Copy, Clone, /* ConvertSaveLoad, */ Debug)]
 pub struct ViewRange(pub i32);
-#[derive(Component, Clone, ConvertSaveload)]
+#[derive(Component, Clone /*, ConvertSaveload*/)]
 pub struct Viewshed {
     pub visible_tiles: Vec<Point>,
     pub range: ViewRange,
     pub dirty: bool,
 }
 
-#[derive(Component, Debug, ConvertSaveload, Clone)]
+#[derive(Component, Debug, /* ConvertSaveLoad, */ Clone)]
 pub struct WantsToUnequipItem {
     pub item: Entity,
 }
 
+// TODO: we should be able to delete these macros, but put them up on bracket-lib's wiki or discussion
 // see https://users.rust-lang.org/t/how-to-store-a-list-tuple-of-types-that-can-be-uses-as-arguments-in-another-macro/87891
 // credit to Michael F. Bryan for this approach
 #[macro_export]
