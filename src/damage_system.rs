@@ -7,10 +7,12 @@ use crate::{
 };
 
 use super::{CombatStats, EventIncomingDamage};
-use specs::prelude::*;
+// use specs::prelude::*;
+use bevy::prelude::*;
 
 pub struct DamageSystem {}
 
+/*
 impl<'a> System<'a> for DamageSystem {
     type SystemData = (
         WriteStorage<'a, CombatStats>,
@@ -27,6 +29,19 @@ impl<'a> System<'a> for DamageSystem {
             });
         incoming_damage.clear();
     }
+}
+*/
+// Now we convert the above to a bevy-ecs system:
+pub fn damage_system(
+    mut commands: Commands,
+    query: Query<(Entity, &mut CombatStats, With<EventIncomingDamage>)>,
+) {
+    query.for_each_mut(|(entity, stats, damage)| {
+        stats.hp -= damage.amount.iter().sum::<u16>().clamp(0, stats.hp);
+        commands.entity(entity).remove::<EventIncomingDamage>();
+    });
+    // TODO: see util_ecs for a possible WIP for a clear; for now we clear
+    // individually, which should be fine.
 }
 
 pub fn delete_the_dead(ecs: &mut World) -> Option<RunState> {

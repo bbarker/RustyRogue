@@ -1,6 +1,24 @@
 use specs::{Entities, ReadStorage};
 
 use crate::components::{Name, Player};
+use bevy::prelude::*;
+
+pub trait CommandOps {
+    fn clear<T: Component>(&mut self, query: Query<Entity, With<T>>);
+}
+impl CommandOps for Commands<'_, '_> {
+    fn clear<T: Component>(&mut self, query: Query<Entity, With<T>>) {
+        query
+            .iter()
+            .for_each(|entity| self.entity(entity).remove::<T>())
+    }
+}
+
+/* pub fn clear<T: Component>(mut commands: Commands, query: Query<Entity, With<T>>) {
+    query
+        .iter()
+        .for_each(|entity| commands.entity(entity).remove::<T>())
+} */
 
 pub struct EcsActionMsgData<'a> {
     pub entities: &'a Entities<'a>,

@@ -1,11 +1,6 @@
+use bevy::prelude::*;
 use enum_derive::EnumDisplay;
 use serde::{Deserialize, Serialize};
-use specs::{
-    prelude::*,
-    saveload::{ConvertSaveload, Marker},
-};
-
-use specs_derive::*;
 
 use std::{collections::HashMap, convert::Infallible, fmt::Display};
 
@@ -13,7 +8,7 @@ use crate::components::*;
 // `NoError` alias is deprecated in specs ... but specs_derive needs it
 pub type NoError = Infallible;
 
-#[derive(Eq, PartialEq, Hash, ConvertSaveload, Clone, Debug)]
+#[derive(Eq, PartialEq, Hash, /* ConvertSaveload, */ Clone, Debug)]
 pub enum EquipmentType {
     Weapon(WeaponType),
     Shield,
@@ -43,7 +38,7 @@ impl Display for EquipmentType {
     }
 }
 
-#[derive(Eq, PartialEq, Hash, ConvertSaveload, Clone, Debug)]
+#[derive(Eq, PartialEq, Hash, /* ConvertSaveload, */ Clone, Debug)]
 pub enum WeaponType {
     Melee(MeleeWeaponType),
     Ranged(RangedWeaponType, Range),
@@ -235,7 +230,7 @@ pub const ONE_HANDED: EquipSlotAllowed =
     EquipSlotAllowed::Either(EquipSlot::MainHand, EquipSlot::OffHand);
 pub const OFF_HAND: EquipSlotAllowed = EquipSlotAllowed::SingleSlot(EquipSlot::OffHand);
 
-#[derive(Eq, PartialEq, Hash, Component, ConvertSaveload, Clone, Debug)]
+#[derive(Eq, PartialEq, Hash, Component, /* ConvertSaveload, */ Clone, Debug)]
 pub struct Equipment {
     pub equipment_type: EquipmentType,
     pub allowed_slots: EquipSlotAllowed,
@@ -338,32 +333,23 @@ impl Equipment {
 
 pub type EntityEquipmentMap = HashMap<EquipSlot, (Equipment, Entity)>;
 
-pub fn get_equipped_items<I: Join, E: Join>(
-    entities: &Entities,
-    items: I,
-    equipped: E,
+pub fn get_equipped_items(
+    query: Query<(Entity, &Item, &Equipped)>,
     owner: Entity,
-) -> EntityEquipmentMap
-where
-    I::Type: IsItem,
-    E::Type: IsEquipped,
-{
+) -> EntityEquipmentMap {
     let mut equipped_items = HashMap::new();
-    // Get all Equipped items and join with Items and filter those by the owner
-    (entities, items, equipped)
-        .join()
-        .map(|(ent, item, eqpd)| (ent, item.from(), eqpd.from()))
-        .filter(|(_, _, eqpd)| eqpd.owner == owner)
-        .filter_map(|(ent, item, eqpd)| match item {
-            Item::Equippable(equipment) => Some(((equipment, ent), eqpd)),
-            _ => None,
-        })
-        .for_each(|(item, eqpd)| {
-            equipped_items.insert(eqpd.slot, item.clone());
-            if let Some(extra_slot) = eqpd.slot_extra {
-                equipped_items.insert(extra_slot, item);
+
+    // Iterate over entities with Item and Equipped components
+    query.iter().for_each(|(entity, item, equipped)| {
+        if equipped.owner == owner {
+            if let Item::Equippable(equipment) = item {
+                equipped_items.insert(equipped.slot, (equipment.clone(), entity));
+                if let Some(extra_slot) = equipped.slot_extra {
+                    equipped_items.insert(extra_slot, (equipment.clone(), entity));
+                }
             }
-        });
+        }
+    });
 
     equipped_items
 }

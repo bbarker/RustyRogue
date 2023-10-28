@@ -13,10 +13,10 @@ use crate::{
     player::PLAYER_NAME,
     util::fmt_list,
 };
+use bevy::prelude::*;
 use bracket_lib::prelude::field_of_view;
 use frunk::Monoid;
 use itertools::Itertools;
-use specs::{prelude::*, world::EntitiesRes};
 
 use super::{gamelog::GameLog, EventWantsToPickupItem, InBackpack, Name, Player, Position};
 
@@ -24,65 +24,30 @@ pub struct ItemCollectionSystem {}
 
 use crate::entity_action_msg_no_ecs;
 
-impl<'a> System<'a> for ItemCollectionSystem {
-    type SystemData = (
-        Entities<'a>,
-        ReadStorage<'a, Player>,
-        WriteExpect<'a, GameLog>,
-        ReadStorage<'a, Name>,
-        WriteStorage<'a, InBackpack>,
-        WriteStorage<'a, Position>,
-        WriteStorage<'a, EventWantsToPickupItem>,
-    );
+fn item_collection_system(
+    mut commands: Commands,
+    mut log: ResMut<GameLog>,
+    query: Query<(Entity, &Player, &EventWantsToPickupItem)>,
+    names: Query<&Name>,
+) {
+    query.iter().for_each(|(player_entity, _player, pickup)| {
+        commands
+            .entity(pickup.item)
+            .remove::<Position>()
+            .insert(InBackpack {
+                owner: player_entity,
+            });
+        commands
+            .entity(player_entity)
+            .remove::<EventWantsToPickupItem>();
 
-    fn run(&mut self, data: Self::SystemData) {
-        let (entities, players, mut log, names, mut backpack, mut positions, mut wants_pickup) =
-            data;
-
-        // TODO: (multi-player: fix this to be player-specific -
-        // prevent other players from picking up the same item)
-        (&entities, &players, &mut wants_pickup).join().for_each(
-            |(player_entity, _player, pickup)| {
-                positions.remove(pickup.item);
-                backpack
-                    .insert(
-                        pickup.item,
-                        InBackpack {
-                            owner: player_entity,
-                        },
-                    )
-                    .unwrap_or_else(|er| panic!("Unable to insert item into backpack!: {}", er));
-
-                if pickup.collected_by == player_entity {
-                    log.entries.push(format!(
-                        "You pick up the {}.",
-                        names.get(pickup.item).unwrap().name
-                    ));
-                }
-            },
-        );
-        wants_pickup.clear();
-    }
+        names
+            .get(pickup.item)
+            .map(|name| format!("You pick up the {}.", name.name))
+            .into_iter()
+            .for_each(|msg| log.entries.push(msg));
+    });
 }
-
-type ItemUseSystemData<'a> = (
-    Entities<'a>,
-    ReadExpect<'a, Map>,
-    ReadStorage<'a, Player>,
-    WriteExpect<'a, GameLog>,
-    WriteStorage<'a, EventWantsToUseItem>,
-    ReadStorage<'a, Name>,
-    ReadStorage<'a, ProvidesHealing>,
-    ReadStorage<'a, InflictsDamage>,
-    WriteStorage<'a, Confusion>,
-    ReadStorage<'a, AreaOfEffect>,
-    WriteStorage<'a, CombatStats>,
-    WriteStorage<'a, EventIncomingDamage>,
-    ReadStorage<'a, Consumable>,
-    ReadStorage<'a, Item>,
-    WriteStorage<'a, Equipped>,
-    WriteStorage<'a, InBackpack>,
-);
 
 type EquipData<'a, 'b, I> = (
     &'a Read<'b, EntitiesRes>,
@@ -209,6 +174,113 @@ impl EquipChanges {
 
         EquipBonusChanges { defense, power }
     }
+}
+
+type ItemUseSystemData<'a> = (
+    Entities<'a>,
+    ReadExpect<'a, Map>,
+    ReadStorage<'a, Player>,
+    WriteExpect<'a, GameLog>,
+    WriteStorage<'a, EventWantsToUseItem>,
+    ReadStorage<'a, Name>,
+    ReadStorage<'a, ProvidesHealing>,
+    ReadStorage<'a, InflictsDamage>,
+    WriteStorage<'a, Confusion>,
+    ReadStorage<'a, AreaOfEffect>,
+    WriteStorage<'a, CombatStats>,
+    WriteStorage<'a, EventIncomingDamage>,
+    ReadStorage<'a, Consumable>,
+    ReadStorage<'a, Item>,
+    WriteStorage<'a, Equipped>,
+    WriteStorage<'a, InBackpack>,
+);
+
+fn item_use_system(
+    mut commands: Commands,
+    map: Res<Map>,
+    mut log: ResMut<GameLog>,
+    mut query: Query<(Entity, &Player, &EventWantsToUseItem, &Name)>,
+    names: Query<&Name>,
+    healing: Query<&ProvidesHealing>,
+    damaging: Query<&InflictsDamage>,
+    mut confused: Query<&mut Confusion>,
+    aoe: Query<&AreaOfEffect>,
+    mut combat_stats: Query<&mut CombatStats>,
+    mut incoming_damage: Query<&mut EventIncomingDamage>,
+    consumables: Query<&Consumable>,
+    items: Query<&Item>,
+    mut equipped: Query<&mut Equipped>,
+    mut backpack: Query<&mut InBackpack>,
+) {
+    let delete_if_consumed = |item: Entity, used: bool, player_name: &Name| {
+        let consumable = consumables.get(item);
+        match consumable {
+            None => {}
+            Some(_) => {
+                if used {
+                    commands.entity(item).despawn()
+                }
+            }
+        }
+    };
+
+    query
+        .iter()
+        .for_each(|(player_entity, _player, useitem, player_name)| {
+            let targets = match useitem.target {
+                None => vec![player_entity],
+                Some(target) => {
+                    let area_effect = aoe.get(useitem.item);
+                    match area_effect {
+                        None => {
+                            // Single-tile target
+                            map.tile_content[map.pos_idx(target)].to_vec()
+                        }
+                        Some(ae) => {
+                            let fov_tiles = field_of_view(target, ae.radius.into(), &*map);
+                            let blast_tiles = fov_tiles.into_iter().filter(|pos| {
+                                pos.x >= 0
+                                    && pos.x < map.width_psnu as i32
+                                    && pos.y >= 0
+                                    && pos.y < map.height_psnu as i32
+                            });
+                            blast_tiles
+                                .into_iter()
+                                .flat_map(|pos| map.tile_content[map.pos_idx(pos)].clone())
+                                .collect()
+                        }
+                    }
+                }
+            };
+            if let Some(Item::Equippable(equip)) = items.get(useitem.item) {
+                targets.first().iter().for_each(|target| {
+                    let player_equip =
+                        get_equipped_items(&entities, &items, &equipped, player_entity);
+                    let equipped_items: HashSet<(Entity, Item)> = player_equip
+                        .iter()
+                        .map(|kv| (kv.1 .1, Item::Equippable(kv.1 .0.clone())))
+                        .collect();
+                    let new_equip = Equipped::new(**target, &player_equip, &equip.allowed_slots);
+                    let equip_changes = equip_slot(
+                        (&entities, &mut backpack, &items, &mut equipped, &names),
+                        new_equip,
+                        useitem.item,
+                        EquipChanges::new(equipped_items),
+                    );
+                    let ecs_data = EcsActionMsgData::new(&entities, &players, &names);
+                    if let Some(equip_msg) = equip_message(ecs_data, equip_changes, player_entity) {
+                        log.entries.push(equip_msg);
+                    }
+                });
+            };
+            let item_heals = healing.get(useitem.item);
+            // TODO: resume from here after bugfixes for the above.
+
+            // Clear the wants_use_item component
+            commands
+                .entity(player_entity)
+                .remove::<EventWantsToUseItem>();
+        });
 }
 
 pub struct ItemUseSystem {}
