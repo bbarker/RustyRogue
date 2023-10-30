@@ -4,100 +4,84 @@ use crate::{
 };
 
 use super::{CombatStats, EventIncomingDamage, EventWantsToMelee, Name};
-use specs::prelude::*;
+use bevy::ecs::prelude::*;
 
-pub struct MeleeCombatSystem {}
+pub fn melee_combat_system(
+    mut commands: Commands,
+    mut log: ResMut<GameLog>,
+    mut inflict_damage: Query<&mut EventIncomingDamage>,
+    names_query: Query<&Name>,
+    combat_stats_query: Query<&CombatStats>,
+    wants_melee_query: Query<(Entity, &Name, &CombatStats, &EventWantsToMelee)>,
+    equipped_items_query: Query<(Entity, &Item, &Equipped)>,
+) {
+    wants_melee_query.for_each(|(entity, name, stats, wants_melee)| {
+        let target = wants_melee.target;
+        let debug_name = debug_name();
+        let target_name = names_query.get(target).unwrap_or(&debug_name);
+        let target_stats_opt = combat_stats_query.get(target);
 
-impl<'a> System<'a> for MeleeCombatSystem {
-    type SystemData = (
-        Entities<'a>,
-        WriteExpect<'a, GameLog>,
-        ReadStorage<'a, Name>,
-        ReadStorage<'a, CombatStats>,
-        WriteStorage<'a, EventIncomingDamage>,
-        WriteStorage<'a, EventWantsToMelee>,
-        ReadStorage<'a, Equipped>,
-        ReadStorage<'a, Item>,
-    );
+        let offensive_bonus = if stats.hp > 0 {
+            equipped_items_query
+                .iter()
+                .filter(|(_e, _itm, eq)| eq.owner == entity)
+                .filter_map(|(_, item, _)| item.equip_opt().map(|et| et.power_bonus()))
+                .sum::<i16>()
+        } else {
+            0
+        };
 
-    fn run(&mut self, data: Self::SystemData) {
-        let (
-            entities,
-            mut log,
-            names,
-            combat_stats,
-            mut inflict_damage,
-            mut wants_melee,
-            equipped,
-            items,
-        ) = data;
+        let defensive_bonus = target_stats_opt.map_or(0, |ts| {
+            if ts.hp > 0 {
+                equipped_items_query
+                    .iter()
+                    .filter(|(_e, _itm, eq)| eq.owner == target)
+                    .filter_map(|(_, item, _)| item.equip_opt().map(|et| et.defense_bonus()))
+                    .sum::<i16>()
+            } else {
+                0
+            }
+        });
 
-        (&entities, &names, &combat_stats, &mut wants_melee)
-            .join()
-            .for_each(|(entity, name, stats, wants_melee)| {
-                let target = wants_melee.target;
-                let debug_name = debug_name();
-                let target_name = names.get(target).unwrap_or(&debug_name);
-                let target_stats_opt = combat_stats.get(target);
-                let offensive_bonus = if stats.hp > 0 {
-                    (&entities, &items, &equipped)
-                        .join()
-                        .filter(|(_e, _itm, eq)| eq.owner == entity)
-                        .filter_map(|(_e, item, _eq)| item.equip_opt().map(|et| et.power_bonus()))
-                        .sum::<i16>()
-                } else {
-                    0
-                };
-                let defensive_bonus = target_stats_opt.map_or(0, |ts| {
-                    if ts.hp > 0 {
-                        (&entities, &items, &equipped)
-                            .join()
-                            .filter(|(_e, _itm, eq)| eq.owner == target)
-                            .filter_map(|(_e, item, _eq)| {
-                                item.equip_opt().map(|et| et.defense_bonus())
-                            })
-                            .sum::<i16>()
-                    } else {
-                        0
-                    }
-                });
+        if let Some(target_stats) = target_stats_opt {
+            let stats_power_with_bonus: u16 = if offensive_bonus > 0 {
+                let sp: u16 = stats
+                    .power
+                    .saturating_add(offensive_bonus.try_into().unwrap());
+                sp
+            } else {
+                stats
+                    .power
+                    .saturating_sub(offensive_bonus.abs().try_into().unwrap())
+            };
+            let defense_with_bonus: u16 = if defensive_bonus > 0 {
+                let dp: u16 = target_stats
+                    .defense
+                    .saturating_add(defensive_bonus.try_into().unwrap());
+                dp
+            } else {
+                target_stats
+                    .defense
+                    .saturating_sub(defensive_bonus.abs().try_into().unwrap())
+            };
+            let damage = stats_power_with_bonus.saturating_sub(defense_with_bonus);
+            if damage > 0 && target_stats.hp > 0 {
+                EventIncomingDamage::new_damage(&mut inflict_damage, target, damage);
+                log.entries.push(format!(
+                    "{} hits {} for {} hp.",
+                    name.name, target_name.name, damage
+                ));
+            } else {
+                log.entries.push(format!(
+                    "{} is unable to hurt {}.",
+                    name.name, target_name.name
+                ));
+            }
+        }
+    });
 
-                if let Some(target_stats) = target_stats_opt {
-                    let stats_power_with_bonus: u16 = if offensive_bonus > 0 {
-                        let sp: u16 = stats
-                            .power
-                            .saturating_add(offensive_bonus.try_into().unwrap());
-                        sp
-                    } else {
-                        stats
-                            .power
-                            .saturating_sub(offensive_bonus.abs().try_into().unwrap())
-                    };
-                    let defense_with_bonus: u16 = if defensive_bonus > 0 {
-                        let dp: u16 = target_stats
-                            .defense
-                            .saturating_add(defensive_bonus.try_into().unwrap());
-                        dp
-                    } else {
-                        target_stats
-                            .defense
-                            .saturating_sub(defensive_bonus.abs().try_into().unwrap())
-                    };
-                    let damage = stats_power_with_bonus.saturating_sub(defense_with_bonus);
-                    if damage > 0 && target_stats.hp > 0 {
-                        EventIncomingDamage::new_damage(&mut inflict_damage, target, damage);
-                        log.entries.push(format!(
-                            "{} hits {} for {} hp.",
-                            name.name, target_name.name, damage
-                        ));
-                    } else {
-                        log.entries.push(format!(
-                            "{} is unable to hurt {}.",
-                            name.name, target_name.name
-                        ));
-                    }
-                }
-            });
-        wants_melee.clear();
-    }
+    // Assuming EventWantsToMelee has a clear method or you can use commands to remove them
+    // FIXME: I think this has to be moved into the for_each but for some reason it isn't showing
+    // as an error yet
+    commands.remove::<EventWantsToMelee>();
 }

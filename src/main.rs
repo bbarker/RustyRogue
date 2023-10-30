@@ -24,7 +24,7 @@ mod display_state;
 mod equipment;
 mod gamelog;
 mod gui;
-mod inventory_system;
+// mod inventory_system;
 mod map;
 mod map_indexing_system;
 mod melee_combat_system;

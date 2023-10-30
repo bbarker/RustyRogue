@@ -3,13 +3,14 @@ use bracket_lib::random::RandomNumberGenerator;
 use bracket_lib::terminal::{to_cp437, BTerm, DistanceAlg, FontCharType, Point, RGB};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
-use specs::*;
+//use specs::*;
+use bevy::prelude::*;
 use std::cmp::{max, min};
 
 use crate::components::{xy_idx, Positionable};
 use crate::{Position, PsnU, State};
 
-use crate::rect::*;
+use crate::rect;
 
 const MOVE_THROUGH_WALLS: bool = false;
 
@@ -57,7 +58,7 @@ pub fn new_map_test(display: &DisplayState, player_position: &Position) -> Vec<T
 pub fn draw_map(ecs: &World, ctx: &mut BTerm) {
     // let mut viewsheds = ecs.write_storage::<Viewshed>();
     // let mut players = ecs.write_storage::<Player>();
-    let map = ecs.fetch::<Map>();
+    let map = ecs.fetch::<Map>(); // FIXME: pretty sure this doesn't compile in bevy
 
     //(&mut players, &mut viewsheds)
     //    .join()
@@ -92,11 +93,11 @@ pub fn draw_map(ecs: &World, ctx: &mut BTerm) {
     //})
 }
 
-#[derive(Default, Serialize, Deserialize, Clone)]
+#[derive(Default, Serialize, Deserialize, Clone, Resource)]
 
 pub struct Map {
     pub tiles: Vec<TileType>,
-    pub rooms: Vec<Rect>,
+    pub rooms: Vec<rect::Rect>,
     width: usize,
     height: usize,
     tile_count: usize,
@@ -155,7 +156,7 @@ impl Map {
         }
     }
 
-    fn add_room(self: &mut Map, room: &Rect) {
+    fn add_room(self: &mut Map, room: &rect::Rect) {
         (room.x1..=room.x2)
             .cartesian_product(room.y1..=room.y2)
             .for_each(|(xx, yy)| {
@@ -318,7 +319,7 @@ pub fn new_map_rooms_and_corridors(gs: &State, new_depth: i32) -> Map {
         let xx = rng.range(1, map_width as u16 - ww - 1);
         let yy = rng.range(1, map_height as u16 - hh - 1);
 
-        let new_room = Rect::new(xx, yy, ww, hh);
+        let new_room = rect::Rect::new(xx, yy, ww, hh);
 
         let room_ok = map
             .rooms

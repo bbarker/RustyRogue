@@ -49,13 +49,15 @@ fn item_collection_system(
     });
 }
 
-type EquipData<'a, 'b, I> = (
-    &'a Read<'b, EntitiesRes>,
-    &'a mut WriteStorage<'b, InBackpack>,
-    I,
-    &'a mut WriteStorage<'b, Equipped>,
-    &'a ReadStorage<'b, Name>,
+type EquipData<'a, 'world, 'state> = (
+    Query<'world, 'state, Entity>,
+    Query<'world, 'state, &'a mut InBackpack>,
+    Query<'world, 'state, &'a Item>,
+    Query<'world, 'state, &'a mut Equipped>,
+    Query<'world, 'state, &'a Name>,
 );
+
+fn tmp(q: Query<Entity>) {}
 
 #[derive(Clone, Debug)]
 struct EquipBonusChanges {
@@ -200,6 +202,7 @@ fn item_use_system(
     map: Res<Map>,
     mut log: ResMut<GameLog>,
     mut query: Query<(Entity, &Player, &EventWantsToUseItem, &Name)>,
+    equipped_items: Query<(Entity, &Item, &Equipped)>,
     names: Query<&Name>,
     healing: Query<&ProvidesHealing>,
     damaging: Query<&InflictsDamage>,
@@ -254,8 +257,7 @@ fn item_use_system(
             };
             if let Some(Item::Equippable(equip)) = items.get(useitem.item) {
                 targets.first().iter().for_each(|target| {
-                    let player_equip =
-                        get_equipped_items(&entities, &items, &equipped, player_entity);
+                    let player_equip = get_equipped_items(&equipped_items, player_entity);
                     let equipped_items: HashSet<(Entity, Item)> = player_equip
                         .iter()
                         .map(|kv| (kv.1 .1, Item::Equippable(kv.1 .0.clone())))
@@ -275,6 +277,13 @@ fn item_use_system(
             };
             let item_heals = healing.get(useitem.item);
             // TODO: resume from here after bugfixes for the above.
+            // Note: removed inventory_system from main so other systems can compile
+            //
+            // it seems there are a # of
+            // things to consider in simplifying this system:
+            // 1. one-shot-systems (upcoming bevy release 0.12)
+            // 2. dispatch to other systems
+            // 3. aery or upcoming built-in query system for bevy-ecs
 
             // Clear the wants_use_item component
             commands
@@ -445,15 +454,13 @@ impl<'a> System<'a> for ItemUseSystem {
     }
 }
 
-fn equip_slot<I: Join + Copy>(
-    equip_data: EquipData<I>,
+fn equip_slot(
+    commands: &mut Commands,
+    equip_data: EquipData,
     new_equip: Equipped,
     new_equip_ent: Entity,
     equip_changes: EquipChanges,
-) -> EquipChanges
-where
-    I::Type: IsItem,
-{
+) -> EquipChanges {
     let (entities, backpack, items, equipped_items, names) = equip_data;
 
     let to_unequip = calculate_unequip(
@@ -553,17 +560,13 @@ where
     }
 }
 
-fn calculate_unequip<I: Join>(
-    entities: &Read<EntitiesRes>,
-    items: I, // FIXME: need this to be a reference, somehow
-    equipped: &WriteStorage<Equipped>,
+fn calculate_unequip(
+    entities: Query<Entity>,
+    items: Query<&Item>,
+    equipped: Query<&mut Equipped>,
     owner: Entity,
     slot: EquipSlot,
-) -> Vec<(Entity, Equipped, Item)>
-where
-    I: Copy,
-    I::Type: IsItem,
-{
+) -> Vec<(Entity, Equipped, Item)> {
     (entities, equipped, items)
         .join()
         .filter(|(_, eq, _)| eq.owner == owner && eq.slot == slot)
