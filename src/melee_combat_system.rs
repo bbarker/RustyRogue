@@ -3,8 +3,8 @@ use crate::{
     gamelog::GameLog,
 };
 
-use super::{CombatStats, EventIncomingDamage, EventWantsToMelee, Name};
-use bevy::ecs::prelude::*;
+use super::{CombatStats, EventIncomingDamage, EventWantsToMelee};
+use bevy::prelude::*;
 
 pub fn melee_combat_system(
     mut commands: Commands,
@@ -69,12 +69,15 @@ pub fn melee_combat_system(
                 EventIncomingDamage::new_damage(&mut inflict_damage, target, damage);
                 log.entries.push(format!(
                     "{} hits {} for {} hp.",
-                    name.name, target_name.name, damage
+                    name.as_str(),
+                    target_name.as_str(),
+                    damage
                 ));
             } else {
                 log.entries.push(format!(
                     "{} is unable to hurt {}.",
-                    name.name, target_name.name
+                    name.as_str(),
+                    target_name.as_str()
                 ));
             }
         }

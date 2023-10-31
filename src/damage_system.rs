@@ -1,5 +1,5 @@
 use crate::{
-    components::{Name, Player, Position, Positionable},
+    components::{Player, Position, Positionable},
     entity_action_msg,
     gamelog::GameLog,
     map::Map,

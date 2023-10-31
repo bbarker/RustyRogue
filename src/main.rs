@@ -15,8 +15,8 @@ use inventory_system::{ItemCollectionSystem, ItemDropSystem, ItemRemoveSystem, I
 use itertools::Itertools;
 use map_indexing_system::MapIndexingSystem;
 use spawner::spawn_room;
-use specs::saveload::SimpleMarker;
-use specs::{prelude::*, saveload::SimpleMarkerAllocator};
+// use specs::saveload::SimpleMarker;
+// use specs::{prelude::*, saveload::SimpleMarkerAllocator};
 
 mod components;
 mod damage_system;
@@ -38,6 +38,7 @@ mod util;
 mod util_ecs;
 mod visibility_system;
 
+use bevy::prelude::*;
 use components::*;
 use damage_system::*;
 use display_state::*;
@@ -50,7 +51,7 @@ use visibility_system::VisibilitySystem;
 
 pub type PsnU = u16;
 
-#[derive(PartialEq, Copy, Clone)]
+#[derive(PartialEq, Copy, Clone, Resource)]
 pub enum RunState {
     AwaitingInput,
     PreRun,

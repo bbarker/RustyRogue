@@ -1,4 +1,5 @@
 use crate::util::{max_usize, min_usize};
+use bevy::prelude::*;
 use bracket_lib::{
     prelude::{BTerm, RGB},
     terminal::{
@@ -8,11 +9,10 @@ use bracket_lib::{
 };
 use itertools::FoldWhile::{Continue, Done};
 use itertools::Itertools;
-use specs::prelude::*;
 
 use crate::{
     components::{
-        CombatStats, Equipped, HasOwner, InBackpack, Name, Player, Position, Positionable, Viewshed,
+        CombatStats, Equipped, HasOwner, InBackpack, Player, Position, Positionable, Viewshed,
     },
     display_state::DisplayState,
     gamelog::GameLog,
@@ -363,7 +363,7 @@ pub fn show_inventory(
                     y_init + jj as PsnU,
                     RGB::named(WHITE),
                     RGB::named(BLACK),
-                    &name.name,
+                    &name.as_str(),
                 );
                 Some(entity)
             } else {

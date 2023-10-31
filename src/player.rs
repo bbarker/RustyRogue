@@ -4,12 +4,13 @@ use bracket_lib::terminal::{BTerm, VirtualKeyCode};
 use indexmap::IndexMap;
 use itertools::Itertools;
 use once_cell::sync::OnceCell;
-use specs::{world::EntitiesRes, *};
+//use specs::{world::EntitiesRes, *};
+use bevy::prelude::*;
 
 use crate::{
     components::{
-        CombatStats, EventWantsToMelee, EventWantsToPickupItem, IsPlayer, Item, Monster, Name,
-        Player, Position, Positionable, Viewshed,
+        CombatStats, EventWantsToMelee, EventWantsToPickupItem, IsPlayer, Item, Monster, Player,
+        Position, Positionable, Viewshed,
     },
     gamelog,
     gui::MainMenuSelection::*,
@@ -343,21 +344,6 @@ fn skip_turn(ecs: &World) -> RunState {
     RunState::PlayerTurn
 }
 
-pub fn get_player_entities_with_pos<P: Join, R: Join>(
-    entities: &Read<EntitiesRes>,
-    players: P,
-    positions: R,
-) -> Vec<(Entity, Position)>
-where
-    P::Type: IsPlayer,
-    R::Type: Positionable,
-{
-    (entities, players, positions)
-        .join()
-        .map(|(ent, _, pos)| (ent, pos.from()))
-        .collect::<Vec<_>>()
-}
-
 pub fn is_player<P: Join>(entities: &Read<EntitiesRes>, players: P, entity: Entity) -> bool
 where
     P::Type: IsPlayer,
@@ -437,7 +423,7 @@ pub fn get_item(ecs: &World) -> RunState {
     let items = ecs.read_storage::<Item>();
     let mut gamelog = ecs.write_resource::<gamelog::GameLog>();
 
-    let player_posns = get_player_entities_with_pos(&entities, &players, &positions);
+    let player_posns = ecs.query::<(Entity, &Position, With<Player>)>().iter(ecs);
 
     let player_target_items: Vec<EventWantsToPickupItem> = (&entities, &items, &positions)
         .join()

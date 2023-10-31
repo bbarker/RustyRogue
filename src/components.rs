@@ -244,17 +244,10 @@ impl IsItem for Item {
 #[derive(Component, Deserialize, Serialize, Clone, Debug)]
 pub struct Monster {}
 
-#[derive(Component, /* ConvertSaveLoad, */ Clone, Debug)]
-pub struct Name {
-    pub name: String,
-}
-
 const DEBUG_NAME: &str = "<no name for entity>";
 
 pub fn debug_name() -> Name {
-    Name {
-        name: DEBUG_NAME.to_string(),
-    }
+    Name::new(DEBUG_NAME)
 }
 
 #[derive(Component, Deserialize, Serialize, Clone, Debug)]
@@ -414,7 +407,7 @@ macro_rules! execute_with_type_list {
           InflictsDamage,
           Item,
           Monster,
-          Name,
+          bevy::prelude::Name,
           Player,
           Position,
           ProvidesHealing,
