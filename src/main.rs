@@ -468,12 +468,12 @@ pub fn init_state(test_ecs: bool, ctxt_opt: Option<&BTerm>) -> (State, Option<BT
         )
     };
 
-    execute_with_type_list!(register_individually!(gs.ecs));
-
+    // I don't think we need to register components in bevy:
+    // execute_with_type_list!(register_individually!(gs.ecs));
     // register markers
-    gs.ecs.register::<SimpleMarker<SerializeMe>>();
+    // gs.ecs.register::<SimpleMarker<SerializeMe>>();
+    // gs.ecs.insert(SimpleMarkerAllocator::<SerializeMe>::new());
 
-    gs.ecs.insert(SimpleMarkerAllocator::<SerializeMe>::new());
     gs.ecs.insert(RunState::MainMenu {
         menu_selection: MainMenuSelection::NewGame,
     });

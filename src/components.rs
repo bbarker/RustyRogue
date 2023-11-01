@@ -16,7 +16,7 @@ use std::convert::Infallible;
 // `NoError` alias is deprecated in specs ... but specs_derive needs it
 pub type NoError = Infallible;
 
-#[derive(Component, /* ConvertSaveLoad, */ Clone, Debug)]
+#[derive(Component, Serialize, Deserialize, Clone, Debug)]
 pub struct AreaOfEffect {
     pub radius: u16,
 }
@@ -24,7 +24,7 @@ pub struct AreaOfEffect {
 #[derive(Component, Deserialize, Serialize, Clone, Debug)]
 pub struct BlocksTile {}
 
-#[derive(Component, /* ConvertSaveLoad, */ Clone, Debug)]
+#[derive(Component, Serialize, Deserialize, Clone, Debug)]
 pub struct CombatStats {
     pub max_hp: u16,
     pub hp: u16,
@@ -32,7 +32,7 @@ pub struct CombatStats {
     pub power: u16,
 }
 
-#[derive(Component, /* ConvertSaveLoad, */ Debug, Clone)]
+#[derive(Component, Serialize, Deserialize, Debug, Clone)]
 pub struct Confusion {
     pub step_sequence: Vec<(i8, i8)>,
 }
@@ -40,7 +40,7 @@ pub struct Confusion {
 #[derive(Component, Deserialize, Serialize, Clone, Debug)]
 pub struct Consumable {}
 
-#[derive(Eq, PartialEq, Hash, Clone, Component, /* ConvertSaveLoad, */ Debug)]
+#[derive(Eq, PartialEq, Hash, Clone, Component, Serialize, Deserialize, Debug)]
 pub struct Equipped {
     pub owner: Entity,
     pub slot: EquipSlot,
@@ -129,7 +129,7 @@ impl HasOwner for Equipped {
     }
 }
 
-#[derive(Component, /* ConvertSaveLoad, */ Clone, Debug)]
+#[derive(Component, Serialize, Deserialize, Clone, Debug)]
 pub struct EventIncomingDamage {
     pub amount: Vec<u16>,
 }
@@ -151,34 +151,34 @@ impl EventIncomingDamage {
     }
 }
 
-#[derive(Component, /* ConvertSaveLoad, */ Clone, Debug)]
+#[derive(Component, Serialize, Deserialize, Clone, Debug)]
 pub struct EventWantsToUseItem {
     pub item: Entity,
     pub target: Option<Point>,
 }
 
-#[derive(Component, /* ConvertSaveLoad, */ Debug, Clone)]
+#[derive(Component, Serialize, Deserialize, Debug, Clone)]
 pub struct EventWantsToDropItem {
     pub item: Entity,
 }
 
-#[derive(Component, /* ConvertSaveLoad, */ Debug, Clone)]
+#[derive(Component, Serialize, Deserialize, Debug, Clone)]
 pub struct EventWantsToMelee {
     pub target: Entity,
 }
 
-#[derive(Component, /* ConvertSaveLoad, */ Clone, Debug)]
+#[derive(Component, Serialize, Deserialize, Clone, Debug)]
 pub struct EventWantsToPickupItem {
     pub collected_by: Entity,
     pub item: Entity,
 }
 
-#[derive(Component, /* ConvertSaveLoad, */ Debug, Clone)]
+#[derive(Component, Serialize, Deserialize, Debug, Clone)]
 pub struct EventWantsToRemoveItem {
     pub item: Entity,
 }
 
-#[derive(Clone, Component, /* ConvertSaveLoad, */ Debug)]
+#[derive(Clone, Component, Serialize, Deserialize, Debug)]
 pub struct InBackpack {
     pub owner: Entity,
 }
@@ -202,12 +202,12 @@ impl IsInBackpack for InBackpack {
     }
 }
 
-#[derive(Component, /* ConvertSaveLoad, */ Debug)]
+#[derive(Component, Serialize, Deserialize, Debug)]
 pub struct InflictsDamage {
     pub damage: u16,
 }
 
-#[derive(Eq, PartialEq, Hash, Component, /* ConvertSaveLoad, */ Clone, Debug)]
+#[derive(Eq, PartialEq, Hash, Component, Serialize, Deserialize, Clone, Debug)]
 pub enum Item {
     Consumable,
     Equippable(Equipment), // Note: In book this is a component
@@ -241,7 +241,7 @@ impl IsItem for Item {
     }
 }
 
-#[derive(Component, Deserialize, Serialize, Clone, Debug)]
+#[derive(Component, Serialize, Deserialize, Clone, Debug)]
 pub struct Monster {}
 
 const DEBUG_NAME: &str = "<no name for entity>";
@@ -250,7 +250,7 @@ pub fn debug_name() -> Name {
     Name::new(DEBUG_NAME)
 }
 
-#[derive(Component, Deserialize, Serialize, Clone, Debug)]
+#[derive(Component, Serialize, Deserialize, Clone, Debug)]
 pub struct Player {}
 
 pub trait IsPlayer {
@@ -273,7 +273,7 @@ impl IsPlayer for Player {
 }
 
 // FIXME: ConvertSaveload is not working here; maybe check newer releases of the tutorial
-#[derive(Component, Clone, Copy, /* ConvertSaveLoad, */ Debug, PartialEq)]
+#[derive(Component, Clone, Copy, Serialize, Deserialize, Debug, PartialEq)]
 pub struct Position {
     pub xx: PsnU,
     pub yy: PsnU,
@@ -334,15 +334,15 @@ impl Positionable for (i32, i32) {
     }
 }
 
-#[derive(Component, Clone, /* ConvertSaveLoad, */ Debug)]
+#[derive(Component, Clone, Serialize, Deserialize, Debug)]
 pub struct ProvidesHealing {
     pub heal_amount: u16,
 }
 
-#[derive(Eq, PartialEq, Hash, Copy, Clone, /* ConvertSaveLoad, */ Debug)]
+#[derive(Eq, PartialEq, Hash, Copy, Clone, Serialize, Deserialize, Debug)]
 pub struct AbilityRange(pub u16);
 
-#[derive(Eq, PartialEq, Hash, Component, Clone, /* ConvertSaveLoad, */ Debug)]
+#[derive(Eq, PartialEq, Hash, Component, Clone, Serialize, Deserialize, Debug)]
 pub struct Range {
     pub range: AbilityRange,
 }
@@ -354,7 +354,7 @@ pub enum RenderOrder {
     Last,
 }
 
-#[derive(Component, /* ConvertSaveLoad, */ Clone)]
+#[derive(Component, Serialize, Deserialize, Clone)]
 pub struct Renderable {
     pub glyph: FontCharType,
     pub fg: RGB,
@@ -362,23 +362,23 @@ pub struct Renderable {
     pub render_order: RenderOrder,
 }
 
-#[derive(Component, /* ConvertSaveLoad, */ Clone)]
+#[derive(Component, Serialize, Deserialize, Clone)]
 pub struct SerializationHelper {
     pub map: Map,
 }
 
 pub struct SerializeMe;
 
-#[derive(Copy, Clone, /* ConvertSaveLoad, */ Debug)]
+#[derive(Copy, Clone, Serialize, Deserialize, Debug)]
 pub struct ViewRange(pub i32);
-#[derive(Component, Clone /*, ConvertSaveload*/)]
+#[derive(Component, Clone, Serialize, Deserialize)]
 pub struct Viewshed {
     pub visible_tiles: Vec<Point>,
     pub range: ViewRange,
     pub dirty: bool,
 }
 
-#[derive(Component, Debug, /* ConvertSaveLoad, */ Clone)]
+#[derive(Component, Debug, Serialize, Deserialize, Clone)]
 pub struct WantsToUnequipItem {
     pub item: Entity,
 }
@@ -420,6 +420,7 @@ macro_rules! execute_with_type_list {
     }
   }
 
+/* // I don't think we need to register components explicitly in bevy
 #[macro_export]
 macro_rules! register_individually {
     ($ecs:expr, $( $type:ty),*, $(,)?) => {
@@ -428,3 +429,4 @@ macro_rules! register_individually {
         )*
     };
   }
+*/
