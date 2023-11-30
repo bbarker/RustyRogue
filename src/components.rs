@@ -367,6 +367,7 @@ pub struct SerializationHelper {
     pub map: Map,
 }
 
+#[derive(Component, Clone)]
 pub struct SerializeMe;
 
 #[derive(Copy, Clone, Serialize, Deserialize, Debug)]

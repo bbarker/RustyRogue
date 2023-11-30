@@ -474,6 +474,12 @@ pub fn init_state(test_ecs: bool, ctxt_opt: Option<&BTerm>) -> (State, Option<BT
     // gs.ecs.register::<SimpleMarker<SerializeMe>>();
     // gs.ecs.insert(SimpleMarkerAllocator::<SerializeMe>::new());
 
+    // TODO: actually we might:
+    // Register Components: Before you can add a component to an entity,
+    // you must ensure that the component types are registered with the world.
+    // This typically happens automatically if you're using Bevy's app builder pattern,
+    // but in tests or custom setups, you may need to do it manually:
+
     gs.ecs.insert(RunState::MainMenu {
         menu_selection: MainMenuSelection::NewGame,
     });

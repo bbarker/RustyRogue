@@ -33,6 +33,8 @@
       # To enable faster linking in Rust projects
       clang
       mold
+      # only for bevy
+      cmake # needed via expat-sys
     ];
      # Only for building bracket-lib, I think:
     nativeBuildInputs = [ pkgs.pkg-config ];

@@ -5,28 +5,15 @@ use std::{
     path::Path,
 };
 
-// use specs::{prelude::*, saveload::*, World, WorldExt};
+use bevy::prelude::*;
+use bevy::utils::hashbrown::HashMap;
+use bevy_serde_macros::*;
 
-// TODO: looks like we may need to port: https://docs.rs/specs/latest/src/specs/saveload/ser.rs.html#37-59
 use crate::execute_with_type_list;
 use crate::{components::*, delete_state};
 
+use serde_json::Value;
 const SAVE_FILE: &str = "savegame.json";
-
-#[cfg(not(target_arch = "wasm32"))]
-macro_rules! serialize_individually {
-  ($ecs:expr, $ser:expr, $data:expr, $( $type:ty),*, $(,)?) => {
-      $(
-      SerializeComponents::<NoError, SimpleMarker<SerializeMe>>::serialize(
-          &( $ecs.read_storage::<$type>(), ),
-          &$data.0,
-          &$data.1,
-          &mut $ser,
-      )
-      .unwrap();
-      )*
-  };
-}
 
 #[cfg(target_arch = "wasm32")]
 pub fn save_game(_ecs: &mut World) {
@@ -38,23 +25,17 @@ pub fn save_game(ecs: &mut World) {
     //let map_data = serde_json::to_string(&*ecs.fetch::<Map>()).unwrap();
     //println!("map data:\n{}", map_data);
 
-    let mapcopy = ecs.get_mut::<super::map::Map>().unwrap().clone();
+    let mapcopy = ecs.get_resource_mut::<super::map::Map>().unwrap().clone();
     let save_helper = ecs
-        .create_entity()
-        .with(SerializationHelper { map: mapcopy })
-        .marked::<SimpleMarker<SerializeMe>>()
-        .build();
+        .spawn((SerializeMe {}, SerializationHelper { map: mapcopy }))
+        .id();
     {
-        let data = (
-            ecs.entities(),
-            ecs.read_storage::<SimpleMarker<SerializeMe>>(),
-        );
-
         let writer = File::create(SAVE_FILE).unwrap();
         let mut serializer = serde_json::Serializer::new(writer);
-        execute_with_type_list!(serialize_individually!(ecs, serializer, data));
+        execute_with_type_list!(serialize_individually!(ecs, serializer, SerializeMe));
     }
 
+    // TODO: fix for bevy_ecs
     ecs.delete_entity(save_helper)
         .unwrap_or_else(|_| panic!("Unable to delete serialization helper entity"));
 }
@@ -65,36 +46,24 @@ pub fn does_save_exist() -> bool {
 
 // loading
 
-macro_rules! deserialize_individually {
-  ($ecs:expr, $de_ser:expr, $data:expr, $( $type:ty),* $(,)?) => {
-      $(
-      DeserializeComponents::<NoError, _>::deserialize(
-          &mut ( &mut $ecs.write_storage::<$type>(), ),
-          &$data.0, // entities
-          &mut $data.1, // marker
-          &mut $data.2, // allocater
-          &mut $de_ser,
-      )
-      .unwrap();
-      )*
-  };
-}
-
 pub fn load_game(ecs: &mut World) {
     // Delete everything
     delete_state(ecs);
-    let save_file_contents = fs::read_to_string(SAVE_FILE)
-        .unwrap_or_else(|_| panic!("Unable to read file {}", SAVE_FILE));
-    let mut de_ser = serde_json::Deserializer::from_str(&save_file_contents);
-    {
-        let mut de_ser_reqs = (
-            ecs.entities(),
-            ecs.write_storage::<SimpleMarker<SerializeMe>>(),
-            ecs.write_resource::<SimpleMarkerAllocator<SerializeMe>>(),
-        );
-        execute_with_type_list!(deserialize_individually!(ecs, de_ser, de_ser_reqs));
-    }
+    let save_file_contents =
+        fs::read(SAVE_FILE).unwrap_or_else(|_| panic!("Unable to read file {}", SAVE_FILE));
 
+    let mut entity_map = HashMap::new();
+    let mut component_value_map: HashMap<String, Value> =
+        serde_json::from_slice(&save_file_contents).unwrap();
+    {
+        execute_with_type_list!(deserialize_individually!(
+            ecs,
+            &mut entity_map,
+            &mut component_value_map,
+            SerializeMe
+        ));
+    }
+    // TODO: continue from here, and rewrite query for bevy
     let ser_helper_vec: Vec<Entity> = {
         let entities = ecs.entities();
         let helper = ecs.read_storage::<SerializationHelper>();
@@ -115,4 +84,13 @@ pub fn load_game(ecs: &mut World) {
         ecs.delete_entity(help)
             .unwrap_or_else(|er| panic!("Unable to delete helper: {}", er))
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use bevy::prelude::World;
+
+    fn test_serialization() {
+        let mut world = World::new();
+    }
 }
