@@ -11,7 +11,7 @@ use bracket_lib::{
     random::RandomNumberGenerator,
     terminal::console,
 };
-use inventory_system::{ItemCollectionSystem, ItemDropSystem, ItemRemoveSystem, ItemUseSystem};
+// use inventory_system::{ItemCollectionSystem, ItemDropSystem, ItemRemoveSystem, ItemUseSystem};
 use itertools::Itertools;
 use map_indexing_system::MapIndexingSystem;
 use spawner::spawn_room;
@@ -90,22 +90,22 @@ impl State {
         // there seems to be nothing to mutate (so far)
         let mut vis = VisibilitySystem {};
         vis.run_now(&self.ecs);
-        let mut mob = MonsterAI {};
-        mob.run_now(&self.ecs);
+        // let mut mob = MonsterAI {};
+        // mob.run_now(&self.ecs);
         let mut map_index = MapIndexingSystem {};
         map_index.run_now(&self.ecs);
-        let mut melee = MeleeCombatSystem {};
-        melee.run_now(&self.ecs);
+        // let mut melee = MeleeCombatSystem {};
+        // melee.run_now(&self.ecs);
         let mut damage = DamageSystem {};
         damage.run_now(&self.ecs);
-        let mut pickup = ItemCollectionSystem {};
-        pickup.run_now(&self.ecs);
-        let mut potions = ItemUseSystem {};
-        potions.run_now(&self.ecs);
-        let mut drop_items = ItemDropSystem {};
-        drop_items.run_now(&self.ecs);
-        let mut item_remove = ItemRemoveSystem {};
-        item_remove.run_now(&self.ecs);
+        // let mut pickup = ItemCollectionSystem {};
+        // pickup.run_now(&self.ecs);
+        // let mut potions = ItemUseSystem {};
+        // potions.run_now(&self.ecs);
+        // let mut drop_items = ItemDropSystem {};
+        // drop_items.run_now(&self.ecs);
+        // let mut item_remove = ItemRemoveSystem {};
+        // item_remove.run_now(&self.ecs);
 
         self.ecs.maintain();
     }

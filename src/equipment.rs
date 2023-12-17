@@ -127,7 +127,7 @@ impl Display for Infix {
 
 macro_attr! {
     #[derive(Eq, PartialEq, Hash, Serialize, Deserialize, Clone, Debug, EnumDisplay!)]
-    pub enum Material {
+    pub enum ItemMaterial {
         Wood,
         Stone,
         Copper,
@@ -144,42 +144,42 @@ macro_attr! {
     }
 }
 
-impl Material {
+impl ItemMaterial {
     // Note: We may want to override these bonuses for specific equipment types
     // or for specific interactions (e.g. silver vs. undead)
     pub fn bonus(&self) -> i16 {
         match self {
-            Material::Wood => 0,
-            Material::Stone => 1,
-            Material::Copper => 1,
-            Material::Tin => 0,
-            Material::Bronze => 2,
-            Material::Iron => 3,
-            Material::Steel => 4,
-            Material::Silver => 3,
-            Material::Gold => 4,
-            Material::Platinum => 5,
-            Material::Titanium => 5,
-            Material::DamascusSteel => 6,
-            Material::Diamond => 6,
+            ItemMaterial::Wood => 0,
+            ItemMaterial::Stone => 1,
+            ItemMaterial::Copper => 1,
+            ItemMaterial::Tin => 0,
+            ItemMaterial::Bronze => 2,
+            ItemMaterial::Iron => 3,
+            ItemMaterial::Steel => 4,
+            ItemMaterial::Silver => 3,
+            ItemMaterial::Gold => 4,
+            ItemMaterial::Platinum => 5,
+            ItemMaterial::Titanium => 5,
+            ItemMaterial::DamascusSteel => 6,
+            ItemMaterial::Diamond => 6,
         }
     }
 
     pub fn color(&self) -> (u8, u8, u8) {
         match self {
-            Material::Wood => (102, 51, 0),
-            Material::Stone => (105, 105, 105),
-            Material::Copper => (184, 115, 51),
-            Material::Tin => (211, 212, 213),
-            Material::Bronze => (205, 127, 50),
-            Material::Iron => (67, 70, 75),
-            Material::Steel => (203, 205, 205),
-            Material::Silver => (192, 192, 192),
-            Material::Gold => (255, 215, 0),
-            Material::Platinum => (229, 228, 226),
-            Material::Titanium => (135, 134, 129),
-            Material::DamascusSteel => (100, 100, 110),
-            Material::Diamond => (185, 242, 255),
+            ItemMaterial::Wood => (102, 51, 0),
+            ItemMaterial::Stone => (105, 105, 105),
+            ItemMaterial::Copper => (184, 115, 51),
+            ItemMaterial::Tin => (211, 212, 213),
+            ItemMaterial::Bronze => (205, 127, 50),
+            ItemMaterial::Iron => (67, 70, 75),
+            ItemMaterial::Steel => (203, 205, 205),
+            ItemMaterial::Silver => (192, 192, 192),
+            ItemMaterial::Gold => (255, 215, 0),
+            ItemMaterial::Platinum => (229, 228, 226),
+            ItemMaterial::Titanium => (135, 134, 129),
+            ItemMaterial::DamascusSteel => (100, 100, 110),
+            ItemMaterial::Diamond => (185, 242, 255),
         }
     }
 }
@@ -234,7 +234,7 @@ pub const OFF_HAND: EquipSlotAllowed = EquipSlotAllowed::SingleSlot(EquipSlot::O
 pub struct Equipment {
     pub equipment_type: EquipmentType,
     pub allowed_slots: EquipSlotAllowed,
-    pub material: Material,
+    pub material: ItemMaterial,
     pub quality: u8,
     pub special_power_modifier: i16,
     pub special_defense_modifier: i16,
@@ -244,7 +244,7 @@ impl Equipment {
     pub fn new(
         slot: EquipSlotAllowed,
         equipment_type: EquipmentType,
-        material: Material,
+        material: ItemMaterial,
         quality: u8,
     ) -> Self {
         Equipment {

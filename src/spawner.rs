@@ -1,12 +1,8 @@
-use bracket_lib::{random::RandomNumberGenerator, terminal::*};
-use itertools::Itertools;
-use specs::{
-    prelude::*,
-    saveload::{MarkedBuilder, SimpleMarker},
-};
-
 use crate::util::*;
 use crate::{components::*, equipment::*, map::Map, random_table::*, rect::Rect, State};
+use bevy::prelude::*;
+use bracket_lib::{random::RandomNumberGenerator, terminal::*};
+use itertools::Itertools;
 use EquipmentType::*;
 use MeleeWeaponType::*;
 use WeaponType::*;
@@ -168,29 +164,35 @@ pub fn random_quality(rng: &mut RandomNumberGenerator, map_depth: i32) -> u8 {
     }
 }
 
-pub fn random_blade_material(rng: &mut RandomNumberGenerator, map_depth: i32) -> Material {
+pub fn random_blade_material(rng: &mut RandomNumberGenerator, map_depth: i32) -> ItemMaterial {
     let roll = rng.range(0, 100);
     let weighted_roll = roll + 3 * map_depth;
     match weighted_roll {
-        0..=40 => Material::Wood,
-        41..=50 => Material::Stone,
-        51..=56 => Material::Copper,
-        57..=60 => Material::Bronze,
-        61..=70 => Material::Iron,
-        71..=75 => Material::Steel,
-        94..=98 => Material::Titanium,
-        _ => Material::DamascusSteel,
+        0..=40 => ItemMaterial::Wood,
+        41..=50 => ItemMaterial::Stone,
+        51..=56 => ItemMaterial::Copper,
+        57..=60 => ItemMaterial::Bronze,
+        61..=70 => ItemMaterial::Iron,
+        71..=75 => ItemMaterial::Steel,
+        94..=98 => ItemMaterial::Titanium,
+        _ => ItemMaterial::DamascusSteel,
     }
 }
 
-pub fn random_shield_material(rng: &mut RandomNumberGenerator, map_depth: i32) -> Material {
-    fn depth_table<'a>(map_depth: i32) -> RandomTable<'a, Material> {
+pub fn random_shield_material(rng: &mut RandomNumberGenerator, map_depth: i32) -> ItemMaterial {
+    fn depth_table<'a>(map_depth: i32) -> RandomTable<'a, ItemMaterial> {
         let map_depth_u16 = <u32 as TryInto<u16>>::try_into(map_depth.unsigned_abs()).unwrap();
-        RandomTable::<'a, Material>::new(Material::Wood, 40_u16.saturating_sub(3 * map_depth_u16))
-            .add(Material::Copper, 20_u16.saturating_sub(2 * map_depth_u16))
-            .add(Material::Bronze, 20_u16.saturating_sub(map_depth_u16))
-            .add(Material::Iron, 10_u16.saturating_add(map_depth_u16))
-            .add(Material::Steel, 5_u16.saturating_add(2 * map_depth_u16))
+        RandomTable::<'a, ItemMaterial>::new(
+            ItemMaterial::Wood,
+            40_u16.saturating_sub(3 * map_depth_u16),
+        )
+        .add(
+            ItemMaterial::Copper,
+            20_u16.saturating_sub(2 * map_depth_u16),
+        )
+        .add(ItemMaterial::Bronze, 20_u16.saturating_sub(map_depth_u16))
+        .add(ItemMaterial::Iron, 10_u16.saturating_add(map_depth_u16))
+        .add(ItemMaterial::Steel, 5_u16.saturating_add(2 * map_depth_u16))
     }
 
     let mat_table = depth_table(map_depth);

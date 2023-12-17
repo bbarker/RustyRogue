@@ -344,43 +344,45 @@ fn skip_turn(ecs: &World) -> RunState {
     RunState::PlayerTurn
 }
 
-pub fn is_player<P: Join>(entities: &Read<EntitiesRes>, players: P, entity: Entity) -> bool
-where
-    P::Type: IsPlayer,
-{
-    (entities, players).join().any(|(ent, _)| ent == entity)
+pub fn is_player(query_result: Vec<(Entity, &Player)>, entity: Entity) -> bool {
+    query_result.iter().any(|(ent, _)| ent == entity)
 }
 
-pub fn get_player_no_ecs<P: Join>(
-    entities: &Read<EntitiesRes>,
-    names: &ReadStorage<Name>,
-    players: P,
-    player_name: impl Into<String>,
-) -> Option<Entity>
-where
-    P::Type: IsPlayer,
-{
-    let pname = player_name.into();
-    (entities, players, names)
-        .join()
-        .filter_map(
-            |(ent, _, name)| {
-                if pname == name.name {
-                    Some(ent)
-                } else {
-                    None
-                }
-            },
-        )
-        .next()
-}
+// pub fn get_player_no_ecs(
+//     query_result: Vec<(Entity, )
+//     entities: &Read<EntitiesRes>,
+//     names: &ReadStorage<Name>,
+//     players: P,
+//     player_name: impl Into<String>,
+// ) -> Option<Entity>
+// where
+//     P::Type: IsPlayer,
+// {
+//     let pname = player_name.into();
+//     (entities, players, names)
+//         .join()
+//         .filter_map(
+//             |(ent, _, name)| {
+//                 if pname == name.name {
+//                     Some(ent)
+//                 } else {
+//                     None
+//                 }
+//             },
+//         )
+//         .next()
+// }
 
+// TODO: one-shot system?
+// might want to look into usince OnceCell with the SystemId
+// or just lazy_static if there's no chance of multiple threads racing to
+// initialize
 pub fn get_player(ecs: &World, player_name: impl Into<String>) -> Option<Entity> {
     let entities = ecs.entities();
     let names = ecs.read_storage::<Name>();
     let players = ecs.read_storage::<Player>();
 
-    get_player_no_ecs(&entities, &names, &players, player_name)
+    // get_player_no_ecs(&entities, &names, &players, player_name)
 }
 
 pub fn get_player_unwrap(ecs: &World, player_name: impl Into<String>) -> Entity {
