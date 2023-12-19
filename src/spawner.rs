@@ -16,23 +16,31 @@ struct WorldEntityData {
     renderable: Renderable,
 }
 
+#[derive(Bundle)]
+struct BaseRenderableEntity {
+    serialize_me: SerializeMe,
+    base_data: WorldEntityData,
+    pos_opt: Option<Position>,
+    name: Name,
+}
+
 fn base_renderable_entity(
     ecs: &mut World,
     pos_opt: Option<Position>,
     base_data: WorldEntityData,
-) -> EntityBuilder {
-    let ethereal_entity = ecs
-        .create_entity()
-        .with(base_data.renderable)
-        .with(Name {
-            name: base_data.name,
-        })
-        .marked::<SimpleMarker<SerializeMe>>();
+) -> BaseRenderableEntity {
+    let base = (SerializeMe, base_data.renderable, Name::new(base_data.name));
     if let Some(pos) = pos_opt {
-        ethereal_entity.with(pos)
+        (base, pos)
     } else {
-        ethereal_entity
+        base
     }
+}
+
+#[derive(Bundle)]
+struct SentientEntity {
+    base: BaseRenderableEntity,
+    view_range_opt: Option<ViewRange>,
 }
 
 fn sentient_entity(
@@ -40,12 +48,18 @@ fn sentient_entity(
     pos: Position,
     base_data: WorldEntityData,
     view_range_opt: Option<ViewRange>,
-) -> EntityBuilder {
+) -> SentientEntity {
     base_renderable_entity(ecs, Some(pos), base_data).with(Viewshed {
         visible_tiles: Vec::new(),
         range: view_range_opt.unwrap_or(ViewRange(8)),
         dirty: true,
     })
+}
+
+#[derive(Bundle)]
+struct CombatEntity {
+    sentient_entity: SentientEntity,
+    combat_stats: CombatStats,
 }
 
 fn combat_entity(
@@ -54,7 +68,7 @@ fn combat_entity(
     base_data: WorldEntityData,
     view_range_opt: Option<ViewRange>,
     combat_stats: CombatStats,
-) -> EntityBuilder {
+) -> CombatStats {
     sentient_entity(ecs, pos, base_data, view_range_opt).with(combat_stats)
 }
 
@@ -62,14 +76,24 @@ fn non_blocking_entity(
     ecs: &mut World,
     pos: Position,
     base_data: WorldEntityData,
-) -> EntityBuilder {
+) -> BaseRenderableEntity {
     base_renderable_entity(ecs, Some(pos), base_data)
 }
 
-fn consumable_entity(ecs: &mut World, pos: Position, base_data: WorldEntityData) -> EntityBuilder {
+fn consumable_entity(
+    ecs: &mut World,
+    pos: Position,
+    base_data: WorldEntityData,
+) -> BaseRenderableEntity {
     non_blocking_entity(ecs, pos, base_data)
         .with(Item::Consumable)
         .with(Consumable {})
+}
+
+#[derive(Bundle)]
+pub struct EquippableEntity {
+    base: BaseRenderableEntity,
+    item: Equipment,
 }
 
 fn equippable_entity(
@@ -77,7 +101,7 @@ fn equippable_entity(
     pos: Position,
     base_data: WorldEntityData,
     item: Equipment,
-) -> EntityBuilder {
+) -> EquippableEntity {
     non_blocking_entity(ecs, pos, base_data).with(Item::Equippable(item))
 }
 
@@ -229,12 +253,18 @@ pub fn shield<'a>(map_depth: i32) -> Box<SimpleSpawner<'a>> {
     Box::new(move |ecs, pos| shield_at_level(map_depth, ecs, pos))
 }
 
+#[derive(Bundle)]
+struct RangedConsumableEntity {
+    base: BaseRenderableEntity,
+    range: AbilityRange,
+}
+
 fn ranged_consumable_entity(
     ecs: &mut World,
     pos: Position,
     base_data: WorldEntityData,
     range: AbilityRange,
-) -> EntityBuilder {
+) -> RangedConsumableEntity {
     consumable_entity(ecs, pos, base_data).with(Range { range })
 }
 

@@ -1,6 +1,6 @@
 use specs::{Entities, ReadStorage};
 
-use crate::components::{Name, Player};
+use crate::components::Player;
 use bevy::prelude::*;
 
 pub trait CommandOps {
