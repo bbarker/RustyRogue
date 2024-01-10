@@ -35,6 +35,8 @@
       mold
       # only for bevy
       cmake # needed via expat-sys
+
+      # vscode #  optional
     ];
      # Only for building bracket-lib, I think:
     nativeBuildInputs = [ pkgs.pkg-config ];
@@ -43,15 +45,15 @@
     LIBCLANG_PATH = pkgs.lib.makeLibraryPath [ pkgs.llvmPackages_latest.libclang.lib ];
     HISTFILE = toString ./.history;
     shellHook = ''
-      export PATH=$PATH:''${CARGO_HOME:-~/.cargo}/bin
-      export PATH=$PATH:''${RUSTUP_HOME:-~/.rustup}/toolchains/$RUSTC_VERSION-x86_64-unknown-linux-gnu/bin/
-      export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${pkgs.xorg.libX11}/lib
-      export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${pkgs.xorg.libXcursor}/lib
-      export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${pkgs.xorg.libXrandr}/lib
-      export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${pkgs.xorg.libXi}/lib
-      export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${pkgs.libGL}/lib
-      export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${pkgs.fontconfig.lib}/lib      
-      export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${pkgs.freetype}/lib
+      export PATH=''${CARGO_HOME:-~/.cargo}/bin:$PATH
+      export PATH=''${RUSTUP_HOME:-~/.rustup}/toolchains/$RUSTC_VERSION-x86_64-unknown-linux-gnu/bin/:$PATH
+      export LD_LIBRARY_PATH=${pkgs.xorg.libX11}/lib:$LD_LIBRARY_PATH
+      export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${pkgs.xorg.libXcursor}/lib:$LD_LIBRARY_PATH
+      export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${pkgs.xorg.libXrandr}/lib:$LD_LIBRARY_PATH
+      export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${pkgs.xorg.libXi}/lib:$LD_LIBRARY_PATH
+      export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${pkgs.libGL}/lib:$LD_LIBRARY_PATH
+      export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${pkgs.fontconfig.lib}/lib:$LD_LIBRARY_PATH
+      export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${pkgs.freetype}/lib:$LD_LIBRARY_PATH
       '';
     # Add libvmi precompiled library to rustc search path
     RUSTFLAGS = (builtins.map (a: ''-L ${a}/lib'') [
