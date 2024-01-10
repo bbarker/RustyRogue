@@ -47,7 +47,7 @@ use map::*;
 use melee_combat_system::*;
 use monster_ai_system::*;
 use player::*;
-use visibility_system::VisibilitySystem;
+use visibility_system::visibility_system;
 
 pub type PsnU = u16;
 
