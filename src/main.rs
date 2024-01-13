@@ -88,8 +88,8 @@ impl State {
     fn run_systems(&mut self) {
         // These systems are required to be mutable by run_now, but
         // there seems to be nothing to mutate (so far)
-        let mut vis = VisibilitySystem {};
-        vis.run_now(&self.ecs);
+        // let mut vis = VisibilitySystem {};
+        // vis.run_now(&self.ecs);
         // let mut mob = MonsterAI {};
         // mob.run_now(&self.ecs);
         let mut map_index = MapIndexingSystem {};
