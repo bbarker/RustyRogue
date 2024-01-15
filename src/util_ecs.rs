@@ -20,17 +20,15 @@ impl CommandOps for Commands<'_, '_> {
         .for_each(|entity| commands.entity(entity).remove::<T>())
 } */
 
-pub struct EcsActionMsgData<'a> {
-    pub entities: &'a Entities<'a>,
-    pub players: &'a ReadStorage<'a, Player>,
-    pub names: &'a ReadStorage<'a, Name>,
+// TODO: bevy_ecs_rewrite: not sure what we want the types to be, but just changing
+// it to Vec so it compiles for now
+pub struct EcsActionMsgData {
+    pub entities: Vec<Entity>,
+    pub players: Vec<Player>,
+    pub names: Vec<Name>,
 }
-impl<'a> EcsActionMsgData<'a> {
-    pub fn new(
-        entities: &'a Entities<'a>,
-        players: &'a ReadStorage<'a, Player>,
-        names: &'a ReadStorage<'a, Name>,
-    ) -> Self {
+impl EcsActionMsgData {
+    pub fn new(entities: Vec<Entity>, players: Vec<Player>, names: Vec<Name>) -> Self {
         Self {
             entities,
             players,
@@ -41,7 +39,7 @@ impl<'a> EcsActionMsgData<'a> {
 
 /// A macro similar to the Rust `format!` macro with additional functionality for pluralization and subject replacement.
 ///
-/// Parameters:
+/// Parameters:EcsActionMsgData<
 /// 1. `entities`: ecs entities
 /// 2. `players`: ecs player components
 /// 3. `names`: ecs name components
@@ -87,10 +85,12 @@ macro_rules! entity_action_msg_no_ecs {
 macro_rules! entity_action_msg {
     ($ecs:expr, $format:literal, $entity:expr $(, $word:tt)+) => {{
         let entities = $ecs.entities();
-        let players = $ecs.read_storage::<Player>();
-        let names = $ecs.read_storage::<Name>();
-        let ecs_data = $crate::util_ecs::EcsActionMsgData::new(&entities, &players, &names);
-        $crate::entity_action_msg_no_ecs!(ecs_data, $format, $entity $(, $word)+)
+        // TODO: need to fix this to use a world query
+        // let players = $ecs.read_storage::<Player>();
+        // let names = $ecs.read_storage::<Name>();
+        // let ecs_data = $crate::util_ecs::EcsActionMsgData::new(&entities, &players, &names);
+        //  $crate::entity_action_msg_no_ecs!(ecs_data, $format, $entity $(, $word)+)
+        "FIXME"
     }};
 }
 
