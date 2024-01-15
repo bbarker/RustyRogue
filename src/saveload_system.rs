@@ -36,8 +36,10 @@ pub fn save_game(ecs: &mut World) {
     }
 
     // TODO: fix for bevy_ecs
-    ecs.delete_entity(save_helper)
-        .unwrap_or_else(|_| panic!("Unable to delete serialization helper entity"));
+    match ecs.despawn(save_helper) {
+        true => (),
+        false => eprintln!("Unable to delete serialization helper entity"),
+    }
 }
 
 pub fn does_save_exist() -> bool {

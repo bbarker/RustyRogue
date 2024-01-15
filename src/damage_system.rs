@@ -75,9 +75,9 @@ pub fn delete_the_dead(ecs: &mut World) -> Option<RunState> {
                 }
             });
     }
-    dead.iter().for_each(|victim| {
-        ecs.delete_entity(*victim)
-            .unwrap_or_else(|er| panic!("Unable to delete entity with id {}: {}", victim.id(), er))
+    dead.iter().for_each(|victim| match ecs.despawn(*victim) {
+        true => (),
+        false => eprintln!("Unable to delete entity {:?}", victim),
     });
     newrunstate_opt
 }

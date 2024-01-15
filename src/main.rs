@@ -127,10 +127,9 @@ impl State {
         // remove all entities except player and player items
         self.entities_to_remove_on_level_change()
             .iter()
-            .for_each(|en| {
-                self.ecs.delete_entity(*en).unwrap_or_else(|er| {
-                    panic!("Failed to delete entity {:?}: {:?}", en, er);
-                });
+            .for_each(|en| match self.ecs.despawn(*en) {
+                true => (),
+                false => eprintln!("Failed to delete entity {:?}", en),
             });
 
         // Build a new map and place the player
