@@ -44,40 +44,38 @@ pub fn damage_system(
     // individually, which should be fine.
 }
 
-pub fn delete_the_dead(ecs: &mut World) -> Option<RunState> {
+pub fn delete_the_dead(
+    mut commands: Commands,
+    mut log: ResMut<GameLog>,
+    mut map: ResMut<Map>,
+    query: Query<(Entity, &CombatStats, &Position)>,
+    players: Query<(Entity, &Player)>,
+) -> Option<RunState> {
     let mut dead: Vec<Entity> = Vec::new();
     let mut newrunstate_opt = None;
     {
-        let entities = ecs.entities();
-        let mut log = ecs.write_resource::<GameLog>();
-        let combat_stats = ecs.read_storage::<CombatStats>();
-        let positions = ecs.read_storage::<Position>();
-        let players = ecs.read_storage::<Player>();
-        (&entities, &combat_stats, &positions)
-            .join()
-            .for_each(|(ent, stats, pos)| {
-                if stats.hp < 1 {
-                    dead.push(ent);
-                    log.entries
-                        .push(entity_action_msg!(ecs, "<SUBJ> {} dead.", ent, "are"));
+        query.for_each(|(ent, stats, pos)| {
+            if stats.hp < 1 {
+                dead.push(ent);
+                // FIXME:
+                log.entries.push(entity_action_msg_no_ecs!(
+                    ecs,
+                    "<SUBJ> {} dead.",
+                    ent,
+                    "are"
+                ));
 
-                    if let Some(_player) = players.get(ent) {
-                        {
-                            newrunstate_opt = Some(RunState::GameOver);
-                        }
+                if let Ok(_player) = players.get(ent) {
+                    {
+                        newrunstate_opt = Some(RunState::GameOver);
                     }
-                    let ix = {
-                        let map = ecs.fetch::<Map>();
-                        map.pos_idx(pos.from())
-                    };
-                    let map = &mut ecs.fetch_mut::<Map>();
-                    map.blocked[ix] = false;
                 }
-            });
+                let ix = { map.pos_idx(pos.from()) };
+                map.blocked[ix] = false;
+            }
+        });
     }
-    dead.iter().for_each(|victim| match ecs.despawn(*victim) {
-        true => (),
-        false => eprintln!("Unable to delete entity {:?}", victim),
-    });
+    dead.iter()
+        .for_each(|victim| commands.entity(*victim).despawn());
     newrunstate_opt
 }

@@ -234,6 +234,8 @@ impl GameState for State {
                 draw_map(&self.ecs, ctx);
                 draw_ui(&self.ecs, ctx, &self.display);
 
+                // FIXME: Rather the calling the system directly, we will let the system dispatch
+                // based on a GameOver state
                 let game_over_opt = delete_the_dead(&mut self.ecs);
 
                 {
