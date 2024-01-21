@@ -1,5 +1,3 @@
-use specs::{Entities, ReadStorage};
-
 use crate::components::Player;
 use bevy::prelude::*;
 
@@ -24,11 +22,15 @@ impl CommandOps for Commands<'_, '_> {
 // it to Vec so it compiles for now
 pub struct EcsActionMsgData {
     pub entities: Vec<Entity>,
-    pub players: Vec<Player>,
-    pub names: Vec<Name>,
+    pub players: Vec<(Entity, Player)>,
+    pub names: Vec<(Entity, Name)>,
 }
 impl EcsActionMsgData {
-    pub fn new(entities: Vec<Entity>, players: Vec<Player>, names: Vec<Name>) -> Self {
+    pub fn new(
+        entities: Vec<Entity>,
+        players: Vec<(Entity, Player)>,
+        names: Vec<(Entity, Name)>,
+    ) -> Self {
         Self {
             entities,
             players,
@@ -84,8 +86,19 @@ macro_rules! entity_action_msg_no_ecs {
 #[macro_export]
 macro_rules! entity_action_msg {
     ($ecs:expr, $format:literal, $entity:expr $(, $word:tt)+) => {{
-        let entities = $ecs.entities();
-        // TODO: need to fix this to use a world query
+        use bevy::prelude::Entity;
+        let players: Vec<(Entity, Player)> = $ecs
+            .query::<(Entity, &Player)>()
+            .iter(&$ecs)
+            .map(|(e, p)| (e, *p))
+            .collect();
+        let names: Vec<(Entity, Name)> = $ecs
+            .query::<(Entity, &Name)>()
+            .iter(&$ecs)
+            .map(|(e, p)| (e, *p))
+            .collect();
+        let ecs_data =
+            EcsActionMsgData::new($ecs.query::<Entity>().iter(&$ecs).collect(), players, names);
         // let players = $ecs.read_storage::<Player>();
         // let names = $ecs.read_storage::<Name>();
         // let ecs_data = $crate::util_ecs::EcsActionMsgData::new(&entities, &players, &names);
