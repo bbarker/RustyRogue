@@ -21,21 +21,12 @@ impl CommandOps for Commands<'_, '_> {
 // TODO: bevy_ecs_rewrite: not sure what we want the types to be, but just changing
 // it to Vec so it compiles for now
 pub struct EcsActionMsgData {
-    pub entities: Vec<Entity>,
     pub players: Vec<(Entity, Player)>,
     pub names: Vec<(Entity, Name)>,
 }
 impl EcsActionMsgData {
-    pub fn new(
-        entities: Vec<Entity>,
-        players: Vec<(Entity, Player)>,
-        names: Vec<(Entity, Name)>,
-    ) -> Self {
-        Self {
-            entities,
-            players,
-            names,
-        }
+    pub fn new(players: Vec<(Entity, Player)>, names: Vec<(Entity, Name)>) -> Self {
+        Self { players, names }
     }
 }
 
@@ -64,8 +55,8 @@ impl EcsActionMsgData {
 #[macro_export]
 macro_rules! entity_action_msg_no_ecs {
     ($ecs_data:expr, $format:literal, $entity:expr $(, $word:tt)+) => {{
-        let (entities, players, names) = ($ecs_data.entities, $ecs_data.players, $ecs_data.names);
-        let is_plural = $crate::player::is_player(entities, players, $entity);
+        let (players, names) = ($ecs_data.players, $ecs_data.names);
+        let is_plural = $crate::player::is_player(players, $entity);
         let debug_name = $crate::components::debug_name();
         let subject = names.get($entity).unwrap_or(&debug_name);
         let subject_str = if (subject.name == $crate::player::PLAYER_NAME) {
@@ -97,8 +88,7 @@ macro_rules! entity_action_msg {
             .iter(&$ecs)
             .map(|(e, p)| (e, *p))
             .collect();
-        let ecs_data =
-            EcsActionMsgData::new($ecs.query::<Entity>().iter(&$ecs).collect(), players, names);
+        let ecs_data = EcsActionMsgData::new(players, names);
         // let players = $ecs.read_storage::<Player>();
         // let names = $ecs.read_storage::<Name>();
         // let ecs_data = $crate::util_ecs::EcsActionMsgData::new(&entities, &players, &names);
@@ -110,13 +100,13 @@ macro_rules! entity_action_msg {
 #[cfg(test)]
 mod tests {
     use crate::{
-        components::{Name, Player},
+        components::Player,
         init_state,
         player::{get_player_unwrap, PLAYER_NAME},
         util::pluralize_verb,
         util_ecs::EcsActionMsgData,
     };
-    use specs::WorldExt;
+    use bevy::prelude::Name;
     #[test]
     fn pluralize_tests() {
         assert!(pluralize_verb("eat") == "eats");
@@ -128,16 +118,14 @@ mod tests {
             let mut names = gs.ecs.write_storage::<Name>();
             // create a monster entity
             let monster_entity = entities.create();
-            let name = Name {
-                name: "goblin".to_string(),
-            };
+            let name = Name::new("goblin");
             // associate the name with the monster entity
             names.insert(monster_entity, name.clone()).unwrap();
             (monster_entity, name)
         };
         let players = gs.ecs.read_storage::<Player>();
         let names = gs.ecs.read_storage::<Name>();
-        let ecs_data = EcsActionMsgData::new(&entities, &players, &names);
+        let ecs_data = EcsActionMsgData::new(&players, &names);
         let player_entity = get_player_unwrap(&gs.ecs, PLAYER_NAME);
         let msg_out1 = entity_action_msg_no_ecs!(
             (&entities, &players, &names),

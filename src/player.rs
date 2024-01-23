@@ -344,7 +344,7 @@ fn skip_turn(ecs: &World) -> RunState {
     RunState::PlayerTurn
 }
 
-pub fn is_player(query_result: Vec<(Entity, &Player)>, entity: Entity) -> bool {
+pub fn is_player(query_result: Vec<(Entity, Player)>, entity: Entity) -> bool {
     query_result.iter().any(|(ent, _)| *ent == entity)
 }
 
