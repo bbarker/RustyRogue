@@ -6,9 +6,9 @@ pub trait CommandOps {
 }
 impl CommandOps for Commands<'_, '_> {
     fn clear<T: Component>(&mut self, query: Query<Entity, With<T>>) {
-        query
-            .iter()
-            .for_each(|entity| self.entity(entity).remove::<T>())
+        query.iter().for_each(|entity| {
+            self.entity(entity).remove::<T>();
+        })
     }
 }
 
