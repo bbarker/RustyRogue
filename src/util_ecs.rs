@@ -58,11 +58,11 @@ macro_rules! entity_action_msg_no_ecs {
         let (players, names) = ($ecs_data.players, $ecs_data.names);
         let is_plural = $crate::player::is_player(players, $entity);
         let debug_name = $crate::components::debug_name();
-        let subject = names.get($entity).unwrap_or(&debug_name);
-        let subject_str = if (subject.name == $crate::player::PLAYER_NAME) {
+        let subject = names.iter().find(|(e, _n)| *e == $entity).map(|(_e, n)| n).unwrap_or(&debug_name);
+        let subject_str = if (subject.to_string() == $crate::player::PLAYER_NAME) {
             "You".to_string()
         } else {
-            format!("The {}", &subject.name)
+            format!("The {}", &subject)
         };
         let pluralizer: fn(&str) -> String = $crate::util::pluralize_verb_if(is_plural);
         // FIXME: we don't do a compile-time check on <SUBJ> currently;
@@ -106,7 +106,7 @@ mod tests {
         util::pluralize_verb,
         util_ecs::EcsActionMsgData,
     };
-    use bevy::prelude::Name;
+    use bevy::prelude::*;
     #[test]
     fn pluralize_tests() {
         assert!(pluralize_verb("eat") == "eats");
@@ -115,24 +115,28 @@ mod tests {
 
         let entities = gs.ecs.entities();
         let (monster_entity, _) = {
-            let mut names = gs.ecs.write_storage::<Name>();
-            // create a monster entity
-            let monster_entity = entities.create();
             let name = Name::new("goblin");
+            // create a monster entity
+            let monster_entity = gs.ecs.spawn(name);
             // associate the name with the monster entity
-            names.insert(monster_entity, name.clone()).unwrap();
             (monster_entity, name)
         };
-        let players = gs.ecs.read_storage::<Player>();
-        let names = gs.ecs.read_storage::<Name>();
-        let ecs_data = EcsActionMsgData::new(&players, &names);
+        let players: Vec<(Entity, Player)> = gs
+            .ecs
+            .query::<(Entity, &Player)>()
+            .iter(&gs.ecs)
+            .map(|(e, p)| (e, *p))
+            .collect();
+        let names = gs
+            .ecs
+            .query::<(Entity, &Name)>()
+            .iter(&gs.ecs)
+            .map(|(e, n)| (e, *n))
+            .collect();
+        let ecs_data = EcsActionMsgData::new(players, names);
         let player_entity = get_player_unwrap(&gs.ecs, PLAYER_NAME);
-        let msg_out1 = entity_action_msg_no_ecs!(
-            (&entities, &players, &names),
-            "<SUBJ> {} the apple.",
-            player_entity,
-            "eat"
-        );
+        let msg_out1 =
+            entity_action_msg_no_ecs!(ecs_data, "<SUBJ> {} the apple.", player_entity, "eat");
 
         assert_eq!(msg_out1, "You eat the apple.");
         let msg_out2 = entity_action_msg!(&gs.ecs, "<SUBJ> {} the apple.", monster_entity, "eat");
