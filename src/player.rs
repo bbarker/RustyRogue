@@ -13,6 +13,7 @@ use crate::{
         Position, Positionable, Viewshed,
     },
     gamelog,
+    gamelog::GameLog,
     gui::MainMenuSelection::*,
     map::{Map, TileType},
     RunState, State,
@@ -21,45 +22,35 @@ use crate::{
 // TODO: add this to a sub-state "Option<ClientState>" in State
 pub const PLAYER_NAME: &str = "Player";
 
-pub fn try_move_player(delta_x: i32, delta_y: i32, gs: &State) -> RunState {
-    let entities = gs.ecs.entities();
-    let mut log = gs.ecs.write_resource::<gamelog::GameLog>();
-
-    let mut positions = gs.ecs.write_storage::<Position>();
-    let mut players = gs.ecs.write_storage::<Player>();
-    let mut viewsheds = gs.ecs.write_storage::<Viewshed>();
-    let mut wants_to_melee = gs.ecs.write_storage::<EventWantsToMelee>();
-    if let Some((entity, _player, pos, viewshed)) =
-        (&entities, &mut players, &mut positions, &mut viewsheds)
-            .join()
-            .next()
-    {
-        let try_pos = &gs.ecs.fetch::<Map>().dest_from_delta(pos, delta_x, delta_y);
-        let combat_stats = gs.ecs.read_storage::<CombatStats>();
-        let mut map = gs.ecs.fetch_mut::<Map>();
+pub fn try_move_player(
+    mut commands: Commands,
+    map: ResMut<Map>,
+    log: ResMut<GameLog>,
+    query: Query<(Entity, &mut Position, &mut Viewshed), With<Player>>,
+    combat_stats: Query<&CombatStats>,
+    delta_x: i32,
+    delta_y: i32,
+) -> RunState {
+    if let Some((entity, mut pos, mut viewshed)) = query.iter_mut().next() {
+        let try_pos = map.dest_from_delta(&*pos, delta_x, delta_y);
         let destination_ix = map.pos_idx(try_pos);
         let combat = map.tile_content[destination_ix]
             .iter()
-            .filter(|potential_target| potential_target.id() != entity.id())
+            .filter(|potential_target| **potential_target != entity)
             .any(|potential_target| {
-                if let Some(_c_stats) = combat_stats.get(*potential_target) {
+                if let Ok(_c_stats) = combat_stats.get(*potential_target) {
                     log.entries
                         .push("I stab thee with righteous fury!".to_string());
-                    wants_to_melee
-                        .insert(
-                            entity,
-                            EventWantsToMelee {
-                                target: *potential_target,
-                            },
-                        )
-                        .expect("Add target failed");
+                    commands.entity(entity).insert(EventWantsToMelee {
+                        target: *potential_target,
+                    });
                     true
                 } else {
                     false
                 }
             });
         if !combat && !map.blocked[destination_ix] {
-            map.move_blocker(pos, try_pos);
+            map.move_blocker(&mut pos, &try_pos);
             viewshed.dirty = true;
             RunState::PlayerTurn
         } else if combat {
