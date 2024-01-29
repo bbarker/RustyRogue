@@ -22,26 +22,22 @@ use crate::{
 // TODO: add this to a sub-state "Option<ClientState>" in State
 pub const PLAYER_NAME: &str = "Player";
 
-pub fn try_move_player(
-    mut commands: Commands,
-    map: ResMut<Map>,
-    log: ResMut<GameLog>,
-    query: Query<(Entity, &mut Position, &mut Viewshed), With<Player>>,
-    combat_stats: Query<&CombatStats>,
-    delta_x: i32,
-    delta_y: i32,
-) -> RunState {
-    if let Some((entity, mut pos, mut viewshed)) = query.iter_mut().next() {
+pub fn try_move_player(ecs: &mut World, delta_x: i32, delta_y: i32) -> RunState {
+    let map = ecs.resource_mut::<Map>();
+    let log = ecs.resource_mut::<GameLog>();
+    let query = ecs.query_filtered::<(Entity, &mut Position, &mut Viewshed), With<Player>>();
+    let combat_stats = ecs.query::<&CombatStats>();
+    if let Some((entity, mut pos, mut viewshed)) = query.iter_mut(ecs).next() {
         let try_pos = map.dest_from_delta(&*pos, delta_x, delta_y);
         let destination_ix = map.pos_idx(try_pos);
         let combat = map.tile_content[destination_ix]
             .iter()
             .filter(|potential_target| **potential_target != entity)
             .any(|potential_target| {
-                if let Ok(_c_stats) = combat_stats.get(*potential_target) {
+                if let Ok(_c_stats) = combat_stats.get(&ecs, *potential_target) {
                     log.entries
                         .push("I stab thee with righteous fury!".to_string());
-                    commands.entity(entity).insert(EventWantsToMelee {
+                    ecs.entity_mut(entity).insert(EventWantsToMelee {
                         target: *potential_target,
                     });
                     true
@@ -187,7 +183,7 @@ impl KeyBindings {
                         (VirtualKeyCode::A, vec![]),
                         (VirtualKeyCode::Numpad4, vec![]),
                     ],
-                    action: Arc::new(|gs| try_move_player(-1, 0, gs)),
+                    action: Arc::new(|gs| try_move_player(&mut gs.ecs, -1, 0)),
                 },
             ),
             (
@@ -198,7 +194,7 @@ impl KeyBindings {
                         (VirtualKeyCode::D, vec![]),
                         (VirtualKeyCode::Numpad6, vec![]),
                     ],
-                    action: Arc::new(|gs| try_move_player(1, 0, gs)),
+                    action: Arc::new(|gs| try_move_player(&mut gs.ecs, 1, 0)),
                 },
             ),
             (
@@ -209,7 +205,7 @@ impl KeyBindings {
                         (VirtualKeyCode::W, vec![]),
                         (VirtualKeyCode::Numpad8, vec![]),
                     ],
-                    action: Arc::new(|gs| try_move_player(0, -1, gs)),
+                    action: Arc::new(|gs| try_move_player(&mut gs.ecs, 0, -1)),
                 },
             ),
             (
@@ -220,35 +216,35 @@ impl KeyBindings {
                         (VirtualKeyCode::S, vec![]),
                         (VirtualKeyCode::Numpad2, vec![]),
                     ],
-                    action: Arc::new(|gs| try_move_player(0, 1, gs)),
+                    action: Arc::new(|gs| try_move_player(&mut gs.ecs, 0, 1)),
                 },
             ),
             (
                 PlayerAction::UpLeft,
                 ActionAndKeys {
                     key_codes: vec![(VirtualKeyCode::Numpad7, vec![])],
-                    action: Arc::new(|gs| try_move_player(-1, -1, gs)),
+                    action: Arc::new(|gs| try_move_player(&mut gs.ecs, -1, -1)),
                 },
             ),
             (
                 PlayerAction::UpRight,
                 ActionAndKeys {
                     key_codes: vec![(VirtualKeyCode::Numpad9, vec![])],
-                    action: Arc::new(|gs| try_move_player(1, -1, gs)),
+                    action: Arc::new(|gs| try_move_player(&mut gs.ecs, 1, -1)),
                 },
             ),
             (
                 PlayerAction::DownLeft,
                 ActionAndKeys {
                     key_codes: vec![(VirtualKeyCode::Numpad1, vec![])],
-                    action: Arc::new(|gs| try_move_player(-1, 1, gs)),
+                    action: Arc::new(|gs| try_move_player(&mut gs.ecs, -1, 1)),
                 },
             ),
             (
                 PlayerAction::DownRight,
                 ActionAndKeys {
                     key_codes: vec![(VirtualKeyCode::Numpad3, vec![])],
-                    action: Arc::new(|gs| try_move_player(1, 1, gs)),
+                    action: Arc::new(|gs| try_move_player(&mut gs.ecs, 1, 1)),
                 },
             ),
             (
