@@ -34,7 +34,7 @@ pub fn try_move_player(ecs: &mut World, delta_x: i32, delta_y: i32) -> RunState 
             .iter()
             .filter(|potential_target| **potential_target != entity)
             .any(|potential_target| {
-                if let Ok(_c_stats) = combat_stats.get(&ecs, *potential_target) {
+                if let Ok(_c_stats) = combat_stats.get(ecs, *potential_target) {
                     log.entries
                         .push("I stab thee with righteous fury!".to_string());
                     ecs.entity_mut(entity).insert(EventWantsToMelee {
@@ -308,24 +308,26 @@ pub fn player_input(gs: &mut State, ctx: &BTerm) -> RunState {
     }
 }
 
-fn skip_turn(ecs: &World) -> RunState {
+fn skip_turn(ecs: &mut World) -> RunState {
     let player_entity = get_player_unwrap(ecs, PLAYER_NAME);
-    let viewsheds = ecs.read_storage::<Viewshed>();
-    let monsters = ecs.read_storage::<Monster>();
+    let viewsheds = ecs.query::<&Viewshed>();
+    let monsters = ecs.query::<&Monster>();
 
-    let worldmap_res = ecs.fetch::<Map>();
+    let worldmap = ecs.resource_mut::<Map>();
 
-    let viewshed = viewsheds.get(player_entity).unwrap();
+    let viewshed = viewsheds.get(ecs, player_entity).unwrap();
     let can_heal = viewshed.visible_tiles.iter().any(|ix| {
-        let some_monster = worldmap_res.tile_content[worldmap_res.pos_idx(ix)]
+        let some_monster = worldmap.tile_content[worldmap.pos_idx(ix)]
             .iter()
-            .filter_map(|en| monsters.get(*en))
+            .filter_map(|en| monsters.get(ecs, *en).ok())
             .next();
         some_monster.is_none()
     });
     if can_heal {
-        let mut combat_stats = ecs.write_storage::<CombatStats>();
-        let player_stats = combat_stats.get_mut(player_entity).unwrap();
+        // TODO: this will be a good test to see how mutability matters for
+        //     : the various parts of a query
+        let combat_stats = ecs.query::<&CombatStats>();
+        let player_stats = combat_stats.get_mut(ecs, player_entity).unwrap();
         player_stats.hp = u16::min(player_stats.max_hp, player_stats.hp + 1);
     }
     RunState::PlayerTurn
