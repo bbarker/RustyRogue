@@ -5,7 +5,7 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 use once_cell::sync::OnceCell;
 //use specs::{world::EntitiesRes, *};
-use bevy::prelude::*;
+use bevy::{ecs::system::RunSystemOnce, prelude::*};
 
 use crate::{
     components::{
@@ -254,7 +254,7 @@ impl KeyBindings {
                         (VirtualKeyCode::Numpad5, vec![]),
                         (VirtualKeyCode::Space, vec![]),
                     ],
-                    action: Arc::new(|gs| skip_turn(&gs.ecs)),
+                    action: Arc::new(|gs| skip_turn(gs.ecs)),
                 },
             ),
             (
@@ -337,41 +337,37 @@ pub fn is_player(query_result: Vec<(Entity, Player)>, entity: Entity) -> bool {
     query_result.iter().any(|(ent, _)| *ent == entity)
 }
 
-// pub fn get_player_no_ecs(
-//     query_result: Vec<(Entity, )
-//     entities: &Read<EntitiesRes>,
-//     names: &ReadStorage<Name>,
-//     players: P,
-//     player_name: impl Into<String>,
-// ) -> Option<Entity>
-// where
-//     P::Type: IsPlayer,
-// {
-//     let pname = player_name.into();
-//     (entities, players, names)
-//         .join()
-//         .filter_map(
-//             |(ent, _, name)| {
-//                 if pname == name.name {
-//                     Some(ent)
-//                 } else {
-//                     None
-//                 }
-//             },
-//         )
-//         .next()
-// }
+pub fn get_player_no_ecs(
+    query: Query<(Entity, &Name), With<Player>>,
+    In(player_name): In<impl Into<String>>,
+) -> Option<Entity> {
+    let pname = player_name.into();
+    query
+        .iter()
+        .filter_map(|(ent, name)| {
+            if pname == name.to_string() {
+                Some(ent)
+            } else {
+                None
+            }
+        })
+        .next()
+}
 
 // TODO: one-shot system?
 // might want to look into usince OnceCell with the SystemId
 // or just lazy_static if there's no chance of multiple threads racing to
 // initialize
-pub fn get_player(ecs: &World, player_name: impl Into<String>) -> Option<Entity> {
-    let entities = ecs.entities();
-    let names = ecs.read_storage::<Name>();
-    let players = ecs.read_storage::<Player>();
 
-    // get_player_no_ecs(&entities, &names, &players, player_name)
+// pub fn get_player_system(player_name: impl Into<String>, query: Query) -> Option<Entity> {
+//     let entities = ecs.entities();
+//     let names = ecs.read_storage::<Name>();
+//     let players = ecs.read_storage::<Player>();
+
+//     // get_player_no_ecs(&entities, &names, &players, player_name)
+// }
+pub fn get_player(ecs: &World, player_name: impl Into<String>) {
+    ecs.run_system_once_with(In(player_name), get_player_no_ecs)
 }
 
 pub fn get_player_unwrap(ecs: &World, player_name: impl Into<String>) -> Entity {
