@@ -254,7 +254,7 @@ impl KeyBindings {
                         (VirtualKeyCode::Numpad5, vec![]),
                         (VirtualKeyCode::Space, vec![]),
                     ],
-                    action: Arc::new(|gs| skip_turn(gs.ecs)),
+                    action: Arc::new(|gs| skip_turn(&mut gs.ecs)),
                 },
             ),
             (
@@ -338,8 +338,8 @@ pub fn is_player(query_result: Vec<(Entity, Player)>, entity: Entity) -> bool {
 }
 
 pub fn get_player_no_ecs(
-    query: Query<(Entity, &Name), With<Player>>,
     In(player_name): In<impl Into<String>>,
+    query: Query<(Entity, &Name), With<Player>>,
 ) -> Option<Entity> {
     let pname = player_name.into();
     query
@@ -354,20 +354,8 @@ pub fn get_player_no_ecs(
         .next()
 }
 
-// TODO: one-shot system?
-// might want to look into usince OnceCell with the SystemId
-// or just lazy_static if there's no chance of multiple threads racing to
-// initialize
-
-// pub fn get_player_system(player_name: impl Into<String>, query: Query) -> Option<Entity> {
-//     let entities = ecs.entities();
-//     let names = ecs.read_storage::<Name>();
-//     let players = ecs.read_storage::<Player>();
-
-//     // get_player_no_ecs(&entities, &names, &players, player_name)
-// }
-pub fn get_player(ecs: &World, player_name: impl Into<String>) {
-    ecs.run_system_once_with(In(player_name), get_player_no_ecs)
+pub fn get_player(ecs: &World, player_name: impl Into<String>) -> Option<Entity> {
+    ecs.run_system_once_with(player_name.into(), get_player_no_ecs)
 }
 
 pub fn get_player_unwrap(ecs: &World, player_name: impl Into<String>) -> Entity {
