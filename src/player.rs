@@ -353,25 +353,42 @@ pub fn get_player_no_ecs(
         })
         .next()
 }
-
+//
 pub fn get_player(ecs: &World, player_name: impl Into<String>) -> Option<Entity> {
     ecs.run_system_once_with(player_name.into(), get_player_no_ecs)
 }
-
+//
 pub fn get_player_unwrap(ecs: &World, player_name: impl Into<String>) -> Entity {
-    let name = player_name.into();
-    get_player(ecs, &name).unwrap_or_else(|| panic!("Player {} not found", name))
+    get_player(ecs, player_name)
+        .unwrap_or_else(|| panic!("Player {} not found", player_name.into()))
 }
 
+pub fn get_player_pos_no_ecs(
+    In(player_name): In<impl Into<String>>,
+    query: Query<(&Name, &Position), With<Player>>,
+) -> Option<Position> {
+    let pname = player_name.into();
+    query
+        .iter()
+        .filter_map(|(name, pos)| {
+            if pname == name.to_string() {
+                Some(*pos)
+            } else {
+                None
+            }
+        })
+        .next()
+}
+//
+// TODO: if we have more functions like these, make them generic in the component type we are
+//     : asking for.
+pub fn get_player_pos(ecs: &World, player_name: impl Into<String>) -> Option<Position> {
+    ecs.run_system_once_with(player_name.into(), get_player_pos_no_ecs)
+}
+//
 pub fn get_player_pos_unwrap(ecs: &World, player_name: impl Into<String>) -> Position {
-    let player_entity = get_player_unwrap(ecs, player_name);
-    let positions = ecs.read_storage::<Position>();
-    *positions.get(player_entity).unwrap_or_else(|| {
-        panic!(
-            "Player entity {} does not have a position component",
-            player_entity.id()
-        )
-    })
+    get_player_pos(ecs, player_name)
+        .unwrap_or_else(|| panic!("Player {} not found", player_name.into()))
 }
 
 fn interact(ecs: &World) -> RunState {
