@@ -394,11 +394,11 @@ pub fn get_player_pos_unwrap(ecs: &World, player_name: impl Into<String>) -> Pos
 fn interact(ecs: &World) -> RunState {
     let player_map_ix = {
         let player_pos = get_player_pos_unwrap(ecs, PLAYER_NAME);
-        let map = ecs.fetch::<Map>();
+        let map = ecs.resource::<Map>();
         map.pos_idx(player_pos)
     };
     let map_tiles = {
-        let map = ecs.fetch::<Map>();
+        let map = ecs.resource::<Map>();
         map.tiles.clone()
     };
     match map_tiles[player_map_ix] {
@@ -410,18 +410,16 @@ fn interact(ecs: &World) -> RunState {
 
 pub fn get_item(ecs: &World) -> RunState {
     let entities = ecs.entities();
-    let players = ecs.read_storage::<Player>();
-    let positions = ecs.read_storage::<Position>();
-    let items = ecs.read_storage::<Item>();
-    let mut gamelog = ecs.write_resource::<gamelog::GameLog>();
+    let mut gamelog = ecs.resource_mut::<gamelog::GameLog>();
 
     let player_posns = ecs.query::<(Entity, &Position, With<Player>)>().iter(ecs);
 
-    let player_target_items: Vec<EventWantsToPickupItem> = (&entities, &items, &positions)
-        .join()
-        .cartesian_product(player_posns)
-        .filter_map(|((item_entity, _, pos), player_pos)| {
-            if player_pos.1 == *pos {
+    let player_target_items: Vec<EventWantsToPickupItem> = ecs
+        .query_filtered::<(Entity, &Position), With<Item>>() // (&entities, &items, &positions)
+        .iter(ecs)
+        .cartesian_product(player_posns.collect_vec())
+        .filter_map(|((item_entity, pos), player_pos)| {
+            if *player_pos.1 == *pos {
                 Some(EventWantsToPickupItem {
                     collected_by: player_pos.0,
                     item: item_entity,
@@ -437,10 +435,8 @@ pub fn get_item(ecs: &World) -> RunState {
             .push("There is nothing here to pick up.".to_string());
     } else {
         player_target_items.into_iter().for_each(|wants_to_pickup| {
-            let mut pickup = ecs.write_storage::<EventWantsToPickupItem>();
-            pickup
-                .insert(wants_to_pickup.collected_by, wants_to_pickup)
-                .unwrap_or_else(|er| panic!("Unable to insert pickup event: {}", er));
+            ecs.entity_mut(wants_to_pickup.collected_by)
+                .insert(wants_to_pickup);
         })
     }
     RunState::PlayerTurn
