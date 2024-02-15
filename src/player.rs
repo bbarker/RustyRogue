@@ -9,10 +9,9 @@ use bevy::{ecs::system::RunSystemOnce, prelude::*};
 
 use crate::{
     components::{
-        CombatStats, EventWantsToMelee, EventWantsToPickupItem, IsPlayer, Item, Monster, Player,
-        Position, Positionable, Viewshed,
+        CombatStats, EventWantsToMelee, EventWantsToPickupItem, Item, Monster, Player, Position,
+        Viewshed,
     },
-    gamelog,
     gamelog::GameLog,
     gui::MainMenuSelection::*,
     map::{Map, TileType},
@@ -319,8 +318,7 @@ fn skip_turn(ecs: &mut World) -> RunState {
     let can_heal = viewshed.visible_tiles.iter().any(|ix| {
         let some_monster = worldmap.tile_content[worldmap.pos_idx(ix)]
             .iter()
-            .filter_map(|en| monsters.get(ecs, *en).ok())
-            .next();
+            .find_map(|en| monsters.get(ecs, *en).ok());
         some_monster.is_none()
     });
     if can_heal {
@@ -410,7 +408,7 @@ fn interact(ecs: &World) -> RunState {
 
 pub fn get_item(ecs: &World) -> RunState {
     let entities = ecs.entities();
-    let mut gamelog = ecs.resource_mut::<gamelog::GameLog>();
+    let mut gamelog = ecs.resource_mut::<GameLog>();
 
     let player_posns = ecs.query::<(Entity, &Position, With<Player>)>().iter(ecs);
 
@@ -444,9 +442,9 @@ pub fn get_item(ecs: &World) -> RunState {
 
 fn try_next_level(ecs: &World) -> RunState {
     let player_pos = get_player_pos_unwrap(ecs, PLAYER_NAME);
-    let map = ecs.fetch::<Map>();
+    let map = ecs.resource::<Map>();
     let player_ix = map.pos_idx(player_pos);
-    let mut gamelog = ecs.write_resource::<gamelog::GameLog>();
+    let mut gamelog = ecs.resource_mut::<GameLog>();
     if map.tiles[player_ix] == TileType::DownStairs {
         gamelog.entries.push("You descend the stairs.".to_string());
         RunState::NextLevel
