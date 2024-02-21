@@ -22,40 +22,44 @@ use crate::{
 pub const PLAYER_NAME: &str = "Player";
 
 pub fn try_move_player(ecs: &mut World, delta_x: i32, delta_y: i32) -> RunState {
-    let map = ecs.resource_mut::<Map>();
-    let log = ecs.resource_mut::<GameLog>();
-    let query = ecs.query_filtered::<(Entity, &mut Position, &mut Viewshed), With<Player>>();
-    let combat_stats = ecs.query::<&CombatStats>();
-    if let Some((entity, mut pos, mut viewshed)) = query.iter_mut(ecs).next() {
-        let try_pos = map.dest_from_delta(&*pos, delta_x, delta_y);
-        let destination_ix = map.pos_idx(try_pos);
-        let combat = map.tile_content[destination_ix]
-            .iter()
-            .filter(|potential_target| **potential_target != entity)
-            .any(|potential_target| {
-                if let Ok(_c_stats) = combat_stats.get(ecs, *potential_target) {
-                    log.entries
-                        .push("I stab thee with righteous fury!".to_string());
-                    ecs.entity_mut(entity).insert(EventWantsToMelee {
-                        target: *potential_target,
+    ecs.resource_scope(|ecs, mut map: Mut<Map>| {
+        ecs.resource_scope(|ecs, mut log: Mut<GameLog>| {
+            // let log = ecs.resource_mut::<GameLog>();
+            let mut query =
+                ecs.query_filtered::<(Entity, &mut Position, &mut Viewshed), With<Player>>();
+            let mut combat_stats = ecs.query::<&CombatStats>();
+            if let Some((entity, mut pos, mut viewshed)) = query.iter_mut(ecs).next() {
+                let try_pos = map.dest_from_delta(&*pos, delta_x, delta_y);
+                let destination_ix = map.pos_idx(try_pos);
+                let combat = map.tile_content[destination_ix]
+                    .iter()
+                    .filter(|potential_target| **potential_target != entity)
+                    .any(|potential_target| {
+                        if let Ok(_c_stats) = combat_stats.get(ecs, *potential_target) {
+                            log.entries
+                                .push("I stab thee with righteous fury!".to_string());
+                            ecs.entity_mut(entity).insert(EventWantsToMelee {
+                                target: *potential_target,
+                            });
+                            true
+                        } else {
+                            false
+                        }
                     });
-                    true
+                if !combat && !map.blocked[destination_ix] {
+                    map.move_blocker(&mut pos, &try_pos);
+                    viewshed.dirty = true;
+                    RunState::PlayerTurn
+                } else if combat {
+                    RunState::PlayerTurn
                 } else {
-                    false
+                    RunState::AwaitingInput
                 }
-            });
-        if !combat && !map.blocked[destination_ix] {
-            map.move_blocker(&mut pos, &try_pos);
-            viewshed.dirty = true;
-            RunState::PlayerTurn
-        } else if combat {
-            RunState::PlayerTurn
-        } else {
-            RunState::AwaitingInput
-        }
-    } else {
-        RunState::AwaitingInput
-    }
+            } else {
+                RunState::AwaitingInput
+            }
+        })
+    })
 }
 
 macro_attr! {
