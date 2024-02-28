@@ -21,14 +21,15 @@ use crate::{
 // TODO: add this to a sub-state "Option<ClientState>" in State
 pub const PLAYER_NAME: &str = "Player";
 
+// TODO: use one-shot system
 pub fn try_move_player(ecs: &mut World, delta_x: i32, delta_y: i32) -> RunState {
     ecs.resource_scope(|ecs, mut map: Mut<Map>| {
         ecs.resource_scope(|ecs, mut log: Mut<GameLog>| {
-            // let log = ecs.resource_mut::<GameLog>();
             let mut query =
                 ecs.query_filtered::<(Entity, &mut Position, &mut Viewshed), With<Player>>();
+            let mut query_iter = query.iter_mut(ecs);
             let mut combat_stats = ecs.query::<&CombatStats>();
-            if let Some((entity, mut pos, mut viewshed)) = query.iter_mut(ecs).next() {
+            if let Some((entity, mut pos, mut viewshed)) = query_iter.next() {
                 let try_pos = map.dest_from_delta(&*pos, delta_x, delta_y);
                 let destination_ix = map.pos_idx(try_pos);
                 let combat = map.tile_content[destination_ix]
@@ -356,13 +357,12 @@ pub fn get_player_no_ecs(
         .next()
 }
 //
-pub fn get_player(ecs: &World, player_name: impl Into<String>) -> Option<Entity> {
+pub fn get_player(ecs: &mut World, player_name: impl Into<String>) -> Option<Entity> {
     ecs.run_system_once_with(player_name.into(), get_player_no_ecs)
 }
 //
-pub fn get_player_unwrap(ecs: &World, player_name: impl Into<String>) -> Entity {
-    get_player(ecs, player_name)
-        .unwrap_or_else(|| panic!("Player {} not found", player_name.into()))
+pub fn get_player_unwrap(ecs: &mut World, player_name: impl Into<String>) -> Entity {
+    get_player(ecs, player_name).unwrap_or_else(|| panic!("Player not found"))
 }
 
 pub fn get_player_pos_no_ecs(
@@ -384,16 +384,15 @@ pub fn get_player_pos_no_ecs(
 //
 // TODO: if we have more functions like these, make them generic in the component type we are
 //     : asking for.
-pub fn get_player_pos(ecs: &World, player_name: impl Into<String>) -> Option<Position> {
+pub fn get_player_pos(ecs: &mut World, player_name: impl Into<String>) -> Option<Position> {
     ecs.run_system_once_with(player_name.into(), get_player_pos_no_ecs)
 }
 //
-pub fn get_player_pos_unwrap(ecs: &World, player_name: impl Into<String>) -> Position {
-    get_player_pos(ecs, player_name)
-        .unwrap_or_else(|| panic!("Player {} not found", player_name.into()))
+pub fn get_player_pos_unwrap(ecs: &mut World, player_name: impl Into<String>) -> Position {
+    get_player_pos(ecs, player_name).unwrap_or_else(|| panic!("Player not found"))
 }
 
-fn interact(ecs: &World) -> RunState {
+fn interact(ecs: &mut World) -> RunState {
     let player_map_ix = {
         let player_pos = get_player_pos_unwrap(ecs, PLAYER_NAME);
         let map = ecs.resource::<Map>();
@@ -410,7 +409,7 @@ fn interact(ecs: &World) -> RunState {
     }
 }
 
-pub fn get_item(ecs: &World) -> RunState {
+pub fn get_item(ecs: &mut World) -> RunState {
     let entities = ecs.entities();
     let mut gamelog = ecs.resource_mut::<GameLog>();
 
@@ -444,18 +443,21 @@ pub fn get_item(ecs: &World) -> RunState {
     RunState::PlayerTurn
 }
 
-fn try_next_level(ecs: &World) -> RunState {
+// TODO: use one-shot system
+fn try_next_level(ecs: &mut World) -> RunState {
     let player_pos = get_player_pos_unwrap(ecs, PLAYER_NAME);
     let map = ecs.resource::<Map>();
     let player_ix = map.pos_idx(player_pos);
-    let mut gamelog = ecs.resource_mut::<GameLog>();
-    if map.tiles[player_ix] == TileType::DownStairs {
-        gamelog.entries.push("You descend the stairs.".to_string());
-        RunState::NextLevel
-    } else {
-        gamelog
-            .entries
-            .push("There is no way down from here.".to_string());
-        RunState::AwaitingInput
-    }
+    ecs.resource_scope(|ecs, mut gamelog: Mut<GameLog>| {
+        // let mut gamelog = ecs.resource_mut::<GameLog>();
+        if map.tiles[player_ix] == TileType::DownStairs {
+            gamelog.entries.push("You descend the stairs.".to_string());
+            RunState::NextLevel
+        } else {
+            gamelog
+                .entries
+                .push("There is no way down from here.".to_string());
+            RunState::AwaitingInput
+        }
+    })
 }
