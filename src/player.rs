@@ -21,46 +21,49 @@ use crate::{
 // TODO: add this to a sub-state "Option<ClientState>" in State
 pub const PLAYER_NAME: &str = "Player";
 
+pub fn try_move_player_system(
+    In(dx_dy): In<(i32, i32)>,
+    query: Query<(Entity, &mut Position, &mut Viewshed), With<Player>>, // need mutable?
+    combat_stats: Query<&CombatStats>,
+    log: Mut<GameLog>,
+    map: Mut<Map>,
+) -> RunState {
+    let (delta_x, delta_y) = dx_dy;
+    if let Some((entity, mut pos, mut viewshed)) = query.iter_mut().next() {
+        let try_pos = map.dest_from_delta(&*pos, delta_x, delta_y);
+        let destination_ix = map.pos_idx(try_pos);
+        let combat = map.tile_content[destination_ix]
+            .iter()
+            .filter(|potential_target| **potential_target != entity)
+            .any(|potential_target| {
+                if let Ok(_c_stats) = combat_stats.get(*potential_target) {
+                    log.entries
+                        .push("I stab thee with righteous fury!".to_string());
+                    ecs.entity_mut(entity).insert(EventWantsToMelee {
+                        target: *potential_target,
+                    });
+                    true
+                } else {
+                    false
+                }
+            });
+        if !combat && !map.blocked[destination_ix] {
+            map.move_blocker(&mut pos, &try_pos);
+            viewshed.dirty = true;
+            RunState::PlayerTurn
+        } else if combat {
+            RunState::PlayerTurn
+        } else {
+            RunState::AwaitingInput
+        }
+    } else {
+        RunState::AwaitingInput
+    }
+}
+
 // TODO: use one-shot system
 pub fn try_move_player(ecs: &mut World, delta_x: i32, delta_y: i32) -> RunState {
-    ecs.resource_scope(|ecs, mut map: Mut<Map>| {
-        ecs.resource_scope(|ecs, mut log: Mut<GameLog>| {
-            let mut query =
-                ecs.query_filtered::<(Entity, &mut Position, &mut Viewshed), With<Player>>();
-            let mut query_iter = query.iter_mut(ecs);
-            let mut combat_stats = ecs.query::<&CombatStats>();
-            if let Some((entity, mut pos, mut viewshed)) = query_iter.next() {
-                let try_pos = map.dest_from_delta(&*pos, delta_x, delta_y);
-                let destination_ix = map.pos_idx(try_pos);
-                let combat = map.tile_content[destination_ix]
-                    .iter()
-                    .filter(|potential_target| **potential_target != entity)
-                    .any(|potential_target| {
-                        if let Ok(_c_stats) = combat_stats.get(ecs, *potential_target) {
-                            log.entries
-                                .push("I stab thee with righteous fury!".to_string());
-                            ecs.entity_mut(entity).insert(EventWantsToMelee {
-                                target: *potential_target,
-                            });
-                            true
-                        } else {
-                            false
-                        }
-                    });
-                if !combat && !map.blocked[destination_ix] {
-                    map.move_blocker(&mut pos, &try_pos);
-                    viewshed.dirty = true;
-                    RunState::PlayerTurn
-                } else if combat {
-                    RunState::PlayerTurn
-                } else {
-                    RunState::AwaitingInput
-                }
-            } else {
-                RunState::AwaitingInput
-            }
-        })
-    })
+    // TODO: run_system_once_with
 }
 
 macro_attr! {
