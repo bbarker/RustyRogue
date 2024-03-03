@@ -23,10 +23,11 @@ pub const PLAYER_NAME: &str = "Player";
 
 pub fn try_move_player_system(
     In(dx_dy): In<(i32, i32)>,
-    query: Query<(Entity, &mut Position, &mut Viewshed), With<Player>>, // need mutable?
+    mut commands: Commands,
+    mut log: ResMut<GameLog>,
+    mut map: ResMut<Map>,
+    mut query: Query<(Entity, &mut Position, &mut Viewshed), With<Player>>, // need mutable?
     combat_stats: Query<&CombatStats>,
-    log: Mut<GameLog>,
-    map: Mut<Map>,
 ) -> RunState {
     let (delta_x, delta_y) = dx_dy;
     if let Some((entity, mut pos, mut viewshed)) = query.iter_mut().next() {
@@ -39,7 +40,7 @@ pub fn try_move_player_system(
                 if let Ok(_c_stats) = combat_stats.get(*potential_target) {
                     log.entries
                         .push("I stab thee with righteous fury!".to_string());
-                    ecs.entity_mut(entity).insert(EventWantsToMelee {
+                    commands.entity(entity).insert(EventWantsToMelee {
                         target: *potential_target,
                     });
                     true
@@ -61,9 +62,8 @@ pub fn try_move_player_system(
     }
 }
 
-// TODO: use one-shot system
 pub fn try_move_player(ecs: &mut World, delta_x: i32, delta_y: i32) -> RunState {
-    // TODO: run_system_once_with
+    ecs.run_system_once_with((delta_x, delta_y), try_move_player_system)
 }
 
 macro_attr! {
