@@ -268,7 +268,7 @@ impl KeyBindings {
                 PlayerAction::Grab,
                 ActionAndKeys {
                     key_codes: vec![(VirtualKeyCode::G, vec![])],
-                    action: Arc::new(|gs| interact(&gs.ecs)),
+                    action: Arc::new(|gs| interact(&mut gs.ecs)),
                 },
             ),
         ]
@@ -315,35 +315,41 @@ pub fn player_input(gs: &mut State, ctx: &BTerm) -> RunState {
     }
 }
 
-fn skip_turn(ecs: &mut World) -> RunState {
-    let player_entity = get_player_unwrap(ecs, PLAYER_NAME);
-    let viewsheds = ecs.query::<&Viewshed>();
-    let monsters = ecs.query::<&Monster>();
+fn skip_turn_system(
+    player_names: Query<(Entity, &Name), With<Player>>,
+    viewsheds: Query<&Viewshed>,
+    monsters: Query<&Monster>,
+    mut combat_stats: Query<&mut CombatStats>,
+    worldmap: Res<Map>,
+) -> RunState {
+    let player_entity = get_player_system_unwrap(In(PLAYER_NAME), player_names);
 
-    let worldmap = ecs.resource_mut::<Map>();
-
-    let viewshed = viewsheds.get(ecs, player_entity).unwrap();
+    let viewshed = viewsheds.get(player_entity).unwrap();
     let can_heal = viewshed.visible_tiles.iter().any(|ix| {
         let some_monster = worldmap.tile_content[worldmap.pos_idx(ix)]
             .iter()
-            .find_map(|en| monsters.get(ecs, *en).ok());
+            .find_map(|en| monsters.get(*en).ok());
         some_monster.is_none()
     });
     if can_heal {
         // TODO: this will be a good test to see how mutability matters for
         //     : the various parts of a query
-        let combat_stats = ecs.query::<&CombatStats>();
-        let player_stats = combat_stats.get_mut(ecs, player_entity).unwrap();
-        player_stats.hp = u16::min(player_stats.max_hp, player_stats.hp + 1);
+        if let Ok(mut player_stats) = combat_stats.get_mut(player_entity) {
+            player_stats.hp = u16::min(player_stats.max_hp, player_stats.hp + 1);
+        };
     }
     RunState::PlayerTurn
+}
+//
+fn skip_turn(ecs: &mut World) -> RunState {
+    ecs.run_system_once(skip_turn_system)
 }
 
 pub fn is_player(query_result: Vec<(Entity, Player)>, entity: Entity) -> bool {
     query_result.iter().any(|(ent, _)| *ent == entity)
 }
 
-pub fn get_player_no_ecs(
+pub fn get_player_system(
     In(player_name): In<impl Into<String>>,
     query: Query<(Entity, &Name), With<Player>>,
 ) -> Option<Entity> {
@@ -361,11 +367,17 @@ pub fn get_player_no_ecs(
 }
 //
 pub fn get_player(ecs: &mut World, player_name: impl Into<String>) -> Option<Entity> {
-    ecs.run_system_once_with(player_name.into(), get_player_no_ecs)
+    ecs.run_system_once_with(player_name.into(), get_player_system)
+}
+pub fn get_player_system_unwrap(
+    player_name: In<impl Into<String>>,
+    query: Query<(Entity, &Name), With<Player>>,
+) -> Entity {
+    get_player_system(player_name, query).unwrap_or_else(|| panic!("Player not found"))
 }
 //
 pub fn get_player_unwrap(ecs: &mut World, player_name: impl Into<String>) -> Entity {
-    get_player(ecs, player_name).unwrap_or_else(|| panic!("Player not found"))
+    ecs.run_system_once_with(player_name.into(), get_player_system_unwrap)
 }
 
 pub fn get_player_pos_no_ecs(
