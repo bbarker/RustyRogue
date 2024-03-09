@@ -380,7 +380,7 @@ pub fn get_player_unwrap(ecs: &mut World, player_name: impl Into<String>) -> Ent
     ecs.run_system_once_with(player_name.into(), get_player_system_unwrap)
 }
 
-pub fn get_player_pos_no_ecs(
+pub fn get_player_pos_system(
     In(player_name): In<impl Into<String>>,
     query: Query<(&Name, &Position), With<Player>>,
 ) -> Option<Position> {
@@ -399,8 +399,9 @@ pub fn get_player_pos_no_ecs(
 //
 // TODO: if we have more functions like these, make them generic in the component type we are
 //     : asking for.
+// Answer: yes we do - mainly in this file.
 pub fn get_player_pos(ecs: &mut World, player_name: impl Into<String>) -> Option<Position> {
-    ecs.run_system_once_with(player_name.into(), get_player_pos_no_ecs)
+    ecs.run_system_once_with(player_name.into(), get_player_pos_system)
 }
 //
 pub fn get_player_pos_unwrap(ecs: &mut World, player_name: impl Into<String>) -> Position {
@@ -424,6 +425,7 @@ fn interact(ecs: &mut World) -> RunState {
     }
 }
 
+// TODO: use one-shot system
 pub fn get_item(ecs: &mut World) -> RunState {
     let entities = ecs.entities();
     let mut gamelog = ecs.resource_mut::<GameLog>();
@@ -458,21 +460,24 @@ pub fn get_item(ecs: &mut World) -> RunState {
     RunState::PlayerTurn
 }
 
+fn try_next_level_system(
+    query: Query<(&Name, &Position), With<Player>>,
+    mut gamelog: ResMut<GameLog>,
+    map: Res<Map>,
+) -> RunState {
+    let player_pos = get_player_pos_system(In(PLAYER_NAME), query).unwrap(); // TODO attempt to generify the get_* functions
+    let player_ix = map.pos_idx(player_pos);
+    if map.tiles[player_ix] == TileType::DownStairs {
+        gamelog.entries.push("You descend the stairs.".to_string());
+        RunState::NextLevel
+    } else {
+        gamelog
+            .entries
+            .push("There is no way down from here.".to_string());
+        RunState::AwaitingInput
+    }
+}
 // TODO: use one-shot system
 fn try_next_level(ecs: &mut World) -> RunState {
-    let player_pos = get_player_pos_unwrap(ecs, PLAYER_NAME);
-    let map = ecs.resource::<Map>();
-    let player_ix = map.pos_idx(player_pos);
-    ecs.resource_scope(|ecs, mut gamelog: Mut<GameLog>| {
-        // let mut gamelog = ecs.resource_mut::<GameLog>();
-        if map.tiles[player_ix] == TileType::DownStairs {
-            gamelog.entries.push("You descend the stairs.".to_string());
-            RunState::NextLevel
-        } else {
-            gamelog
-                .entries
-                .push("There is no way down from here.".to_string());
-            RunState::AwaitingInput
-        }
-    })
+    ecs.run_system_once(try_next_level_system)
 }
