@@ -5,8 +5,6 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 use once_cell::sync::OnceCell;
 //use specs::{world::EntitiesRes, *};
-use bevy::{ecs::system::RunSystemOnce, prelude::*};
-
 use crate::{
     components::{
         CombatStats, EventWantsToMelee, EventWantsToPickupItem, Item, Monster, Player, Position,
@@ -17,6 +15,7 @@ use crate::{
     map::{Map, TileType},
     RunState, State,
 };
+use bevy::{ecs::system::RunSystemOnce, prelude::*};
 
 // TODO: add this to a sub-state "Option<ClientState>" in State
 pub const PLAYER_NAME: &str = "Player";
@@ -354,16 +353,13 @@ pub fn get_player_system(
     query: Query<(Entity, &Name), With<Player>>,
 ) -> Option<Entity> {
     let pname = player_name.into();
-    query
-        .iter()
-        .filter_map(|(ent, name)| {
-            if pname == name.to_string() {
-                Some(ent)
-            } else {
-                None
-            }
-        })
-        .next()
+    query.iter().find_map(|(ent, name)| {
+        if pname == name.to_string() {
+            Some(ent)
+        } else {
+            None
+        }
+    })
 }
 //
 pub fn get_player(ecs: &mut World, player_name: impl Into<String>) -> Option<Entity> {
@@ -385,21 +381,15 @@ pub fn get_player_pos_system(
     query: Query<(&Name, &Position), With<Player>>,
 ) -> Option<Position> {
     let pname = player_name.into();
-    query
-        .iter()
-        .filter_map(|(name, pos)| {
-            if pname == name.to_string() {
-                Some(*pos)
-            } else {
-                None
-            }
-        })
-        .next()
+    query.iter().find_map(|(name, pos)| {
+        if pname == name.to_string() {
+            Some(*pos)
+        } else {
+            None
+        }
+    })
 }
 //
-// TODO: if we have more functions like these, make them generic in the component type we are
-//     : asking for.
-// Answer: yes we do - mainly in this file.
 pub fn get_player_pos(ecs: &mut World, player_name: impl Into<String>) -> Option<Position> {
     ecs.run_system_once_with(player_name.into(), get_player_pos_system)
 }
@@ -425,17 +415,16 @@ fn interact(ecs: &mut World) -> RunState {
     }
 }
 
-// TODO: use one-shot system
-pub fn get_item(ecs: &mut World) -> RunState {
-    let entities = ecs.entities();
-    let mut gamelog = ecs.resource_mut::<GameLog>();
-
-    let player_posns = ecs.query::<(Entity, &Position, With<Player>)>().iter(ecs);
-
-    let player_target_items: Vec<EventWantsToPickupItem> = ecs
-        .query_filtered::<(Entity, &Position), With<Item>>() // (&entities, &items, &positions)
-        .iter(ecs)
-        .cartesian_product(player_posns.collect_vec())
+pub fn get_item_system(
+    mut commands: Commands,
+    mut gamelog: ResMut<GameLog>,
+    player_posns_query: Query<(Entity, &Position), With<Player>>,
+    item_posns_query: Query<(Entity, &Position), With<Item>>,
+) -> RunState {
+    let player_posns = player_posns_query.iter().collect_vec();
+    let player_target_items: Vec<EventWantsToPickupItem> = item_posns_query
+        .iter()
+        .cartesian_product(player_posns)
         .filter_map(|((item_entity, pos), player_pos)| {
             if *player_pos.1 == *pos {
                 Some(EventWantsToPickupItem {
@@ -453,17 +442,22 @@ pub fn get_item(ecs: &mut World) -> RunState {
             .push("There is nothing here to pick up.".to_string());
     } else {
         player_target_items.into_iter().for_each(|wants_to_pickup| {
-            ecs.entity_mut(wants_to_pickup.collected_by)
+            commands
+                .entity(wants_to_pickup.collected_by)
                 .insert(wants_to_pickup);
         })
     }
     RunState::PlayerTurn
 }
 
+pub fn get_item(ecs: &mut World) -> RunState {
+    ecs.run_system_once(get_item_system)
+}
+
 fn try_next_level_system(
-    query: Query<(&Name, &Position), With<Player>>,
     mut gamelog: ResMut<GameLog>,
     map: Res<Map>,
+    query: Query<(&Name, &Position), With<Player>>,
 ) -> RunState {
     let player_pos = get_player_pos_system(In(PLAYER_NAME), query).unwrap(); // TODO attempt to generify the get_* functions
     let player_ix = map.pos_idx(player_pos);
