@@ -343,8 +343,8 @@ pub fn get_equipped_items(
     query.iter().for_each(|(entity, item, equipped)| {
         if equipped.owner == owner {
             if let Item::Equippable(equipment) = item {
-                equipped_items.insert(equipped.slot, (equipment.clone(), entity));
-                if let Some(extra_slot) = equipped.slot_extra {
+                equipped_items.insert(equipped.slot.clone(), (equipment.clone(), entity));
+                if let Some(extra_slot) = equipped.slot_extra.clone() {
                     equipped_items.insert(extra_slot, (equipment.clone(), entity));
                 }
             }
